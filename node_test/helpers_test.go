@@ -102,7 +102,7 @@ func setupChainService(tc TestCase, tp TestParticipant, si sharedTestInfrastruct
 	case MockChain:
 		return chainservice.NewMockChainService(si.mockChain, tp.Address())
 	case SimulatedChain:
-		logDestination := logging.NewLogWriter("../artifacts", tc.LogName)
+		logDestination := logging.NewLogWriter("../artifacts", tc.LogName+"_chain_"+string(tp.Name)+".log")
 
 		ethAccountIndex := tp.Port - testactors.START_PORT
 		cs, err := chainservice.NewSimulatedBackendChainService(si.simulatedChain, *si.bindings, si.ethAccounts[ethAccountIndex], logDestination)
@@ -132,11 +132,10 @@ func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) st
 }
 
 func setupIntegrationNode(tc TestCase, tp TestParticipant, si sharedTestInfrastructure, bootPeers []string) (node.Node, messageservice.MessageService, string) {
-	// messageService, multiAddr := setupMessageService(tc, tp, si, bootPeers, newLogWriter(tc.LogName))
-	messageService, multiAddr := setupMessageService(tc, tp, si, bootPeers, logging.NewLogWriter("../artifacts", tc.LogName))
+	messageService, multiAddr := setupMessageService(tc, tp, si, bootPeers, logging.NewLogWriter("../artifacts", tc.LogName+"_message_"+string(tp.Name)+".log"))
 	cs := setupChainService(tc, tp, si)
 	store := setupStore(tc, tp, si)
-	n := node.New(messageService, cs, store, logging.NewLogWriter("../artifacts", tc.LogName), &engine.PermissivePolicy{}, nil)
+	n := node.New(messageService, cs, store, logging.NewLogWriter("../artifacts", tc.LogName+"_engine_"+string(tp.Name)+".log"), &engine.PermissivePolicy{}, nil)
 	return n, messageService, multiAddr
 }
 
