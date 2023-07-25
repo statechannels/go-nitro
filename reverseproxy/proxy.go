@@ -133,10 +133,6 @@ func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 // webError is a helper function to return an http error.
 func (p *ReversePaymentProxy) webError(w http.ResponseWriter, err error, code int) {
-	// TODO: This is a hack to allow CORS requests to the gateway for the boost integration demo.
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "*")
-
 	http.Error(w, err.Error(), code)
 	p.logger.Error().Err(err).Msgf("Error processing request")
 }
