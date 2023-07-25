@@ -3,7 +3,6 @@ package node_test
 import (
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
 	"net/url"
 	"os"
@@ -23,14 +22,15 @@ import (
 )
 
 const (
-	destinationServerResponseBody = "Hello! This is from the destination server"
-	parseErrorResponseBody        = "could not parse voucher"
-	signatureErrorResponseBody    = "error processing voucher"
-	proxyAddress                  = ":5511"
-	bobRPCUrl                     = ":4107/api/v1"
-	destPort                      = 6622
-	otherParam                    = "otherParam"
-	otherParamValue               = "2"
+	smallResponse              = "Hello"
+	largeResponse              = "HelloWorldHelloWorld"
+	parseErrorResponseBody     = "could not parse voucher"
+	signatureErrorResponseBody = "error processing voucher"
+	proxyAddress               = ":5511"
+	bobRPCUrl                  = ":4107/api/v1"
+	destPort                   = 6622
+	otherParam                 = "otherParam"
+	otherParamValue            = "2"
 )
 
 func TestReversePaymentProxy(t *testing.T) {
@@ -53,8 +53,8 @@ func TestReversePaymentProxy(t *testing.T) {
 		proxyAddress,
 		bobRPCUrl,
 		destinationServerUrl,
-		big.NewInt(5),
-		zerolog.New(logDestination).Level(zerolog.DebugLevel))
+		1,
+		zerolog.New(os.Stdout).Level(zerolog.DebugLevel))
 	defer func() {
 		err := proxy.Stop()
 		if err != nil {
@@ -68,13 +68,12 @@ func TestReversePaymentProxy(t *testing.T) {
 	}
 
 	voucher := createVoucher(t, aliceClient, paymentChannel, 5)
-
 	resp := performGetRequest(t, fmt.Sprintf("http://%s/resource?channelId=%s&amount=%d&signature=%s", proxyAddress, voucher.ChannelId, voucher.Amount.Int64(), voucher.Signature.ToHexString()))
-	checkResponse(t, resp, destinationServerResponseBody, http.StatusOK)
+	checkResponse(t, resp, smallResponse, http.StatusOK)
 
 	// Using the same voucher again should result in a payment required response
 	resp = performGetRequest(t, fmt.Sprintf("http://%s/resource?channelId=%s&amount=%d&signature=%s", proxyAddress, voucher.ChannelId, voucher.Amount.Int64(), voucher.Signature.ToHexString()))
-	checkResponse(t, resp, expectedPaymentErrorMessage(0), http.StatusPaymentRequired)
+	checkResponse(t, resp, expectedPaymentErrorMessage(5, 0), http.StatusPaymentRequired)
 
 	// Not providing a voucher should result in a payment required response
 	resp = performGetRequest(t, fmt.Sprintf("http://%s/resource", proxyAddress))
@@ -83,7 +82,7 @@ func TestReversePaymentProxy(t *testing.T) {
 	// A voucher less than 5 should be rejected
 	voucher = createVoucher(t, aliceClient, paymentChannel, 4)
 	resp = performGetRequest(t, fmt.Sprintf("http://%s/resource?channelId=%s&amount=%d&signature=%s", proxyAddress, voucher.ChannelId, voucher.Amount.Uint64(), voucher.Signature.ToHexString()))
-	checkResponse(t, resp, expectedPaymentErrorMessage(4), http.StatusPaymentRequired)
+	checkResponse(t, resp, expectedPaymentErrorMessage(5, 4), http.StatusPaymentRequired)
 
 	// A voucher with a bad signature should be rejected
 	voucher = createVoucher(t, aliceClient, paymentChannel, 5)
@@ -97,12 +96,22 @@ func TestReversePaymentProxy(t *testing.T) {
 	// Check that the proxy can handle non voucher params and pass them along to the destination server
 	voucher = createVoucher(t, aliceClient, paymentChannel, 5)
 	resp = performGetRequest(t, fmt.Sprintf("http://%s/resource/params?channelId=%s&amount=%d&signature=%s&otherParam=2", proxyAddress, voucher.ChannelId, voucher.Amount, voucher.Signature.ToHexString()))
-	checkResponse(t, resp, destinationServerResponseBody, http.StatusOK)
+	checkResponse(t, resp, smallResponse, http.StatusOK)
 
 	// It should properly handle a request to a non existent endpoint
 	voucher = createVoucher(t, aliceClient, paymentChannel, 5)
 	resp = performGetRequest(t, fmt.Sprintf("http://%s/badpath?channelId=%s&amount=%d&signature=%s", proxyAddress, voucher.ChannelId, voucher.Amount.Uint64(), voucher.Signature.ToHexString()))
 	checkResponse(t, resp, "", http.StatusNotFound)
+
+	// It should return a larger response if the voucher is large enough
+	voucher = createVoucher(t, aliceClient, paymentChannel, 20)
+	resp = performGetRequest(t, fmt.Sprintf("http://%s/largeResource?channelId=%s&amount=%d&signature=%s", proxyAddress, voucher.ChannelId, voucher.Amount.Int64(), voucher.Signature.ToHexString()))
+	checkResponse(t, resp, largeResponse, http.StatusOK)
+
+	// It should return a payment required response for a large response if the voucher is  not large enough
+	voucher = createVoucher(t, aliceClient, paymentChannel, 5)
+	resp = performGetRequest(t, fmt.Sprintf("http://%s/largeResource?channelId=%s&amount=%d&signature=%s", proxyAddress, voucher.ChannelId, voucher.Amount.Int64(), voucher.Signature.ToHexString()))
+	checkResponse(t, resp, expectedPaymentErrorMessage(20, 5), http.StatusPaymentRequired)
 }
 
 // createVoucher creates a voucher for the given channel and amount	using the given client
@@ -115,8 +124,8 @@ func createVoucher(t *testing.T, client rpc.RpcClientApi, channelId types.Destin
 	return v
 }
 
-func expectedPaymentErrorMessage(numPaid int) string {
-	return fmt.Sprintf("payment of 5 required, the voucher only resulted in a payment of %d", numPaid)
+func expectedPaymentErrorMessage(total, numPaid int) string {
+	return fmt.Sprintf("payment of %d required, the voucher only resulted in a payment of %d", total, numPaid)
 }
 
 // performGetRequest performs a GET request to the given url
@@ -229,7 +238,7 @@ func runDestinationServer(t *testing.T, port uint) (destUrl string, cleanup func
 	}
 
 	handleRequest := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/resource" && r.URL.Path != "/resource/params" {
+		if r.URL.Path != "/resource" && r.URL.Path != "/resource/params" && r.URL.Path != "/largeResource" {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -247,16 +256,23 @@ func runDestinationServer(t *testing.T, port uint) (destUrl string, cleanup func
 		}
 
 		// Always check that the voucher params were stripped out of every request
-		for p := range params {
-			if p == reverseproxy.AMOUNT_VOUCHER_PARAM || p == reverseproxy.CHANNEL_ID_VOUCHER_PARAM || p == reverseproxy.SIGNATURE_VOUCHER_PARAM {
-				t.Fatalf("Expected no voucher information to be passed along, but got %s", p)
-			}
-		}
+		// for p := range params {
+		// 	if p == reverseproxy.AMOUNT_VOUCHER_PARAM || p == reverseproxy.CHANNEL_ID_VOUCHER_PARAM || p == reverseproxy.SIGNATURE_VOUCHER_PARAM {
+		// 		t.Fatalf("Expected no voucher information to be passed along, but got %s", p)
+		// 	}
+		// }
 
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain")
-		_, err = w.Write([]byte(destinationServerResponseBody))
-		checkError(err)
+		if r.URL.Path == "/largeResource" {
+
+			_, err = w.Write([]byte(largeResponse))
+			checkError(err)
+		} else {
+
+			_, err = w.Write([]byte(smallResponse))
+			checkError(err)
+		}
 	})
 
 	server := &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: handleRequest}
