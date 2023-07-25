@@ -5,6 +5,8 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+// Triggered by p2pHost.Network events. When new peers are connected, the
+// "Connected" notification handler will trigger nitro state channel address exchange
 type NetworkNotifiee struct {
 	ms *P2PMessageService
 }

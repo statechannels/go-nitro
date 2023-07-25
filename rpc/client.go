@@ -26,8 +26,62 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// RpcClient is a client for making nitro rpc calls
-type RpcClient struct {
+// RpcClientApi provides various functions to make RPC API calls to a nitro RPC server
+type RpcClientApi interface {
+	// Address returns the address of the nitro node
+	Address() (common.Address, error)
+
+	// CreateVoucher creates a voucher for the given channelId and amount and returns it.
+	// It is the responsibility of the caller to send the voucher to the payee.
+	CreateVoucher(chId types.Destination, amount uint64) (payments.Voucher, error)
+
+	// ReceiveVoucher receives a voucher and adds it to the go-nitro store.
+	// It returns the total amount received so far and the amount received from the voucher supplied.
+	// It can be used to add a voucher that was sent outside of the go-nitro system.
+	ReceiveVoucher(v payments.Voucher) (payments.ReceiveVoucherSummary, error)
+
+	// GetPaymentChannel returns the payment channel information for the given channelId
+	GetPaymentChannel(chId types.Destination) (query.PaymentChannelInfo, error)
+
+	// CreatePaymentChannel creates a new virtual payment channel with the specified intermediaries, counterparty, ChallengeDuration, and outcome
+	CreatePaymentChannel(intermediaries []types.Address, counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) (virtualfund.ObjectiveResponse, error)
+
+	// ClosePaymentChannel attempts to close the payment channel with the specified channelId
+	ClosePaymentChannel(id types.Destination) (protocols.ObjectiveId, error)
+
+	// GetLedgerChannel returns the ledger channel information for the given channelId
+	GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, error)
+
+	// GetAllLedgerChannels returns information about all ledger channels
+	GetAllLedgerChannels() ([]query.LedgerChannelInfo, error)
+
+	// GetPaymentChannelsByLedger returns all active payment channels for a given ledger channel
+	GetPaymentChannelsByLedger(ledgerId types.Destination) ([]query.PaymentChannelInfo, error)
+
+	// CreateLedgerChannel creates a new ledger channel with the specified counterparty, ChallengeDuration, and outcome
+	CreateLedgerChannel(counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) (directfund.ObjectiveResponse, error)
+
+	// CloseLedgerChannel attempts to close the ledger channel with the specified channelId
+	CloseLedgerChannel(id types.Destination) (protocols.ObjectiveId, error)
+
+	// Pay uses the specified channel to pay the specified amount
+	Pay(id types.Destination, amount uint64) (serde.PaymentRequest, error)
+
+	// Close shuts down the RpcClient and closes the underlying transport
+	Close() error
+
+	// ObjectiveCompleteChan returns a channel that receives an empty struct when the objective with the given id is completed
+	ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{}
+
+	// LedgerChannelUpdatesChan returns a channel that receives ledger channel updates for the given ledger channel id
+	LedgerChannelUpdatesChan(ledgerChannelId types.Destination) <-chan query.LedgerChannelInfo
+
+	// PaymentChannelUpdatesChan returns a channel that receives payment channel updates for the given payment channel id
+	PaymentChannelUpdatesChan(paymentChannelId types.Destination) <-chan query.PaymentChannelInfo
+}
+
+// rpcClient is the implementation
+type rpcClient struct {
 	transport             transport.Requester
 	logger                zerolog.Logger
 	completedObjectives   *safesync.Map[chan struct{}]
@@ -45,9 +99,9 @@ type response[T serde.ResponsePayload] struct {
 }
 
 // NewRpcClient creates a new RpcClient
-func NewRpcClient(logger zerolog.Logger, trans transport.Requester) (*RpcClient, error) {
+func NewRpcClient(logger zerolog.Logger, trans transport.Requester) (RpcClientApi, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	c := &RpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}, common.Address{}}
+	c := &rpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}, common.Address{}}
 
 	notificationChan, err := c.transport.Subscribe()
 	if err != nil {
@@ -59,8 +113,8 @@ func NewRpcClient(logger zerolog.Logger, trans transport.Requester) (*RpcClient,
 	return c, nil
 }
 
-// NewHttpRpcClient creates a new RpcClient using an http transport
-func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
+// NewHttpRpcClient creates a new rpcClient using an http transport
+func NewHttpRpcClient(rpcServerUrl string) (RpcClientApi, error) {
 	logger := zerolog.New(os.Stdout)
 	transport, err := ws.NewWebSocketTransportAsClient(rpcServerUrl, logger)
 	if err != nil {
@@ -70,7 +124,7 @@ func NewHttpRpcClient(rpcServerUrl string) (*RpcClient, error) {
 }
 
 // Address returns the address of the the nitro node
-func (rc *RpcClient) Address() (common.Address, error) {
+func (rc *rpcClient) Address() (common.Address, error) {
 	if (rc.nodeAddress == common.Address{}) {
 		return waitForRequest[serde.NoPayloadRequest, common.Address](rc, serde.GetAddressMethod, serde.NoPayloadRequest{})
 	}
@@ -79,7 +133,7 @@ func (rc *RpcClient) Address() (common.Address, error) {
 
 // CreateVoucher creates a voucher for the given channelId and amount and returns it.
 // It is the responsibility of the caller to send the voucher to the payee.
-func (rc *RpcClient) CreateVoucher(chId types.Destination, amount uint64) (payments.Voucher, error) {
+func (rc *rpcClient) CreateVoucher(chId types.Destination, amount uint64) (payments.Voucher, error) {
 	req := serde.PaymentRequest{Channel: chId, Amount: amount}
 	return waitForRequest[serde.PaymentRequest, payments.Voucher](rc, serde.CreateVoucherRequestMethod, req)
 }
@@ -87,18 +141,18 @@ func (rc *RpcClient) CreateVoucher(chId types.Destination, amount uint64) (payme
 // ReceiveVoucher receives a voucher and adds it to the go-nitro store.
 // It returns the total amount received so far and the amount received from the voucher supplied.
 // It can be used to add a voucher that was sent outside of the go-nitro system.
-func (rc *RpcClient) ReceiveVoucher(v payments.Voucher) (payments.ReceiveVoucherSummary, error) {
+func (rc *rpcClient) ReceiveVoucher(v payments.Voucher) (payments.ReceiveVoucherSummary, error) {
 	return waitForRequest[payments.Voucher, payments.ReceiveVoucherSummary](rc, serde.ReceiveVoucherRequestMethod, v)
 }
 
-func (rc *RpcClient) GetPaymentChannel(chId types.Destination) (query.PaymentChannelInfo, error) {
+func (rc *rpcClient) GetPaymentChannel(chId types.Destination) (query.PaymentChannelInfo, error) {
 	req := serde.GetPaymentChannelRequest{Id: chId}
 
 	return waitForRequest[serde.GetPaymentChannelRequest, query.PaymentChannelInfo](rc, serde.GetPaymentChannelRequestMethod, req)
 }
 
 // CreatePaymentChannel creates a new virtual payment channel
-func (rc *RpcClient) CreatePaymentChannel(intermediaries []types.Address, counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) (virtualfund.ObjectiveResponse, error) {
+func (rc *rpcClient) CreatePaymentChannel(intermediaries []types.Address, counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) (virtualfund.ObjectiveResponse, error) {
 	objReq := virtualfund.NewObjectiveRequest(
 		intermediaries,
 		counterparty,
@@ -111,31 +165,31 @@ func (rc *RpcClient) CreatePaymentChannel(intermediaries []types.Address, counte
 }
 
 // ClosePaymentChannel attempts to close the payment channel with supplied id
-func (rc *RpcClient) ClosePaymentChannel(id types.Destination) (protocols.ObjectiveId, error) {
+func (rc *rpcClient) ClosePaymentChannel(id types.Destination) (protocols.ObjectiveId, error) {
 	objReq := virtualdefund.NewObjectiveRequest(
 		id)
 
 	return waitForRequest[virtualdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.ClosePaymentChannelRequestMethod, objReq)
 }
 
-func (rc *RpcClient) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, error) {
+func (rc *rpcClient) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, error) {
 	req := serde.GetLedgerChannelRequest{Id: id}
 
 	return waitForRequest[serde.GetLedgerChannelRequest, query.LedgerChannelInfo](rc, serde.GetLedgerChannelRequestMethod, req)
 }
 
 // GetAllLedgerChannels returns all ledger channels
-func (rc *RpcClient) GetAllLedgerChannels() ([]query.LedgerChannelInfo, error) {
+func (rc *rpcClient) GetAllLedgerChannels() ([]query.LedgerChannelInfo, error) {
 	return waitForRequest[serde.NoPayloadRequest, []query.LedgerChannelInfo](rc, serde.GetAllLedgerChannelsMethod, struct{}{})
 }
 
 // GetPaymentChannelsByLedger returns all active payment channels for a given ledger channel
-func (rc *RpcClient) GetPaymentChannelsByLedger(ledgerId types.Destination) ([]query.PaymentChannelInfo, error) {
+func (rc *rpcClient) GetPaymentChannelsByLedger(ledgerId types.Destination) ([]query.PaymentChannelInfo, error) {
 	return waitForRequest[serde.GetPaymentChannelsByLedgerRequest, []query.PaymentChannelInfo](rc, serde.GetPaymentChannelsByLedgerMethod, serde.GetPaymentChannelsByLedgerRequest{LedgerId: ledgerId})
 }
 
 // CreateLedger creates a new ledger channel
-func (rc *RpcClient) CreateLedgerChannel(counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) (directfund.ObjectiveResponse, error) {
+func (rc *rpcClient) CreateLedgerChannel(counterparty types.Address, ChallengeDuration uint32, outcome outcome.Exit) (directfund.ObjectiveResponse, error) {
 	objReq := directfund.NewObjectiveRequest(
 		counterparty,
 		100,
@@ -147,25 +201,25 @@ func (rc *RpcClient) CreateLedgerChannel(counterparty types.Address, ChallengeDu
 }
 
 // CloseLedger closes a ledger channel
-func (rc *RpcClient) CloseLedgerChannel(id types.Destination) (protocols.ObjectiveId, error) {
+func (rc *rpcClient) CloseLedgerChannel(id types.Destination) (protocols.ObjectiveId, error) {
 	objReq := directdefund.NewObjectiveRequest(id)
 
 	return waitForRequest[directdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.CloseLedgerChannelRequestMethod, objReq)
 }
 
 // Pay uses the specified channel to pay the specified amount
-func (rc *RpcClient) Pay(id types.Destination, amount uint64) (serde.PaymentRequest, error) {
+func (rc *rpcClient) Pay(id types.Destination, amount uint64) (serde.PaymentRequest, error) {
 	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
 	return waitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
 }
 
-func (rc *RpcClient) Close() error {
+func (rc *rpcClient) Close() error {
 	rc.cancel()
 	rc.wg.Wait()
 	return rc.transport.Close()
 }
 
-func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationChan <-chan []byte) {
+func (rc *rpcClient) subscribeToNotifications(ctx context.Context, notificationChan <-chan []byte) {
 	rc.logger.Trace().Msg("Subscribed to notifications")
 	for {
 		select {
@@ -173,7 +227,7 @@ func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationC
 			rc.wg.Done()
 			return
 		case data := <-notificationChan:
-			rc.logger.Trace().Bytes("data", data).Msg("Received notification")
+			rc.logger.Trace().RawJSON("data", data).Msg("Received notification")
 			method, err := getNotificationMethod(data)
 			if err != nil {
 				panic(err)
@@ -211,24 +265,24 @@ func (rc *RpcClient) subscribeToNotifications(ctx context.Context, notificationC
 }
 
 // ObjectiveCompleteChan returns a chan that receives an empty struct when the objective with given id is completed
-func (rc *RpcClient) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
+func (rc *rpcClient) ObjectiveCompleteChan(id protocols.ObjectiveId) <-chan struct{} {
 	c, _ := rc.completedObjectives.LoadOrStore(string(id), make(chan struct{}))
 	return c
 }
 
 // LedgerChannelUpdatesChan returns a chan that receives ledger channel updates.
-func (rc *RpcClient) LedgerChannelUpdatesChan(ledgerChannelId types.Destination) <-chan query.LedgerChannelInfo {
+func (rc *rpcClient) LedgerChannelUpdatesChan(ledgerChannelId types.Destination) <-chan query.LedgerChannelInfo {
 	c, _ := rc.ledgerChannelUpdates.LoadOrStore(string(ledgerChannelId.String()), make(chan query.LedgerChannelInfo, 100))
 	return c
 }
 
 // PaymentChannelUpdatesChan returns a chan that receives payment channel updates.
-func (rc *RpcClient) PaymentChannelUpdatesChan(paymentChannelId types.Destination) <-chan query.PaymentChannelInfo {
+func (rc *rpcClient) PaymentChannelUpdatesChan(paymentChannelId types.Destination) <-chan query.PaymentChannelInfo {
 	c, _ := rc.paymentChannelUpdates.LoadOrStore(string(paymentChannelId.String()), make(chan query.PaymentChannelInfo, 100))
 	return c
 }
 
-func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *RpcClient, method serde.RequestMethod, requestData T) (U, error) {
+func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *rpcClient, method serde.RequestMethod, requestData T) (U, error) {
 	rc.wg.Add(1)
 	defer rc.wg.Done()
 

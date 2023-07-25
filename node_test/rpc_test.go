@@ -33,13 +33,12 @@ func simpleOutcome(a, b types.Address, aBalance, bBalance uint) outcome.Exit {
 	return testdata.Outcomes.Create(a, b, aBalance, bBalance, types.Address{})
 }
 
-func createLogger(logDestination *os.File, clientName, rpcRole string) zerolog.Logger {
-	return zerolog.New(logDestination).
+func createLogger(logDestination *os.File, clientName *types.Address, rpcRole string) zerolog.Logger {
+	return logging.WithAddress(zerolog.New(logDestination).
 		Level(zerolog.TraceLevel).
 		With().
 		Timestamp().
-		Str("client", clientName).
-		Str("rpc", rpcRole).
+		Str("rpc", rpcRole), clientName).
 		Logger()
 }
 
@@ -120,7 +119,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		chainServices[i] = chainservice.NewMockChainService(chain, actors[i].Address())
 	}
 
-	clients := make([]*rpc.RpcClient, n)
+	clients := make([]rpc.RpcClientApi, n)
 	msgServices := make([]*p2pms.P2PMessageService, n)
 
 	for i := 0; i < n; i++ {
@@ -391,14 +390,14 @@ func setupNitroNodeWithRPCClient(
 	chain *chainservice.MockChainService,
 	logDestination *os.File,
 	connectionType transport.TransportType,
-) (*rpc.RpcClient, *p2pms.P2PMessageService, func()) {
+) (rpc.RpcClientApi, *p2pms.P2PMessageService, func()) {
 	var err error
 	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, false, "", msgPort, rpcPort, connectionType, logDestination, []string{}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clientLogger := createLogger(logDestination, rpcServer.Address().Hex(), "client")
+	clientLogger := createLogger(logDestination, rpcServer.Address(), "client")
 
 	var clientConnection transport.Requester
 	switch connectionType {

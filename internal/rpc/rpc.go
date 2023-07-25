@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/internal/chain"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/node/engine"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
@@ -86,6 +87,13 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		&engine.PermissivePolicy{},
 		nil)
 
+	serverLogger := logging.WithAddress(zerolog.New(logDestination).
+		Level(zerolog.TraceLevel).
+		With().
+		Timestamp().
+		Str("rpc", "server"), ourStore.GetAddress()).
+		Logger()
+
 	var transport transport.Responder
 
 	switch transportType {
@@ -96,7 +104,7 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 	case "ws":
 		logger.Info().Msg("Initializing websocket RPC transport...")
 
-		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
+		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort), serverLogger)
 	default:
 		err = fmt.Errorf("unknown transport type %s", transportType)
 	}
@@ -104,14 +112,6 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 	if err != nil {
 		return nil, nil, nil, err
 	}
-
-	serverLogger := zerolog.New(logDestination).
-		Level(zerolog.TraceLevel).
-		With().
-		Timestamp().
-		Str("node", ourStore.GetAddress().String()).
-		Str("rpc", "server").
-		Logger()
 
 	rpcServer, err := rpc.NewRpcServer(&node, &serverLogger, transport)
 	if err != nil {

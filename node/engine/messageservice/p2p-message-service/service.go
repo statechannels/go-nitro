@@ -84,7 +84,7 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 		newPeerInfo: make(chan basicPeerInfo, BUFFER_SIZE),
 		peers:       &safesync.Map[peer.ID]{},
 		me:          me,
-		logger:      zerolog.New(logWriter).With().Timestamp().Str("message-service", me.String()[0:8]).Caller().Logger(),
+		logger:      logging.WithAddress(zerolog.New(logWriter).With().Timestamp(), &me).Caller().Logger(),
 	}
 
 	messageKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(pk)
@@ -93,7 +93,7 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	ms.key = messageKey
 	options := []libp2p.Option{
 		libp2p.Identity(messageKey),
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", "0.0.0.0", port)),
+		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port)),
 		libp2p.Transport(tcp.NewTCPTransport),
 		libp2p.NATPortMap(),
 		libp2p.DefaultMuxers,
@@ -106,6 +106,16 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	ms.p2pHost = host
 	ms.p2pHost.SetStreamHandler(PROTOCOL_ID, ms.msgStreamHandler)
 	ms.p2pHost.SetStreamHandler(PEER_EXCHANGE_PROTOCOL_ID, ms.receivePeerInfo)
+
+	// Print out my own peerInfo
+	peerInfo := peer.AddrInfo{
+		ID:    ms.p2pHost.ID(),
+		Addrs: ms.p2pHost.Addrs(),
+	}
+	addrs, err := peer.AddrInfoToP2pAddrs(&peerInfo)
+	ms.checkError(err)
+	ms.MultiAddr = addrs[0].String()
+	ms.logger.Debug().Msgf("libp2p node multiaddrs: %v", addrs)
 
 	if useMdnsPeerDiscovery {
 		ms.setupMdns()
@@ -135,16 +145,6 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	kademliaDHT, err := dht.New(ctx, ms.p2pHost, options...)
 	ms.checkError(err)
 	ms.dht = kademliaDHT
-
-	// Print out my own peerInfo
-	peerInfo := peer.AddrInfo{
-		ID:    ms.p2pHost.ID(),
-		Addrs: ms.p2pHost.Addrs(),
-	}
-	addrs, err := peer.AddrInfoToP2pAddrs(&peerInfo)
-	ms.checkError(err)
-	ms.MultiAddr = addrs[0].String()
-	ms.logger.Debug().Msgf("libp2p node multiaddrs: %v", addrs)
 
 	// Setup notifications so we exchange nitro signing addresses when connected
 	n := &NetworkNotifiee{ms: ms}

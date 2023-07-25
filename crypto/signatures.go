@@ -90,6 +90,11 @@ func joinSignature(signature Signature) (concatenatedSignature []byte) {
 	return
 }
 
+// ToHexString returns the signature as a hex string
+func (s Signature) ToHexString() string {
+	return hexutil.Encode(joinSignature(s))
+}
+
 func (s1 Signature) Equal(s2 Signature) bool {
 	return bytes.Equal(s1.S, s2.S) && bytes.Equal(s1.R, s2.R) && s1.V == s2.V
 }

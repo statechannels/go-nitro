@@ -34,7 +34,7 @@ func createLogger(logDestination *os.File, clientName string) zerolog.Logger {
 		Logger()
 }
 
-func createLedgerChannel(left *rpc.RpcClient, right *rpc.RpcClient) error {
+func createLedgerChannel(left rpc.RpcClientApi, right rpc.RpcClientApi) error {
 	leftAddress, err := left.Address()
 	if err != nil {
 		return err
@@ -61,7 +61,7 @@ func createChannels() error {
 	logDestination := logging.NewLogWriter("./artifacts", logFile)
 	defer logDestination.Close()
 	participants := []string{"alice", "irene", "bob"}
-	clients := map[string]*rpc.RpcClient{}
+	clients := map[string]rpc.RpcClientApi{}
 	for _, participant := range participants {
 		var participantOpts participantOpts
 
@@ -80,7 +80,7 @@ func createChannels() error {
 		}
 	}
 
-	alice, irene, bob := clients["alice"], clients["bob"], clients["irene"]
+	alice, bob, irene := clients["alice"], clients["bob"], clients["irene"]
 
 	err := createLedgerChannel(alice, irene)
 	if err != nil {

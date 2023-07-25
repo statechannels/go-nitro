@@ -148,7 +148,7 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	e.toApi = make(chan EngineEvent, 100)
 
 	logging.ConfigureZeroLogger()
-	e.logger = zerolog.New(logDestination).With().Timestamp().Str("engine", e.store.GetAddress().String()[0:8]).Caller().Logger()
+	e.logger = logging.WithAddress(zerolog.New(logDestination).With().Timestamp(), e.store.GetAddress()).Caller().Logger()
 
 	e.policymaker = policymaker
 

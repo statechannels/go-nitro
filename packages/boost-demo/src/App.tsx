@@ -135,7 +135,7 @@ function App() {
       : voucher.Signature;
     try {
       const result = await axios.get(
-        `http://localhost:7777/ipfs/${payloadId}?channelId=${voucher.ChannelId}&amount=${voucher.Amount}&signature=${signatureToUse}`,
+        `http://localhost:5511/ipfs/${payloadId}?channelId=${voucher.ChannelId}&amount=${voucher.Amount}&signature=${signatureToUse}`,
         {
           responseType: "blob", // This lets us download the file
           headers: {

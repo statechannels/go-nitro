@@ -14,19 +14,45 @@ async function fetchAndSetLedgerChannels(
   setLedgerChannels(await nitroClient.GetAllLedgerChannels());
 }
 
+async function getRpcPort(): Promise<string> {
+  const xhr = new XMLHttpRequest();
+  xhr.open("GET", new URL("/rpc-port", window.location.href));
+  xhr.send();
+  return new Promise((res, rej) => {
+    xhr.onload = function () {
+      if (xhr.status === 200) {
+        res(xhr.responseText);
+      } else if (xhr.status === 404) {
+        rej("could not get rpc port");
+      }
+    };
+  });
+}
+
+async function getRpcHost(): Promise<string> {
+  if (import.meta.env.VITE_RPC_HOST) {
+    return import.meta.env.VITE_RPC_HOST;
+  } else {
+    return getRpcPort().then(
+      (rpcPort) => window.location.hostname + ":" + rpcPort
+    );
+  }
+}
+
 function App() {
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
   const [ledgerChannels, setLedgerChannels] = useState<LedgerChannelInfo[]>([]);
   const [focusedLedgerChannel, setFocusedLedgerChannel] = useState<string>("");
 
   useEffect(() => {
-    const host = import.meta.env.VITE_RPC_HOST ?? window.location.host;
-    NitroRpcClient.CreateHttpNitroClient(host + "/api/v1").then((c) => {
-      setNitroClient(c);
-      fetchAndSetLedgerChannels(c, setLedgerChannels);
-      c.Notifications.on("objective_completed", () =>
-        fetchAndSetLedgerChannels(c, setLedgerChannels)
-      );
+    getRpcHost().then((rpcHost) => {
+      NitroRpcClient.CreateHttpNitroClient(rpcHost + "/api/v1").then((c) => {
+        setNitroClient(c);
+        fetchAndSetLedgerChannels(c, setLedgerChannels);
+        c.Notifications.on("objective_completed", () =>
+          fetchAndSetLedgerChannels(c, setLedgerChannels)
+        );
+      });
     });
   }, []);
 

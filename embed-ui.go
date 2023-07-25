@@ -7,23 +7,28 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
-	"net"
 	"net/http"
 )
 
 //go:embed packages/nitro-gui/dist/*
 var staticSiteRaw embed.FS
 
-func hostNitroUI(port uint) {
+func hostNitroUI(guiPort uint, rpcPort uint) {
 	staticSite, err := fs.Sub(fs.FS(staticSiteRaw), "packages/nitro-gui/dist")
 	if err != nil {
 		log.Fatalf("Error parsing static site: %s", err)
 	}
 
-	http.Handle("/", http.FileServer(http.FS(staticSite)))
-	serverAddress := fmt.Sprintf(":%d", port)
+	fs := http.FileServer(http.FS(staticSite))
+	http.Handle("/", fs)
 
-	url := fmt.Sprintf("http://localhost:%d/", port)
+	http.HandleFunc("/rpc-port", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "%d", rpcPort)
+	})
+
+	serverAddress := fmt.Sprintf(":%d", guiPort)
+
+	url := fmt.Sprintf("http://localhost:%d/", guiPort)
 
 	fmt.Printf("Hosting UI at %s\n", url)
 	http.ListenAndServe(serverAddress, nil)

@@ -4,6 +4,6 @@ package main
 
 import "fmt"
 
-func hostNitroUI(port uint) {
+func hostNitroUI(uint, uint) {
 	fmt.Println("Not hosting UI.")
 }
