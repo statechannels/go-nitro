@@ -18,7 +18,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
-	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/rs/zerolog"
@@ -170,7 +169,6 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 				break
 			}
 		}
-		// go ms.discoverPeers(ctx, string(PEER_EXCHANGE_PROTOCOL_ID)) // This will fail if DHT is empty (aka expectedPeers == 0)
 	}
 
 	err = ms.dht.Bootstrap(ctx) // Runs periodically to maintain a healthy routing table
@@ -333,42 +331,5 @@ func (ms *P2PMessageService) addBootPeers(peers []string) {
 		ms.logger.Debug().Msgf("connected to boot peer: %v", p)
 
 		ms.sendPeerInfo(peer.ID, true)
-	}
-}
-
-func (ms *P2PMessageService) discoverPeers(ctx context.Context, topic string) {
-	routingDiscovery := routing.NewRoutingDiscovery(ms.dht)
-	_, err := routingDiscovery.Advertise(ctx, topic) // fires every 3 hours by default
-	ms.checkError(err)
-
-	ticker := time.NewTicker(PEER_EXCHANGE_SLEEP_DURATION)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			// FindPeers automatically updates the following data stores:
-			// 1. Peerstore: adds peer ID, public key, and multiaddresses
-			// 2. RoutingTable: adds peers that satify "distance" criteria
-			peersChan, err := routingDiscovery.FindPeers(ctx, topic)
-			ms.checkError(err)
-
-			for p := range peersChan {
-				if p.ID == ms.p2pHost.ID() {
-					continue
-				}
-				ms.p2pHost.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
-				// ms.logger.Debug().Msgf("inspecting peer found through discovery: %v (status: %v)", p.ID, ms.p2pHost.Network().Connectedness(p.ID))
-				// if ms.p2pHost.Network().Connectedness(p.ID) != network.Connected {
-				// err = ms.p2pHost.Connect(ctx, p) // Adds peerInfo to local Peerstore
-				// ms.checkError(err)
-				// ms.logger.Debug().Msgf("connected to new peer: %+v", p)
-
-				//ms.sendPeerInfo(p.ID, true)
-				//}
-			}
-		}
 	}
 }
