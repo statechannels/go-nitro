@@ -26,7 +26,7 @@ const (
 // ReversePaymentProxy is an HTTP proxy that charges for HTTP requests.
 type ReversePaymentProxy struct {
 	server                *http.Server
-	nitroClient           *rpc.RpcClient
+	nitroClient           rpc.RpcClientApi
 	expectedPaymentAmount *big.Int
 	reverseProxy          *httputil.ReverseProxy
 	logger                zerolog.Logger

@@ -17,7 +17,7 @@ import (
 
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
-	"github.com/statechannels/go-nitro/node/reverseproxy"
+	"github.com/statechannels/go-nitro/reverseproxy"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -107,7 +107,7 @@ func TestReversePaymentProxy(t *testing.T) {
 
 // createVoucher creates a voucher for the given channel and amount	using the given client
 // If any error occurs it will fail the test
-func createVoucher(t *testing.T, client *rpc.RpcClient, channelId types.Destination, amount uint64) payments.Voucher {
+func createVoucher(t *testing.T, client rpc.RpcClientApi, channelId types.Destination, amount uint64) payments.Voucher {
 	v, err := client.CreateVoucher(channelId, amount)
 	if err != nil {
 		t.Fatalf("Error creating voucher: %v", err)
@@ -159,7 +159,7 @@ func getResponseInfo(t *testing.T, resp *http.Response) (body string, statusCode
 }
 
 // setupNitroClients creates three nitro clients and connects them to each other
-func setupNitroClients(t *testing.T, logDestination *os.File) (alice, irene, bob *rpc.RpcClient, cleanup func()) {
+func setupNitroClients(t *testing.T, logDestination *os.File) (alice, irene, bob rpc.RpcClientApi, cleanup func()) {
 	chain := chainservice.NewMockChain()
 	logger := testLogger(logDestination)
 
@@ -185,7 +185,7 @@ func setupNitroClients(t *testing.T, logDestination *os.File) (alice, irene, bob
 }
 
 // createChannelData creates ledgers channels and a payment channel between Alice and Bob
-func createChannelData(t *testing.T, aliceClient, ireneClient, bobClient *rpc.RpcClient) (paymentChannelId types.Destination) {
+func createChannelData(t *testing.T, aliceClient, ireneClient, bobClient rpc.RpcClientApi) (paymentChannelId types.Destination) {
 	aliceLedgerRes, err := aliceClient.CreateLedgerChannel(ta.Irene.Address(), 100, simpleOutcome(ta.Alice.Address(), ta.Irene.Address(), 100, 100))
 	if err != nil {
 		t.Fatalf("Error creating channels: %v", err)
