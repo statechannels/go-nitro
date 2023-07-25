@@ -128,7 +128,9 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	ctx := context.Background()
 	var options []dht.Option
 	options = append(options, dht.BucketSize(20))
-	options = append(options, dht.Mode(dht.ModeServer)) // allows other peers to connect to this node
+	options = append(options, dht.Mode(dht.ModeServer))                                               // allows other peers to connect to this node
+	options = append(options, dht.ProtocolPrefix(DHT_PROTOCOL_PREFIX))                                // need this to allow custom NamespacedValidator
+	options = append(options, dht.NamespacedValidator("scaddr", stateChannelAddrToPeerIDValidator{})) // all records prefixed with /scaddr/ will use this custom validator
 
 	kademliaDHT, err := dht.New(ctx, ms.p2pHost, options...)
 	ms.checkError(err)
@@ -162,9 +164,9 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 				ms.logger.Debug().Msgf("peer info: %v", peer)
 			}
 
-			// Once we've discovered all bootPeers, stop the ticker
+			// Once we've connected to enough peers, stop the ticker
 			if actualPeers >= expectedPeers {
-				ms.logger.Debug().Msgf("discovered all expected bootPeers")
+				ms.logger.Debug().Msgf("initial threshold for peer connections has been met")
 				ticker.Stop()
 				break
 			}
@@ -173,6 +175,24 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 
 	err = ms.dht.Bootstrap(ctx) // Runs periodically to maintain a healthy routing table
 	ms.checkError(err)
+
+	// Add my state channel signing address to the custom dht
+	key := RECORD_PREFIX + ms.me.String()
+
+	// Create a new RecordData
+	recordData := &RecordData{
+		PeerID:    ms.Id().Pretty(),
+		Signature: "", // TODO: generate and add the signature
+		Timestamp: 123,
+	}
+
+	// Convert the RecordData to a JSON byte slice
+	recordBytes, err := json.Marshal(recordData)
+	ms.checkError(err)
+
+	err = ms.dht.PutValue(ctx, key, recordBytes)
+	ms.checkError(err)
+	ms.logger.Debug().Msgf("Added value to dht - [key: %v, value: %v]", key, ms.Id())
 
 	ms.logger.Debug().Msgf("DHT setup complete")
 }
@@ -263,7 +283,12 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 
 	peerId, ok := ms.peers.Load(msg.To.String())
 	if !ok {
-		panic(fmt.Errorf("could not load peer %s", msg.To.String()))
+		peerIdBytes, err := ms.dht.GetValue(context.Background(), RECORD_PREFIX+msg.To.String())
+		ms.checkError(err)
+		ms.logger.Info().Msgf("found address in dht: %s", msg.To.String())
+
+		peerId, err = peer.IDFromBytes(peerIdBytes)
+		ms.checkError(err)
 	}
 
 	for i := 0; i < NUM_CONNECT_ATTEMPTS; i++ {
