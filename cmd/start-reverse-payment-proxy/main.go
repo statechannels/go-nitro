@@ -21,6 +21,7 @@ const (
 )
 
 func main() {
+	var rProxy *reverseproxy.ReversePaymentProxy
 	app := &cli.App{
 		Name:  "start-reverse-payment-proxy",
 		Usage: "Runs an HTTP payment proxy that charges for HTTP requests",
@@ -57,20 +58,26 @@ func main() {
 			// For now we just log to stdout
 			logger := zerolog.New(os.Stdout).Level(zerolog.DebugLevel)
 
-			p := reverseproxy.NewReversePaymentProxy(
+			rProxy = reverseproxy.NewReversePaymentProxy(
 				proxyEndpoint,
 				nitroEndpoint,
 				c.String(DESTINATION_URL),
 				big.NewInt(c.Int64(EXPECTED_PAYMENT_AMOUNT)),
 				logger)
 
-			return p.Start()
+			return rProxy.Start()
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
 	waitForKillSignal()
+	if rProxy != nil {
+		err := rProxy.Stop()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 }
 
 // waitForKillSignal blocks until we receive a kill or interrupt signal
