@@ -63,27 +63,32 @@ func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinati
 	}
 
 	// Wire up our handlers to the reverse proxy
-	p.reverseProxy.Rewrite = p.handleProxyRequest
+	p.reverseProxy.Rewrite = func(pr *httputil.ProxyRequest) { pr.SetURL(p.destinationUrl) }
 	p.reverseProxy.ModifyResponse = p.handleDestinationResponse
 	p.reverseProxy.ErrorHandler = p.handleError
+	// Wire up our handler to the server
+	p.server.Handler = p
 
 	return p
 }
 
-// handleProxyRequest modifies the request before it is sent to the destination server
-// It is responsible for updating the request URL and moving the voucher from the query params to the header
-func (p *ReversePaymentProxy) handleProxyRequest(r *httputil.ProxyRequest) {
-	r.SetURL(p.destinationUrl)
-
-	v, err := parseVoucher(r.In.URL.Query(), "")
-	// If we can't parse the voucher we return and rely on ModifyResponse to throw an error when it doesn't find a voucher
+// ServeHTTP is the main entry point for the reverse payment proxy server.
+// It is responsible for parsing the voucher from the query params and moving it to the request header
+// It then delegates to the reverse proxy to handle rewriting the request and sending it to the destination
+func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	v, err := parseVoucher(r.URL.Query(), "")
 	if err != nil {
+		p.handleError(w, r, createPaymentError(fmt.Errorf("could not parse voucher: %w", err)))
 		return
 	}
-	// We move the voucher from query params to the header, so it doesn't pollute the query params to the destination server
-	removeVoucher(r.Out.URL.Query(), "")
-	r.Out.URL.RawQuery = r.Out.URL.Query().Encode()
-	addVoucher(v, r.Out.Header, HEADER_PREFIX)
+
+	r.URL.RawQuery = r.URL.Query().Encode()
+	removeVoucher(r.URL.Query(), "")
+
+	// We add the voucher to the request header so we can easily check the cost in the response handler without polluting the URL
+	addVoucher(v, r.Header, HEADER_PREFIX)
+
+	p.reverseProxy.ServeHTTP(w, r)
 }
 
 // handleDestinationResponse modifies the response before it is sent back to the client
@@ -139,10 +144,6 @@ func (p *ReversePaymentProxy) handleError(w http.ResponseWriter, r *http.Request
 
 // Start starts the proxy server in a goroutine.
 func (p *ReversePaymentProxy) Start() error {
-	// Wire up our proxy to the http handler
-	// This means that p.ServeHTTP will be called for every request
-	p.server.Handler = p.reverseProxy
-
 	go func() {
 		p.logger.Info().Msgf("Starting reverse payment proxy listening on %s.", p.server.Addr)
 
