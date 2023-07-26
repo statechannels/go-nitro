@@ -9,6 +9,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -89,10 +90,38 @@ func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	removeVoucher(r)
 
-	// We add the voucher to the request context so we can access it in the response handler
+	// We add the voucher to the request context so we can access it later if needed
 	r = r.WithContext(context.WithValue(r.Context(), VOUCHER_CONTEXT_ARG, v))
 
+	// If the request has a range header we can check the voucher before forwarding the request
+	if hasRangeHeader(r.Header) {
+		total, err := parseRangeHeader(r.Header)
+		if err != nil {
+			p.handleError(w, r, createPaymentError(fmt.Errorf("could not parse range: %w", err)))
+			return
+		}
+		if err := p.checkCost(v, total); err != nil {
+			p.handleError(w, r, createPaymentError(err))
+			return
+		}
+	}
 	p.reverseProxy.ServeHTTP(w, r)
+}
+
+func (p *ReversePaymentProxy) checkCost(v payments.Voucher, contentLength uint64) error {
+	s, err := p.nitroClient.ReceiveVoucher(v)
+	if err != nil {
+		return (fmt.Errorf("error processing voucher %w", err))
+	}
+
+	cost := contentLength * p.costPerByte
+
+	// s.Delta is amount our balance increases by adding this voucher
+	// AKA the payment amount we received in the request for this file
+	if cost > s.Delta.Uint64() {
+		return (fmt.Errorf("payment of %d required, the voucher only resulted in a payment of %d", cost, s.Delta.Uint64()))
+	}
+	return nil
 }
 
 // handleDestinationResponse modifies the response before it is sent back to the client
@@ -100,6 +129,11 @@ func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 // It will check the voucher amount against the cost (response size * cost per byte)
 // If the voucher amount is less than the cost, it will return a 402 Payment Required error instead of serving the content
 func (p *ReversePaymentProxy) handleDestinationResponse(r *http.Response) error {
+	// If the request has a range header the voucher was already checked in ServeHTTP
+	if hasRangeHeader(r.Request.Header) {
+		return nil
+	}
+
 	contentLength, err := strconv.ParseUint(r.Header.Get("Content-Length"), 10, 64)
 	if err != nil {
 		return err
@@ -109,28 +143,11 @@ func (p *ReversePaymentProxy) handleDestinationResponse(r *http.Response) error 
 	if !ok {
 		return createPaymentError(fmt.Errorf("could not fetch voucher from context"))
 	}
-	cost := p.costPerByte * contentLength
 
-	p.logger.Debug().
-		Uint64("costPerByte", p.costPerByte).
-		Uint64("responseLength", contentLength).
-		Uint64("cost", cost).
-		Msg("Request cost")
-
-	s, err := p.nitroClient.ReceiveVoucher(v)
-	if err != nil {
-		return createPaymentError(fmt.Errorf("error processing voucher %w", err))
+	if err := p.checkCost(v, contentLength); err != nil {
+		return createPaymentError(err)
 	}
 
-	p.logger.Debug().Msgf("Received voucher with delta %d", s.Delta.Uint64())
-
-	// s.Delta is amount our balance increases by adding this voucher
-	// AKA the payment amount we received in the request for this file
-	if cost > s.Delta.Uint64() {
-		return createPaymentError(fmt.Errorf("payment of %d required, the voucher only resulted in a payment of %d", cost, s.Delta.Uint64()))
-	}
-
-	p.logger.Debug().Msgf("Destination request URL %s", r.Request.URL.String())
 	return nil
 }
 
@@ -204,4 +221,47 @@ func removeVoucher(r *http.Request) {
 	queryParams.Del(SIGNATURE_VOUCHER_PARAM)
 
 	r.URL.RawQuery = queryParams.Encode()
+}
+
+const (
+	RANGE_HEADER = "Range"
+	UNIT_PREFIX  = "bytes="
+)
+
+// hasRangeHeader returns true if the given header has a range header value.
+func hasRangeHeader(h http.Header) bool {
+	return h.Get(RANGE_HEADER) != ""
+}
+
+// parseRangeHeader parses the range header and returns the total number of bytes requested.
+func parseRangeHeader(h http.Header) (total uint64, err error) {
+	if !hasRangeHeader(h) {
+		return 0, fmt.Errorf("no range header")
+	}
+	rangeVal := h.Get(RANGE_HEADER)
+	var hasPrefix bool
+	rangeVal, hasPrefix = strings.CutPrefix(rangeVal, UNIT_PREFIX)
+	if !hasPrefix {
+		return 0, fmt.Errorf("range header value '%s' missing prefix 'byte='", rangeVal)
+	}
+
+	// It is valid to have multiple ranges, separated by commas. IE: bytes=0-499,1000-1499
+	for _, r := range strings.Split(rangeVal, ",") {
+		// Each range is a start and end separated by a dash. IE: 0-499
+		numVals := strings.Split(r, "-")
+
+		start, err := strconv.ParseUint(numVals[0], 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("could not parse start: %w", err)
+		}
+
+		end, err := strconv.ParseUint(numVals[1], 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("could not parse start: %w", err)
+		}
+
+		total += end - start + 1 // +1 because the end is inclusive. IE: 0-9 would return 10 bytes.
+
+	}
+	return
 }
