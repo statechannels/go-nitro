@@ -54,7 +54,7 @@ func TestReversePaymentProxy(t *testing.T) {
 		bobRPCUrl,
 		destinationServerUrl,
 		1,
-		zerolog.New(os.Stdout).Level(zerolog.DebugLevel))
+		zerolog.New(logDestination).Level(zerolog.DebugLevel))
 	defer func() {
 		err := proxy.Stop()
 		if err != nil {
