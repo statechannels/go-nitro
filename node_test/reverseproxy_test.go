@@ -152,8 +152,16 @@ func TestReversePaymentProxy(t *testing.T) {
 
 	// It should handle a complex range request
 	voucher = createVoucher(t, aliceClient, paymentChannel, 4)
+
 	resp = performGetRequest(t, "bytes=0-1,3-4", fmt.Sprintf("http://%s/file?channelId=%s&amount=%d&signature=%s", proxyAddress, voucher.ChannelId, voucher.Amount.Int64(), voucher.Signature.ToHexString()))
-	checkResponse(t, resp, testFileContent[0:2], http.StatusPartialContent)
+	body, statusCode = getResponseInfo(t, resp)
+	// The server response will also contain some extra information about the ranges
+	if !strings.Contains(body, testFileContent[0:2]) || !strings.Contains(body, testFileContent[3:5]) {
+		t.Fatalf("Expected response body to contain partial file contents")
+	}
+	if statusCode != http.StatusPartialContent {
+		t.Fatalf("Expected status code %d, but got %d", http.StatusPartialContent, statusCode)
+	}
 
 	// It should reject a range request if the voucher is not large enough
 	voucher = createVoucher(t, aliceClient, paymentChannel, 1)
