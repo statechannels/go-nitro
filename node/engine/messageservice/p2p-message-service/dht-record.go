@@ -16,10 +16,15 @@ const (
 
 type stateChannelAddrToPeerIDValidator struct{}
 
-// RecordData represents the data stored in the DHT record
-type RecordData struct {
+// DhtRecord represents the data stored in the DHT record
+type DhtRecord struct {
+	Data      DhtData `json:"data"`
+	Signature []byte  `json:"signature"`
+}
+
+type DhtData struct {
+	SCAddr    string `json:"scaddr"` // state channel address
 	PeerID    string `json:"peerid"`
-	Signature string `json:"signature"`
 	Timestamp int64  `json:"timestamp"` // Unix timestamp (seconds since January 1, 1970)
 }
 
@@ -33,46 +38,42 @@ func (v stateChannelAddrToPeerIDValidator) Validate(key string, value []byte) er
 	}
 
 	// Parse the value into a RecordData object
-	var recordData RecordData
-	if err := json.Unmarshal(value, &recordData); err != nil {
+	var dhtRecord DhtRecord
+	if err := json.Unmarshal(value, &dhtRecord); err != nil {
 		return errors.New("malformed record value")
 	}
 
+	// Make sure the timestamp is not in the future or negative number
+	if dhtRecord.Data.Timestamp > time.Time.Unix(time.Now()) || dhtRecord.Data.Timestamp < 0 {
+		return errors.New("invalid timestamp")
+	}
+
 	// Check if the value can be parsed into a valid libp2p peer.ID
-	_, err := peer.Decode(recordData.PeerID)
+	peerId, err := peer.Decode(dhtRecord.Data.PeerID)
 	if err != nil {
 		return errors.New("invalid libp2p peer ID")
 	}
 
-	// Make sure the timestamp is not in the future or negative number
-	if recordData.Timestamp > time.Time.Unix(time.Now()) || recordData.Timestamp < 0 {
-		return errors.New("invalid timestamp")
+	pubKey, err := peerId.ExtractPublicKey()
+	if err != nil {
+		return err
 	}
 
-	//// Check the signature
-	//sigBytes, err := hex.DecodeString(recordData.Signature)
-	//if err != nil {
-		//return errors.New("signature malformed")
-	//}
+	dataBytes, err := json.Marshal(dhtRecord.Data)
+	if err != nil {
+		return err
+	}
 
-	//addrBytes, err := hex.DecodeString(signingAddrStr[2:]) // remove "0x" prefix
-	//if err != nil {
-		//return errors.New("signature malformed")
-	//}
+	// Check the signature to ensure it is the signed hash of dataBytes
+	valid, err := pubKey.Verify(dataBytes, dhtRecord.Signature)
+	if err != nil {
+		return err
+	}
 
-	//sigPubKey, err := crypto.SigToPub(crypto.Keccak256([]byte(recordData.PeerID)), sigBytes)
-	//if err != nil {
-		//return errors.New("failed to extract public key from signature")
-	//}
+	if !valid {
+		return errors.New("invalid signature")
+	}
 
-	//signatureAddr := crypto.PubkeyToAddress(*sigPubKey)
-	//expectedAddr := common.BytesToAddress(addrBytes)
-
-	//if signatureAddr != expectedAddr {
-		//return errors.New("signature does not match address")
-	//}
-
-	// If no errors, the record is valid
 	return nil
 }
 

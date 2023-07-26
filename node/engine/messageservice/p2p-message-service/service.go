@@ -172,17 +172,27 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 			}
 		}
 
-		// Add my state channel signing address to the custom dht
-		recordData := &RecordData{
+		// Add my state channel address to the custom dht
+		recordData := &DhtData{
+			SCAddr:    ms.me.String(),
 			PeerID:    ms.Id().String(),
-			Signature: "", // TODO: generate and add the signature
 			Timestamp: time.Time.Unix(time.Now()),
 		}
-		recordBytes, err := json.Marshal(recordData)
+		recordDataBytes, err := json.Marshal(recordData)
+		ms.checkError(err)
+
+		signature, err := ms.key.Sign(recordDataBytes)
+		ms.checkError(err)
+
+		fullRecord := &DhtRecord{
+			Data:      *recordData,
+			Signature: signature,
+		}
+		fullRecordBytes, err := json.Marshal(fullRecord)
 		ms.checkError(err)
 
 		key := DHT_RECORD_PREFIX + ms.me.String()
-		err = ms.dht.PutValue(ctx, key, recordBytes)
+		err = ms.dht.PutValue(ctx, key, fullRecordBytes)
 		ms.checkError(err)
 		ms.logger.Info().Msgf("Added value to dht - [key: %v, value: %v]", key, ms.Id())
 	}
@@ -258,10 +268,9 @@ func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
 	err = json.Unmarshal([]byte(raw), &msg)
 	ms.checkError(err)
 
-	peerInfo := basicPeerInfo{msg.Id, msg.Address}
-
 	_, foundPeer := ms.peers.LoadOrStore(msg.Address.String(), msg.Id)
 	if !foundPeer {
+		peerInfo := basicPeerInfo{msg.Id, msg.Address}
 		ms.logger.Debug().Msgf("stored new peer in map: %v", peerInfo)
 		ms.newPeerInfo <- peerInfo
 	}
@@ -285,14 +294,14 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 		ms.logger.Info().Msgf("did not find address %s in local map, will query dht", msg.To.String())
 		recordBytes, err := ms.dht.GetValue(context.Background(), DHT_RECORD_PREFIX+msg.To.String())
 		ms.checkError(err)
-		
-		recordData := &RecordData{}
+
+		recordData := &DhtRecord{}
 		err = json.Unmarshal(recordBytes, recordData)
 		ms.checkError(err)
-		
-		peerId, err = peer.Decode(recordData.PeerID)
+
+		peerId, err = peer.Decode(recordData.Data.PeerID)
 		ms.checkError(err)
-		
+
 		ms.logger.Info().Msgf("found address in dht: %s (peerId: %s)", msg.To.String(), peerId.String())
 		ms.peers.Store(msg.To.String(), peerId)
 	}
