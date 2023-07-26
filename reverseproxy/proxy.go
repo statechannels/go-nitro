@@ -32,11 +32,12 @@ func createPaymentError(err error) error {
 
 // ReversePaymentProxy is an HTTP proxy that charges for HTTP requests.
 type ReversePaymentProxy struct {
-	server       *http.Server
-	nitroClient  rpc.RpcClientApi
-	costPerByte  uint64
-	reverseProxy *httputil.ReverseProxy
-	logger       zerolog.Logger
+	server         *http.Server
+	nitroClient    rpc.RpcClientApi
+	costPerByte    uint64
+	reverseProxy   *httputil.ReverseProxy
+	logger         zerolog.Logger
+	destinationUrl *url.URL
 }
 
 // NewReversePaymentProxy creates a new ReversePaymentProxy.
@@ -51,81 +52,89 @@ func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinati
 		panic(err)
 	}
 
-	// Creates a reverse proxy that will handle forwarding requests to the destination server
-	proxy := &httputil.ReverseProxy{
-		// Rewrite handles modifying the request before it is sent to the destination server
-		// We override it to handle modifying the request URL (via SetURL) and moving the voucher from the query params to the header
-		Rewrite: func(r *httputil.ProxyRequest) {
-			r.SetURL(destinationUrl)
+	p := &ReversePaymentProxy{
+		server:         server,
+		logger:         logger,
+		nitroClient:    nitroClient,
+		costPerByte:    costPerByte,
+		destinationUrl: destinationUrl,
 
-			v, err := parseVoucher(r.In.URL.Query(), "")
-			// If we can't parse the voucher we return and rely on ModifyResponse to throw an error when it doesn't find a voucher
-			if err != nil {
-				return
-			}
-			// We move the voucher from query params to the header, so it doesn't pollute the query params to the destination server
-			removeVoucher(r.Out.URL.Query(), "")
-			r.Out.URL.RawQuery = r.Out.URL.Query().Encode()
-			addVoucher(v, r.Out.Header, HEADER_PREFIX)
-		},
-		// ModifyResponse handles modifying the response before it is sent back to the client
-		// It attempts to parse the voucher from the request header and redeem it with the Nitro client
-		// It will check the voucher amount against the cost (response size * cost per byte)
-		ModifyResponse: func(r *http.Response) error {
-			contentLength, err := strconv.ParseUint(r.Header.Get("Content-Length"), 10, 64)
-			if err != nil {
-				return err
-			}
-
-			v, err := parseVoucher(r.Request.Header, HEADER_PREFIX)
-			if err != nil {
-				return createPaymentError(fmt.Errorf("could not parse voucher: %w", err))
-			}
-
-			cost := costPerByte * contentLength
-
-			logger.Debug().
-				Uint64("costPerByte", costPerByte).
-				Uint64("responseLength", contentLength).
-				Uint64("cost", cost).
-				Msg("Request cost")
-
-			s, err := nitroClient.ReceiveVoucher(v)
-			if err != nil {
-				return createPaymentError(fmt.Errorf("error processing voucher %w", err))
-			}
-
-			logger.Debug().Msgf("Received voucher with delta %d", s.Delta.Uint64())
-
-			// s.Delta is amount our balance increases by adding this voucher
-			// AKA the payment amount we received in the request for this file
-			if cost > s.Delta.Uint64() {
-				return createPaymentError(fmt.Errorf("payment of %d required, the voucher only resulted in a payment of %d", cost, s.Delta.Uint64()))
-			}
-
-			logger.Debug().Msgf("Destination request URL %s", r.Request.URL.String())
-			return nil
-		},
-		// ErrorHandler handles errors that occur during ModifyResponse
-		// We use it to return a nice error message to the client depending on the error
-		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			if errors.Is(err, ErrPayment) {
-				http.Error(w, err.Error(), http.StatusPaymentRequired)
-			} else {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-
-			logger.Error().Err(err).Msgf("Error processing request")
-		},
+		reverseProxy: &httputil.ReverseProxy{},
 	}
 
-	return &ReversePaymentProxy{
-		server:       server,
-		logger:       logger,
-		nitroClient:  nitroClient,
-		reverseProxy: proxy,
-		costPerByte:  costPerByte,
+	// Wire up our handlers to the reverse proxy
+	p.reverseProxy.Rewrite = p.handleProxyRequest
+	p.reverseProxy.ModifyResponse = p.handleDestinationResponse
+	p.reverseProxy.ErrorHandler = p.handleError
+
+	return p
+}
+
+// handleProxyRequest modifies the request before it is sent to the destination server
+// It is responsible for updating the request URL and moving the voucher from the query params to the header
+func (p *ReversePaymentProxy) handleProxyRequest(r *httputil.ProxyRequest) {
+	r.SetURL(p.destinationUrl)
+
+	v, err := parseVoucher(r.In.URL.Query(), "")
+	// If we can't parse the voucher we return and rely on ModifyResponse to throw an error when it doesn't find a voucher
+	if err != nil {
+		return
 	}
+	// We move the voucher from query params to the header, so it doesn't pollute the query params to the destination server
+	removeVoucher(r.Out.URL.Query(), "")
+	r.Out.URL.RawQuery = r.Out.URL.Query().Encode()
+	addVoucher(v, r.Out.Header, HEADER_PREFIX)
+}
+
+// handleDestinationResponse modifies the response before it is sent back to the client
+// It is responsible for parsing the voucher from the request header and redeeming it with the Nitro client
+// It will check the voucher amount against the cost (response size * cost per byte)
+// If the voucher amount is less than the cost, it will return a 402 Payment Required error instead of serving the content
+func (p *ReversePaymentProxy) handleDestinationResponse(r *http.Response) error {
+	contentLength, err := strconv.ParseUint(r.Header.Get("Content-Length"), 10, 64)
+	if err != nil {
+		return err
+	}
+
+	v, err := parseVoucher(r.Request.Header, HEADER_PREFIX)
+	if err != nil {
+		return createPaymentError(fmt.Errorf("could not parse voucher: %w", err))
+	}
+
+	cost := p.costPerByte * contentLength
+
+	p.logger.Debug().
+		Uint64("costPerByte", p.costPerByte).
+		Uint64("responseLength", contentLength).
+		Uint64("cost", cost).
+		Msg("Request cost")
+
+	s, err := p.nitroClient.ReceiveVoucher(v)
+	if err != nil {
+		return createPaymentError(fmt.Errorf("error processing voucher %w", err))
+	}
+
+	p.logger.Debug().Msgf("Received voucher with delta %d", s.Delta.Uint64())
+
+	// s.Delta is amount our balance increases by adding this voucher
+	// AKA the payment amount we received in the request for this file
+	if cost > s.Delta.Uint64() {
+		return createPaymentError(fmt.Errorf("payment of %d required, the voucher only resulted in a payment of %d", cost, s.Delta.Uint64()))
+	}
+
+	p.logger.Debug().Msgf("Destination request URL %s", r.Request.URL.String())
+	return nil
+}
+
+// handleError is responsible for logging the error and returning the appropriate HTTP status code
+func (p *ReversePaymentProxy) handleError(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, ErrPayment) {
+		http.Error(w, err.Error(), http.StatusPaymentRequired)
+	} else {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	p.logger.Error().Err(err).Msgf("Error processing request")
 }
 
 // Start starts the proxy server in a goroutine.
