@@ -256,11 +256,11 @@ func runDestinationServer(t *testing.T, port uint) (destUrl string, cleanup func
 		}
 
 		// Always check that the voucher params were stripped out of every request
-		// for p := range params {
-		// 	if p == reverseproxy.AMOUNT_VOUCHER_PARAM || p == reverseproxy.CHANNEL_ID_VOUCHER_PARAM || p == reverseproxy.SIGNATURE_VOUCHER_PARAM {
-		// 		t.Fatalf("Expected no voucher information to be passed along, but got %s", p)
-		// 	}
-		// }
+		for p := range params {
+			if p == reverseproxy.AMOUNT_VOUCHER_PARAM || p == reverseproxy.CHANNEL_ID_VOUCHER_PARAM || p == reverseproxy.SIGNATURE_VOUCHER_PARAM {
+				t.Fatalf("Expected no voucher information to be passed along, but got %s", p)
+			}
+		}
 
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain")

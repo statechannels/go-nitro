@@ -82,8 +82,10 @@ func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	r.URL.RawQuery = r.URL.Query().Encode()
-	removeVoucher(r.URL.Query(), "")
+	// We remove the voucher from the query params so it doesn't pollute the URL
+	queryParams := r.URL.Query()
+	removeVoucher(queryParams, "")
+	r.URL.RawQuery = queryParams.Encode()
 
 	// We add the voucher to the request header so we can easily check the cost in the response handler without polluting the URL
 	addVoucher(v, r.Header, HEADER_PREFIX)
