@@ -12,12 +12,12 @@ type NetworkNotifiee struct {
 }
 
 func (nn *NetworkNotifiee) Connected(n network.Network, conn network.Conn) {
-	nn.ms.logger.Debug().Msgf("notification: connected to peer %s", conn.RemotePeer().Pretty())
+	nn.ms.logger.Debug().Msgf("notification: connected to peer %s", conn.RemotePeer().String())
 	go nn.ms.sendPeerInfo(conn.RemotePeer(), false)
 }
 
 func (nn NetworkNotifiee) Disconnected(n network.Network, conn network.Conn) {
-	nn.ms.logger.Debug().Msgf("notification: disconnected from peer: %s", conn.RemotePeer().Pretty())
+	nn.ms.logger.Debug().Msgf("notification: disconnected from peer: %s", conn.RemotePeer().String())
 }
 
 func (nn NetworkNotifiee) Listen(network.Network, multiaddr.Multiaddr)      {}
