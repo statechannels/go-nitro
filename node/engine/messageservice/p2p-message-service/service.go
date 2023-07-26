@@ -9,6 +9,7 @@ import (
 	"io"
 	"time"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
@@ -361,9 +362,27 @@ func (ms *P2PMessageService) addBootPeers(peers []string) {
 
 		peer, err := peer.AddrInfoFromP2pAddr(addr)
 		ms.checkError(err)
-
 		err = ms.p2pHost.Connect(context.Background(), *peer) // Adds peerInfo to local Peerstore
 		ms.checkError(err)
 		ms.logger.Debug().Msgf("connected to boot peer: %v", p)
 	}
+}
+
+func addressFromPeerID(pId peer.ID) (types.Address, error) {
+	p2pPub, err := pId.ExtractPublicKey()
+	if err != nil {
+		return types.Address{}, err
+	}
+	// raw will be a compressed 33 byte public key
+	raw, err := p2pPub.Raw()
+	if err != nil {
+		return types.Address{}, err
+	}
+
+	pub, err := ethcrypto.DecompressPubkey(raw)
+	if err != nil {
+		return types.Address{}, err
+	}
+
+	return ethcrypto.PubkeyToAddress(*pub), nil
 }

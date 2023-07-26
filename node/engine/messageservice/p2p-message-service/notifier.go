@@ -1,6 +1,8 @@
 package p2pms
 
 import (
+	"fmt"
+
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -12,6 +14,11 @@ type NetworkNotifiee struct {
 }
 
 func (nn *NetworkNotifiee) Connected(n network.Network, conn network.Conn) {
+	a, err := addressFromPeerID(conn.RemotePeer())
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Peer SC address %s\n", a.String())
 	nn.ms.logger.Debug().Msgf("notification: connected to peer %s", conn.RemotePeer().String())
 	go nn.ms.sendPeerInfo(conn.RemotePeer(), false)
 }
