@@ -3,12 +3,12 @@ package p2pms
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"time"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
@@ -21,6 +21,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/protocols"
@@ -31,12 +32,6 @@ import (
 type basicPeerInfo struct {
 	Id      peer.ID
 	Address types.Address
-}
-
-type peerExchangeMessage struct {
-	Id             peer.ID
-	Address        types.Address
-	ExpectResponse bool
 }
 
 const (
@@ -76,9 +71,10 @@ func (ms *P2PMessageService) Id() peer.ID {
 // NewMessageService returns a running P2PMessageService listening on the given ip, port and message key.
 // If useMdnsPeerDiscovery is true, the message service will use mDNS to discover peers.
 // Otherwise, peers must be added manually via `AddPeers`.
-func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdnsPeerDiscovery bool, logWriter io.Writer, bootPeers []string) *P2PMessageService {
+func NewMessageService(ip string, port int, pk []byte, useMdnsPeerDiscovery bool, logWriter io.Writer, bootPeers []string) *P2PMessageService {
 	logging.ConfigureZeroLogger()
 
+	me := crypto.GetAddressFromSecretKeyBytes(pk)
 	ms := &P2PMessageService{
 		toEngine:    make(chan protocols.Message, BUFFER_SIZE),
 		newPeerInfo: make(chan basicPeerInfo, BUFFER_SIZE),
@@ -105,7 +101,6 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 
 	ms.p2pHost = host
 	ms.p2pHost.SetStreamHandler(PROTOCOL_ID, ms.msgStreamHandler)
-	ms.p2pHost.SetStreamHandler(PEER_EXCHANGE_PROTOCOL_ID, ms.receivePeerInfo)
 
 	// Print out my own peerInfo
 	peerInfo := peer.AddrInfo{
@@ -148,7 +143,7 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	n := &network.NotifyBundle{}
 	n.ConnectedF = func(n network.Network, conn network.Conn) {
 		ms.logger.Debug().Msgf("notification: connected to peer %s", conn.RemotePeer().Pretty())
-		go ms.sendPeerInfo(conn.RemotePeer(), false)
+		ms.HandlePeerFound(peer.AddrInfo{ID: conn.RemotePeer(), Addrs: []multiaddr.Multiaddr{conn.RemoteMultiaddr()}})
 	}
 	n.DisconnectedF = func(n network.Network, conn network.Conn) {
 		ms.logger.Debug().Msgf("notification: disconnected from peer: %s", conn.RemotePeer().Pretty())
@@ -185,12 +180,15 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	ms.logger.Debug().Msgf("DHT setup complete")
 }
 
-// HandlePeerFound is called by the mDNS service when a peer is found.
+// HandlePeerFound is called when a peer is discovered.
 func (ms *P2PMessageService) HandlePeerFound(pi peer.AddrInfo) {
-	ms.logger.Debug().Msgf("Attempting to add mdns peer")
+	ms.logger.Debug().Msgf("Attempting to add peer")
 	ms.p2pHost.Peerstore().AddAddr(pi.ID, pi.Addrs[0], peerstore.PermanentAddrTTL)
 
-	ms.sendPeerInfo(pi.ID, false)
+	a, err := addressFromPeerID(pi.ID)
+	ms.checkError(err)
+	ms.peers.Store(a.String(), pi.ID)
+	ms.newPeerInfo <- basicPeerInfo{Id: pi.ID, Address: a}
 }
 
 func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
@@ -208,58 +206,6 @@ func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 	m, err := protocols.DeserializeMessage(raw)
 	ms.checkError(err)
 	ms.toEngine <- m
-}
-
-// sendPeerInfo sends our peer info to a given peerId
-func (ms *P2PMessageService) sendPeerInfo(recipientId peer.ID, expectResponse bool) {
-	stream, err := ms.p2pHost.NewStream(context.Background(), recipientId, PEER_EXCHANGE_PROTOCOL_ID)
-	ms.checkError(err)
-	defer stream.Close()
-
-	raw, err := json.Marshal(peerExchangeMessage{
-		Id:             ms.Id(),
-		Address:        ms.me,
-		ExpectResponse: expectResponse,
-	})
-	ms.checkError(err)
-
-	writer := bufio.NewWriter(stream)
-	// We don't care about the number of bytes written
-	_, err = writer.WriteString(string(raw) + string(DELIMITER))
-	ms.checkError(err)
-	writer.Flush()
-}
-
-// receivePeerInfo receives peer info from the given stream
-func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
-	ms.logger.Debug().Msgf("received peerInfo")
-	defer stream.Close()
-
-	// Create a buffer stream for non blocking read and write.
-	reader := bufio.NewReader(stream)
-	raw, err := reader.ReadString(DELIMITER)
-
-	// An EOF means the stream has been closed by the other side.
-	if errors.Is(err, io.EOF) {
-		return
-	}
-	ms.checkError(err)
-
-	var msg *peerExchangeMessage
-	err = json.Unmarshal([]byte(raw), &msg)
-	ms.checkError(err)
-
-	peerInfo := basicPeerInfo{msg.Id, msg.Address}
-
-	_, foundPeer := ms.peers.LoadOrStore(msg.Address.String(), msg.Id)
-	if !foundPeer {
-		ms.logger.Debug().Msgf("stored new peer in map: %v", peerInfo)
-		ms.newPeerInfo <- peerInfo
-	}
-
-	if msg.ExpectResponse {
-		ms.sendPeerInfo(msg.Id, false)
-	}
 }
 
 // Send sends messages to other participants.
@@ -334,10 +280,33 @@ func (ms *P2PMessageService) addBootPeers(peers []string) {
 		peer, err := peer.AddrInfoFromP2pAddr(addr)
 		ms.checkError(err)
 
+		a, err := addressFromPeerID(peer.ID)
+		ms.checkError(err)
+		ms.peers.Store(a.String(), peer.ID)
+
 		err = ms.p2pHost.Connect(context.Background(), *peer) // Adds peerInfo to local Peerstore
 		ms.checkError(err)
-		ms.logger.Debug().Msgf("connected to boot peer: %v", p)
+		ms.logger.Debug().Msgf("connected to boot peer: %v (%s)", p, a.String())
 
-		ms.sendPeerInfo(peer.ID, true)
 	}
+}
+
+// addressFromPeerID attempts to extract a secp256k1 public key from a peer ID and returns the corresponding SC address
+func addressFromPeerID(pId peer.ID) (types.Address, error) {
+	p2pPub, err := pId.ExtractPublicKey()
+	if err != nil {
+		return types.Address{}, err
+	}
+	// raw will be a compressed 33 byte public key
+	raw, err := p2pPub.Raw()
+	if err != nil {
+		return types.Address{}, err
+	}
+
+	pub, err := ethcrypto.DecompressPubkey(raw)
+	if err != nil {
+		return types.Address{}, err
+	}
+
+	return ethcrypto.PubkeyToAddress(*pub), nil
 }

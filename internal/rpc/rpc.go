@@ -78,7 +78,7 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 	}
 
 	logger.Info().Msg("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
-	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, useMdns, logDestination, bootPeers)
+	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, pk, useMdns, logDestination, bootPeers)
 	node := node.New(
 		messageService,
 		chainService,
