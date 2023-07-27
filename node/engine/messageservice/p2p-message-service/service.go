@@ -182,11 +182,13 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 
 // HandlePeerFound is called when a peer is discovered.
 func (ms *P2PMessageService) HandlePeerFound(pi peer.AddrInfo) {
-	ms.logger.Debug().Msgf("Attempting to add peer")
+	ms.logger.Debug().Str("peer-id", pi.ID.Pretty()).Str("multiaddress", pi.Addrs[0].String()).Msgf("Attempting to add peer")
 	ms.p2pHost.Peerstore().AddAddr(pi.ID, pi.Addrs[0], peerstore.PermanentAddrTTL)
 
 	a, err := addressFromPeerID(pi.ID)
 	ms.checkError(err)
+	ms.logger.Debug().Str("peer-id", pi.ID.Pretty()).Str("sc-address", a.String()).Msgf("Derived SC address from peer ID")
+
 	ms.peers.Store(a.String(), pi.ID)
 	ms.newPeerInfo <- basicPeerInfo{Id: pi.ID, Address: a}
 }
