@@ -100,7 +100,7 @@ func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			p.handleError(w, r, createPaymentError(fmt.Errorf("could not parse range: %w", err)))
 			return
 		}
-		if err := p.checkCost(v, total); err != nil {
+		if err := p.checkVoucherAgainstCost(v, total); err != nil {
 			p.handleError(w, r, createPaymentError(err))
 			return
 		}
@@ -108,7 +108,9 @@ func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	p.reverseProxy.ServeHTTP(w, r)
 }
 
-func (p *ReversePaymentProxy) checkCost(v payments.Voucher, contentLength uint64) error {
+// checkVoucherAgainstCost checks the voucher against the cost (content size * cost per byte)
+// If the voucher amount is less than the cost, it will return an error
+func (p *ReversePaymentProxy) checkVoucherAgainstCost(v payments.Voucher, contentLength uint64) error {
 	s, err := p.nitroClient.ReceiveVoucher(v)
 	if err != nil {
 		return (fmt.Errorf("error processing voucher %w", err))
@@ -144,7 +146,7 @@ func (p *ReversePaymentProxy) handleDestinationResponse(r *http.Response) error 
 		return createPaymentError(fmt.Errorf("could not fetch voucher from context"))
 	}
 
-	if err := p.checkCost(v, contentLength); err != nil {
+	if err := p.checkVoucherAgainstCost(v, contentLength); err != nil {
 		return createPaymentError(err)
 	}
 
