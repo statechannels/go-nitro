@@ -1,3 +1,7 @@
+docker/cloud/build:
+	docker build -f docker/cloud/Dockerfile -t go-nitro .
+
+
 docker/build:
 	docker build -f docker/Dockerfile -t go-nitro .
 
