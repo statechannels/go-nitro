@@ -41,7 +41,7 @@ type peerExchangeMessage struct {
 
 const (
 	DHT_PROTOCOL_PREFIX          protocol.ID = "/nitro" // use /nitro/kad/1.0.0 instead of /ipfs/kad/1.0.0
-	PROTOCOL_ID                  protocol.ID = "/nitro/msg/1.0.0"
+	GENERAL_MSG_PROTOCOL_ID      protocol.ID = "/nitro/msg/1.0.0"
 	PEER_EXCHANGE_PROTOCOL_ID    protocol.ID = "/nitro/peerinfo/1.0.0"
 	DELIMITER                                = '\n'
 	BUFFER_SIZE                              = 1_000
@@ -93,9 +93,10 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	ms.key = messageKey
 	options := []libp2p.Option{
 		libp2p.Identity(messageKey),
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port)),
+		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", "0.0.0.0", port)),
 		libp2p.Transport(tcp.NewTCPTransport),
 		libp2p.NATPortMap(),
+		libp2p.EnableNATService(),
 		libp2p.DefaultMuxers,
 	}
 	host, err := libp2p.New(options...)
@@ -104,7 +105,7 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	}
 
 	ms.p2pHost = host
-	ms.p2pHost.SetStreamHandler(PROTOCOL_ID, ms.msgStreamHandler)
+	ms.p2pHost.SetStreamHandler(GENERAL_MSG_PROTOCOL_ID, ms.msgStreamHandler)
 	ms.p2pHost.SetStreamHandler(PEER_EXCHANGE_PROTOCOL_ID, ms.receivePeerInfo)
 
 	// Print out my own peerInfo
@@ -307,7 +308,7 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 	}
 
 	for i := 0; i < NUM_CONNECT_ATTEMPTS; i++ {
-		s, err := ms.p2pHost.NewStream(context.Background(), peerId, PROTOCOL_ID)
+		s, err := ms.p2pHost.NewStream(context.Background(), peerId, GENERAL_MSG_PROTOCOL_ID)
 		if err == nil {
 			writer := bufio.NewWriter(s)
 			_, err = writer.WriteString(raw + string(DELIMITER)) // We don't care about the number of bytes written
@@ -345,7 +346,7 @@ func (ms *P2PMessageService) Close() error {
 			return err
 		}
 	}
-	ms.p2pHost.RemoveStreamHandler(PROTOCOL_ID)
+	ms.p2pHost.RemoveStreamHandler(GENERAL_MSG_PROTOCOL_ID)
 	return ms.p2pHost.Close()
 }
 
