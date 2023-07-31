@@ -4,23 +4,29 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strconv"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/types"
 )
+
+type contextKey string
 
 const (
 	AMOUNT_VOUCHER_PARAM     = "amount"
 	CHANNEL_ID_VOUCHER_PARAM = "channelId"
 	SIGNATURE_VOUCHER_PARAM  = "signature"
 
-	// HEADER_PREFIX is the prefix we attach to voucher parameters when we move them from query params to headers
-	HEADER_PREFIX = "Nitro-"
+	VOUCHER_CONTEXT_ARG contextKey = "voucher"
 
 	ErrPayment = types.ConstError("payment error")
 )
@@ -76,19 +82,16 @@ func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinati
 // It is responsible for parsing the voucher from the query params and moving it to the request header
 // It then delegates to the reverse proxy to handle rewriting the request and sending it to the destination
 func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	v, err := parseVoucher(r.URL.Query(), "")
+	v, err := parseVoucher(r.URL.Query())
 	if err != nil {
 		p.handleError(w, r, createPaymentError(fmt.Errorf("could not parse voucher: %w", err)))
 		return
 	}
 
-	// We remove the voucher from the query params so it doesn't pollute the URL
-	queryParams := r.URL.Query()
-	removeVoucher(queryParams, "")
-	r.URL.RawQuery = queryParams.Encode()
+	removeVoucher(r)
 
-	// We add the voucher to the request header so we can easily check the cost in the response handler without polluting the URL
-	addVoucher(v, r.Header, HEADER_PREFIX)
+	// We add the voucher to the request context so we can access it in the response handler
+	r = r.WithContext(context.WithValue(r.Context(), VOUCHER_CONTEXT_ARG, v))
 
 	p.reverseProxy.ServeHTTP(w, r)
 }
@@ -103,11 +106,10 @@ func (p *ReversePaymentProxy) handleDestinationResponse(r *http.Response) error 
 		return err
 	}
 
-	v, err := parseVoucher(r.Request.Header, HEADER_PREFIX)
-	if err != nil {
-		return createPaymentError(fmt.Errorf("could not parse voucher: %w", err))
+	v, ok := r.Request.Context().Value(VOUCHER_CONTEXT_ARG).(payments.Voucher)
+	if !ok {
+		return createPaymentError(fmt.Errorf("could not fetch voucher from context"))
 	}
-
 	cost := p.costPerByte * contentLength
 
 	p.logger.Debug().
@@ -166,4 +168,41 @@ func (p *ReversePaymentProxy) Stop() error {
 	}
 
 	return p.nitroClient.Close()
+}
+
+// parseVoucher takes in an a collection of query params and parses out a voucher.
+func parseVoucher(params url.Values) (payments.Voucher, error) {
+	rawChId := params.Get(CHANNEL_ID_VOUCHER_PARAM)
+	if rawChId == "" {
+		return payments.Voucher{}, fmt.Errorf("missing channel ID")
+	}
+	rawAmt := params.Get(AMOUNT_VOUCHER_PARAM)
+	if rawAmt == "" {
+		return payments.Voucher{}, fmt.Errorf("missing amount")
+	}
+	rawSignature := params.Get(SIGNATURE_VOUCHER_PARAM)
+	if rawSignature == "" {
+		return payments.Voucher{}, fmt.Errorf("missing signature")
+	}
+
+	amount := big.NewInt(0)
+	amount.SetString(rawAmt, 10)
+
+	v := payments.Voucher{
+		ChannelId: types.Destination(common.HexToHash(rawChId)),
+		Amount:    amount,
+		Signature: crypto.SplitSignature(hexutil.MustDecode(rawSignature)),
+	}
+	return v, nil
+}
+
+// removeVoucherParams removes the voucher parameters from the request URL
+func removeVoucher(r *http.Request) {
+	queryParams := r.URL.Query()
+
+	queryParams.Del(CHANNEL_ID_VOUCHER_PARAM)
+	queryParams.Del(AMOUNT_VOUCHER_PARAM)
+	queryParams.Del(SIGNATURE_VOUCHER_PARAM)
+
+	r.URL.RawQuery = queryParams.Encode()
 }
