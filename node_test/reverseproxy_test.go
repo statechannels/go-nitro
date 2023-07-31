@@ -45,6 +45,7 @@ func setupTestFile(t *testing.T) func() {
 
 	_, err = file.WriteString(testFileContent)
 	if err != nil {
+		os.Remove(testFileName)
 		t.Fatal(err)
 	}
 	return func() {
