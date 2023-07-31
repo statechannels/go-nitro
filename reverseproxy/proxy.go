@@ -262,6 +262,10 @@ func parseRangeHeader(h http.Header) (total uint64, err error) {
 			return 0, fmt.Errorf("could not parse start: %w", err)
 		}
 
+		if end < start {
+			return 0, fmt.Errorf("start cannot be greater than end")
+		}
+
 		total += end - start + 1 // +1 because the end is inclusive. IE: 0-9 would return 10 bytes.
 
 	}
