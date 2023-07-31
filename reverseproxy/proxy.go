@@ -64,8 +64,7 @@ func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinati
 		nitroClient:    nitroClient,
 		costPerByte:    costPerByte,
 		destinationUrl: destinationUrl,
-
-		reverseProxy: &httputil.ReverseProxy{},
+		reverseProxy:   &httputil.ReverseProxy{},
 	}
 
 	// Wire up our handlers to the reverse proxy
