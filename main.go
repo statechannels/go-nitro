@@ -47,10 +47,12 @@ func main() {
 	var useNats, useDurableStore, useMdns bool
 
 	flags := []cli.Flag{
+		//nolint:exhaustruct
 		&cli.StringFlag{
 			Name:  CONFIG,
 			Usage: "Load config options from `config.toml`",
 		},
+		//nolint:exhaustruct
 		altsrc.NewBoolFlag(&cli.BoolFlag{
 			Name:        USE_NATS,
 			Usage:       "Specifies whether to use NATS or http/ws for the rpc server.",
@@ -58,6 +60,7 @@ func main() {
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &useNats,
 		}),
+		//nolint:exhaustruct
 		altsrc.NewBoolFlag(&cli.BoolFlag{
 			Name:        USE_DURABLE_STORE,
 			Usage:       "Specifies whether to use a durable store or an in-memory store.",
@@ -65,6 +68,7 @@ func main() {
 			Value:       false,
 			Destination: &useDurableStore,
 		}),
+		//nolint:exhaustruct
 		altsrc.NewBoolFlag(&cli.BoolFlag{
 			Name:        USE_MDNS,
 			Usage:       "Specifies whether to use mDNS for peer discovery (if 'false', will use kademlia-dht)",
@@ -72,12 +76,14 @@ func main() {
 			Value:       true,
 			Destination: &useMdns,
 		}),
+		//nolint:exhaustruct
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        PK,
 			Usage:       "Specifies the private key used by the nitro node.",
 			Category:    KEYS_CATEGORY,
 			Destination: &pkString,
 		}),
+		//nolint:exhaustruct
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CHAIN_URL,
 			Usage:       "Specifies the url of a RPC endpoint for the chain.",
@@ -86,18 +92,21 @@ func main() {
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &chainUrl,
 		}),
+		//nolint:exhaustruct
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CHAIN_AUTH_TOKEN,
 			Usage:       "The bearer token used for auth when making requests to the chain's RPC endpoint.",
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &chainAuthToken,
 		}),
+		//nolint:exhaustruct
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CHAIN_PK,
 			Usage:       "Specifies the private key to use when interacting with the chain.",
 			Category:    KEYS_CATEGORY,
 			Destination: &chainPk,
 		}),
+		//nolint:exhaustruct
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        NA_ADDRESS,
 			Usage:       "Specifies the address of the nitro adjudicator contract.",
@@ -105,6 +114,7 @@ func main() {
 			Destination: &naAddress,
 			Required:    true,
 		}),
+		//nolint:exhaustruct
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        VPA_ADDRESS,
 			Usage:       "Specifies the address of the virtual payment app.",
@@ -112,6 +122,7 @@ func main() {
 			Destination: &vpaAddress,
 			Required:    true,
 		}),
+		//nolint:exhaustruct
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CA_ADDRESS,
 			Usage:       "Specifies the address of the consensus app.",
@@ -119,6 +130,7 @@ func main() {
 			Destination: &caAddress,
 			Required:    true,
 		}),
+		//nolint:exhaustruct
 		altsrc.NewIntFlag(&cli.IntFlag{
 			Name:        MSG_PORT,
 			Usage:       "Specifies the tcp port for the message service.",
@@ -126,6 +138,7 @@ func main() {
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &msgPort,
 		}),
+		//nolint:exhaustruct
 		altsrc.NewIntFlag(&cli.IntFlag{
 			Name:        RPC_PORT,
 			Usage:       "Specifies the tcp port for the rpc server.",
@@ -133,6 +146,7 @@ func main() {
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &rpcPort,
 		}),
+		//nolint:exhaustruct
 		altsrc.NewIntFlag(&cli.IntFlag{
 			Name:        GUI_PORT,
 			Usage:       "Specifies the tcp port for the Nitro Connect GUI.",
@@ -140,6 +154,7 @@ func main() {
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &guiPort,
 		}),
+		//nolint:exhaustruct
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        DURABLE_STORE_FOLDER,
 			Usage:       "Specifies the folder for the durable store data storage.",
@@ -147,6 +162,7 @@ func main() {
 			Destination: &durableStoreFolder,
 			Value:       "./data/nitro-store",
 		}),
+		//nolint:exhaustruct
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        BOOT_PEERS,
 			Usage:       "Comma-delimited list of peer multiaddrs the messaging service will connect to when initialized.",
@@ -155,6 +171,7 @@ func main() {
 			Destination: &bootPeers,
 		}),
 	}
+	//nolint:exhaustruct
 	app := &cli.App{
 		Name:   "go-nitro",
 		Usage:  "Nitro as a service. State channel node with RPC server.",
