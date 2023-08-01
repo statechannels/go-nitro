@@ -36,7 +36,8 @@ func main() {
 		},
 		Action: func(c *cli.Context) error {
 			const (
-				fileName    = "test.txt"
+				fileName = "test.txt"
+
 				fileContent = "Hello world!"
 			)
 
@@ -44,6 +45,9 @@ func main() {
 			defer cleanup()
 
 			http.HandleFunc(c.String(FILE_URL), func(w http.ResponseWriter, r *http.Request) {
+				// Set the Content-Disposition header to suggest a filename
+				w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
+
 				http.ServeFile(w, r, fileName)
 			})
 
@@ -70,21 +74,26 @@ func waitForKillSignal() {
 }
 
 // setupFile creates a file with the given name and content, and returns a cleanup function
-func setupFile(testFileName string, testFileContent string) func() {
+func setupFile(fileName string, fileContent string) func() {
+	dataFolder, err := os.MkdirTemp("", "sample-file-server-*")
+	if err != nil {
+		panic(err)
+	}
+	filePath := fmt.Sprintf("%s/%s", dataFolder, fileName)
 	// Open the file for writing (create or truncate)
-	file, err := os.Create(testFileName)
+	file, err := os.Create(filePath)
 	if err != nil {
 		panic(err)
 	}
 	defer file.Close()
 
-	_, err = file.WriteString(testFileContent)
+	_, err = file.WriteString(fileContent)
 	if err != nil {
-		os.Remove(testFileName)
+		os.Remove(filePath)
 		panic(err)
 	}
 	return func() {
-		err := os.Remove(testFileName)
+		err := os.Remove(fileName)
 		if err != nil {
 			panic(err)
 		}
