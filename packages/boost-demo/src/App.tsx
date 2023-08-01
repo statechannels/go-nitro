@@ -23,7 +23,6 @@ const retrievalProvider = "0xbbb676f9cff8d242e9eac39d063848807d3d1d94";
 const hub = "0x111a00868581f73ab42feef67d235ca09ca1e8db";
 const defaultNitroRPCUrl = "localhost:4005/api/v1";
 const defaultFileUrl = "http://localhost:5511/test.txt";
-const costPerByte = 1;
 
 function App() {
   const url =
@@ -41,8 +40,9 @@ function App() {
 
   const [fileUrl, setFileUrl] = useState<string>(defaultFileUrl);
 
-  const [paymentAmount, setPaymentAmount] = useState<number>(5);
-
+  const [costPerByte, setCostPerByte] = useState<number>(1);
+  const [dataSize, setDataSize] = useState<number>(12);
+  const [totalCost, setTotalCost] = useState<number>(costPerByte * dataSize);
   const [errorText, setErrorText] = useState<string>("");
 
   useEffect(() => {
@@ -82,12 +82,8 @@ function App() {
     updateChannelInfo(event.target.value);
   };
 
-  const updateProxyUrl = (e: ChangeEvent<HTMLInputElement>) => {
+  const proxyUrlChanged = (e: ChangeEvent<HTMLInputElement>) => {
     setFileUrl(e.target.value);
-  };
-
-  const updatePaymentAmount = (e: ChangeEvent<HTMLInputElement>) => {
-    setPaymentAmount(parseInt(e.target.value));
   };
 
   const triggerFileDownload = (file: File) => {
@@ -118,7 +114,7 @@ function App() {
       const file = await fetchFile(
         fileUrl,
         costPerByte,
-        paymentAmount,
+        costPerByte,
         selectedChannel,
         nitroClient
       );
@@ -187,16 +183,35 @@ function App() {
         <TextField
           fullWidth={true}
           label="Proxy URL"
-          onChange={updateProxyUrl}
+          onChange={proxyUrlChanged}
           value={fileUrl}
         ></TextField>
       </Box>
       <br></br>
       <Box>
         <TextField
-          label="Payment Amount"
-          onChange={updatePaymentAmount}
-          value={paymentAmount}
+          label="Cost Per Byte(wei)"
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            setCostPerByte(parseInt(e.target.value));
+            setTotalCost(dataSize * parseInt(e.target.value));
+          }}
+          value={costPerByte}
+          type="number"
+        ></TextField>
+        <TextField
+          label="Data Size(bytes)"
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            setDataSize(parseInt(e.target.value));
+            setTotalCost(costPerByte * parseInt(e.target.value));
+          }}
+          value={dataSize}
+          type="number"
+        ></TextField>
+        <TextField
+          inputProps={{ readOnly: true }}
+          disabled={true}
+          label="Total cost(wei)"
+          value={totalCost}
           type="number"
         ></TextField>
         <Button onClick={fetchAndDownloadFile}>Fetch</Button>
