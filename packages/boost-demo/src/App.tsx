@@ -12,8 +12,6 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  Checkbox,
-  FormControlLabel,
 } from "@mui/material";
 
 const QUERY_KEY = "rpcUrl";
@@ -44,7 +42,7 @@ function App() {
   const [fileUrl, setFileUrl] = useState<string>(defaultFileUrl);
 
   const [paymentAmount, setPaymentAmount] = useState<number>(5);
-  const [useBadSig, setUseBadSig] = useState<boolean>(false);
+
   const [errorText, setErrorText] = useState<string>("");
 
   useEffect(() => {
@@ -90,13 +88,6 @@ function App() {
 
   const updatePaymentAmount = (e: ChangeEvent<HTMLInputElement>) => {
     setPaymentAmount(parseInt(e.target.value));
-  };
-
-  const handleUseBadSigChanged = (
-    _: ChangeEvent<HTMLInputElement>,
-    checked: boolean
-  ) => {
-    setUseBadSig(checked);
   };
 
   const triggerFileDownload = (file: File) => {
@@ -202,15 +193,6 @@ function App() {
       </Box>
       <br></br>
       <Box>
-        <FormControlLabel
-          label="Use bad signature"
-          control={
-            <Checkbox
-              onChange={handleUseBadSigChanged}
-              value={useBadSig}
-            ></Checkbox>
-          }
-        />
         <TextField
           label="Payment Amount"
           onChange={updatePaymentAmount}
