@@ -15,17 +15,18 @@ import {
   Checkbox,
   FormControlLabel,
 } from "@mui/material";
-import axios, { isAxiosError } from "axios";
 
 const QUERY_KEY = "rpcUrl";
 
 import "./App.css";
+import { fetchFile } from "./utils";
 
 function App() {
   const retrievalProvider = "0xbbb676f9cff8d242e9eac39d063848807d3d1d94";
   const hub = "0x111a00868581f73ab42feef67d235ca09ca1e8db";
   const defaultUrl = "localhost:4005/api/v1";
-
+  const boostBaseUrl = "http://localhost:5511/test.txt";
+  const costPerByte = 1;
   const url =
     new URLSearchParams(window.location.search).get(QUERY_KEY) ?? defaultUrl;
 
@@ -49,7 +50,11 @@ function App() {
   const [errorText, setErrorText] = useState<string>("");
 
   useEffect(() => {
-    NitroRpcClient.CreateHttpNitroClient(url).then((c) => setNitroClient(c));
+    NitroRpcClient.CreateHttpNitroClient(url)
+      .then((c) => setNitroClient(c))
+      .catch((e) => {
+        setErrorText(e.message);
+      });
   }, [url]);
 
   // Fetch all the payment channels for the retrieval provider
@@ -96,19 +101,19 @@ function App() {
     setUseBadSig(checked);
   };
 
-  const triggerFileDownload = (blob: Blob, fileName: string) => {
+  const triggerFileDownload = (file: File) => {
     // This will prompt the browser to download the file
+    const blob = new Blob([file], { type: file.type });
 
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = fileName;
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(blobUrl);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.name;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
-  const fetchFile = async () => {
+  const fetchAndDownloadFile = async () => {
     setErrorText("");
 
     if (!nitroClient) {
@@ -120,42 +125,27 @@ function App() {
       return;
     }
 
-    const voucher = await nitroClient.CreateVoucher(
-      selectedChannel,
-      paymentAmount
-    );
-    // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
-    setTimeout(() => {
-      updateChannelInfo(selectedChannel);
-    }, 50);
-
-    const signatureToUse = useBadSig
-      ? // This was a valid signature for a voucher but it's not valid for our voucher
-        "0xbfc7cede1b4251d3a97d6e381175cf64284055922f6d044f79939445449e748e769433e686126014648502ef51f6af444a8d41f82d572aaa94e196a28b5ede581c"
-      : voucher.Signature;
     try {
-      const result = await axios.get(
-        `http://localhost:5511/ipfs/${payloadId}?channelId=${voucher.ChannelId}&amount=${voucher.Amount}&signature=${signatureToUse}`,
-        {
-          responseType: "blob", // This lets us download the file
-          headers: {
-            Accept: "*/*", // TODO: Do we need to specify this?
-          },
-        }
+      const file = await fetchFile(
+        boostBaseUrl,
+        costPerByte,
+        paymentAmount,
+        selectedChannel,
+        nitroClient
       );
-      triggerFileDownload(result.data, "fetched-file-from-ipfs");
-    } catch (e) {
-      if (isAxiosError(e)) {
-        const { message } = e;
-        e.response?.data.text().then((text: string) => {
-          setErrorText(`${message}: ${text}`);
-        });
-      } else {
-        setErrorText(JSON.stringify(e));
-      }
+
+      console.log(file);
+
+      triggerFileDownload(file);
+
+      // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
+      setTimeout(() => {
+        updateChannelInfo(selectedChannel);
+      }, 50);
+    } catch (e: unknown) {
+      setErrorText((e as Error).message);
     }
   };
-
   return (
     <Box>
       <Box p={10} minHeight={200}>
@@ -229,7 +219,7 @@ function App() {
           value={paymentAmount}
           type="number"
         ></TextField>
-        <Button onClick={fetchFile}>Fetch</Button>
+        <Button onClick={fetchAndDownloadFile}>Fetch</Button>
         <Box>{errorText}</Box>
       </Box>
     </Box>
