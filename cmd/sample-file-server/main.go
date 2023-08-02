@@ -41,14 +41,14 @@ func main() {
 				fileContent = "Hello world!"
 			)
 
-			cleanup := setupFile(fileName, fileContent)
+			filePath, cleanup := setupFile(fileName, fileContent)
 			defer cleanup()
 
 			http.HandleFunc(c.String(FILE_URL), func(w http.ResponseWriter, r *http.Request) {
 				// Set the Content-Disposition header to suggest a filename
 				w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
 
-				http.ServeFile(w, r, fileName)
+				http.ServeFile(w, r, filePath)
 			})
 
 			fmt.Printf("Serve listening on http://localhost:%d%s\n", c.Uint(PORT), c.String(FILE_URL))
@@ -74,7 +74,7 @@ func waitForKillSignal() {
 }
 
 // setupFile creates a file with the given name and content, and returns a cleanup function
-func setupFile(fileName string, fileContent string) func() {
+func setupFile(fileName string, fileContent string) (string, func()) {
 	dataFolder, err := os.MkdirTemp("", "sample-file-server-*")
 	if err != nil {
 		panic(err)
@@ -92,7 +92,7 @@ func setupFile(fileName string, fileContent string) func() {
 		os.Remove(filePath)
 		panic(err)
 	}
-	return func() {
+	return filePath, func() {
 		err := os.Remove(fileName)
 		if err != nil {
 			panic(err)
