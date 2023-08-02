@@ -12,6 +12,7 @@ import {
   TableRow,
   TableCell,
   TableBody,
+  InputLabel,
 } from "@mui/material";
 
 const QUERY_KEY = "rpcUrl";
@@ -134,16 +135,18 @@ function App() {
   return (
     <Box>
       <Box p={10} minHeight={200}>
+        <InputLabel id="select-channel">Select a payment channel</InputLabel>
         <Select
-          label="virtual channels"
           onChange={handleSelectedChannelChanged}
           value={selectedChannel}
+          inputProps={{
+            id: "select-channel",
+          }}
         >
           {...paymentChannels.map((p) => (
             <MenuItem value={p.ID}>{p.ID}</MenuItem>
           ))}
         </Select>
-
         <Table>
           <TableBody>
             <TableRow>
