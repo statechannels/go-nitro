@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/urfave/cli/v2"
@@ -37,10 +38,9 @@ func main() {
 		Action: func(c *cli.Context) error {
 			const (
 				fileName = "test.txt"
-
-				fileContent = "Hello world!"
 			)
 
+			fileContent := strings.Repeat("Hello world! This is some sample text.", 100)
 			filePath, cleanup := setupFile(fileName, fileContent)
 			defer cleanup()
 
