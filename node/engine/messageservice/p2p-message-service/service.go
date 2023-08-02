@@ -233,7 +233,10 @@ func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 // Triggered whenever node establishes a connection with a peer
 func (ms *P2PMessageService) sendPeerInfo(recipientId peer.ID, expectResponse bool) {
 	stream, err := ms.p2pHost.NewStream(context.Background(), recipientId, PEER_EXCHANGE_PROTOCOL_ID)
-	ms.checkError(err)
+	if err != nil {
+		ms.logger.Err(err).Msgf("failed to create stream for passing peerInfo with %s", recipientId.String())
+		return
+	}
 	defer stream.Close()
 
 	raw, err := json.Marshal(peerExchangeMessage{
