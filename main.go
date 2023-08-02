@@ -103,21 +103,18 @@ func main() {
 			Usage:       "Specifies the address of the nitro adjudicator contract.",
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &naAddress,
-			Required:    true,
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        VPA_ADDRESS,
 			Usage:       "Specifies the address of the virtual payment app.",
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &vpaAddress,
-			Required:    true,
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CA_ADDRESS,
 			Usage:       "Specifies the address of the consensus app.",
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &caAddress,
-			Required:    true,
 		}),
 		altsrc.NewIntFlag(&cli.IntFlag{
 			Name:        MSG_PORT,
