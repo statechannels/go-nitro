@@ -32,9 +32,18 @@ var (
 	challengeClearedTopic    = crypto.Keccak256Hash([]byte("ChallengeCleared(bytes32 indexed channelId, uint48 newTurnNumRecord)"))
 )
 
+var topicsToWatch = []common.Hash{
+	allocationUpdatedTopic,
+	concludedTopic,
+	depositedTopic,
+	challengeRegisteredTopic,
+	challengeClearedTopic,
+}
+
 type ethChain interface {
 	bind.ContractBackend
 	ethereum.TransactionReader
+	ethereum.ChainReader
 	ChainID(ctx context.Context) (*big.Int, error)
 }
 
@@ -155,8 +164,10 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 				if err != nil {
 					return err
 				}
+				// TODO: wait for the Approve tx to be mined before continuing
 			}
 			holdings, err := ecs.na.Holdings(&bind.CallOpts{}, tokenAddress, tx.ChannelId())
+			ecs.logger.Debug().Msgf("existing holdings: %v", holdings)
 			if err != nil {
 				return err
 			}
@@ -271,11 +282,50 @@ out:
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
 			// We unsub here and recreate the subscription in the next iteration of the select.
 			sub.Unsubscribe()
-		case chainEvent := <-logs:
-			err := ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
-			if err != nil {
-				errorChan <- fmt.Errorf("error in dispatchChainEvents: %w", err)
-				break out
+		case naChainEvent := <-logs:
+			// Make sure we care about this event. If we do, process asynchronously
+			for _, topic := range topicsToWatch {
+				if naChainEvent.Topics[0] == topic {
+					go ecs.waitToProcessEvent(naChainEvent, errorChan)
+					break
+				}
+			}
+		}
+	}
+}
+
+func (ecs *EthChainService) waitToProcessEvent(chainEvent ethTypes.Log, errorChan chan<- error) {
+	ecs.logger.Debug().Msgf("event emitted in tx %s (topic: %s)", chainEvent.TxHash.Hex(), chainEvent.Topics[0])
+	initialBlock := big.NewInt(int64(chainEvent.BlockNumber))
+
+	headers := make(chan *ethTypes.Header)
+	sub, err := ecs.chain.SubscribeNewHead(context.Background(), headers)
+	if err != nil {
+		errorChan <- fmt.Errorf("error in SubscribeNewHead: %w", err)
+		return
+	}
+	defer sub.Unsubscribe()
+
+	confirmations := 0
+	confirmationGoal := 2 // number of confirmations to wait for
+
+	for {
+		select {
+		case err := <-sub.Err():
+			errorChan <- fmt.Errorf("error in new block header subscription: %w", err)
+			return
+		case header := <-headers:
+			// TODO: check if the block containing the transaction is still part of the chain
+
+			confirmations = int(header.Number.Int64() - initialBlock.Int64())
+			ecs.logger.Trace().Msgf("event block confirmations: %d (goal: %d)", confirmations, confirmationGoal)
+
+			if confirmations >= confirmationGoal {
+				err := ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
+				if err != nil {
+					errorChan <- fmt.Errorf("error in dispatchChainEvents: %w", err)
+				}
+				return
 			}
 		}
 	}
