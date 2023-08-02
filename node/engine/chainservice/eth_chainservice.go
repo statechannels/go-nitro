@@ -209,6 +209,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 			if pending {
 				return fmt.Errorf("expected transaction to be part of the chain, but the transaction is pending")
 			}
+			printTxData(tx)
 			var assetAddress types.Address
 			var amount *big.Int
 
@@ -322,4 +323,15 @@ func (ecs *EthChainService) Close() error {
 	ecs.cancel()
 	ecs.wg.Wait()
 	return nil
+}
+
+func printTxData(tx *ethTypes.Transaction) {
+	abi, _ := NitroAdjudicator.NitroAdjudicatorMetaData.GetAbi()
+	method, _ := abi.MethodById(tx.Data())
+	args, _ := method.Inputs.UnpackValues(tx.Data()[4:])
+
+	fmt.Println(method.Name)
+	for i, arg := range args {
+		fmt.Printf("Arg %d: %v\n", i, arg)
+	}
 }
