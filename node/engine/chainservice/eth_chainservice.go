@@ -74,6 +74,15 @@ const MAX_QUERY_BLOCK_RANGE = 2000
 // This has been reduced to 15 seconds to support local devnets with much shorter timeouts.
 const RESUB_INTERVAL = 15 * time.Second
 
+// REQUIRED_BLOCK_CONFIRMATIONS is how many blocks must be mined before an emitted event is processed
+const REQUIRED_BLOCK_CONFIRMATIONS = 0
+
+// BLOCK_QUERY_DELAY_SECONDS is how many seconds we wait in between queries for new block confirmations
+const BLOCK_QUERY_DELAY_SECONDS = 3
+
+// MAX_BLOCK_CONFIRMATION_WAIT is how many seconds we wait for block confirmations before giving up
+const MAX_BLOCK_CONFIRMATION_WAIT = 60
+
 // NewEthChainService is a convenient wrapper around newEthChainService, which provides a simpler API
 func NewEthChainService(chainUrl, chainAuthToken, chainPk string, naAddress, caAddress, vpaAddress common.Address, logDestination io.Writer) (*EthChainService, error) {
 	if vpaAddress == caAddress {
@@ -229,7 +238,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 
 			assetAddress, amount, err = getChainHolding(ecs.na, tx, au)
 			if err != nil {
-				return fmt.Errorf("error in getChainHoldings: %w", err)
+				return fmt.Errorf("error in getChainHolding: %w", err)
 			}
 
 			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, assetAddress, amount)
@@ -298,35 +307,47 @@ func (ecs *EthChainService) waitToProcessEvent(chainEvent ethTypes.Log, errorCha
 	ecs.logger.Debug().Msgf("event emitted in tx %s (topic: %s)", chainEvent.TxHash.Hex(), chainEvent.Topics[0])
 	initialBlock := big.NewInt(int64(chainEvent.BlockNumber))
 
-	headers := make(chan *ethTypes.Header)
-	sub, err := ecs.chain.SubscribeNewHead(context.Background(), headers)
-	if err != nil {
-		errorChan <- fmt.Errorf("error in SubscribeNewHead: %w", err)
+	ticker := time.NewTicker(BLOCK_QUERY_DELAY_SECONDS * time.Second)
+	defer ticker.Stop()
+
+	numTicks := 0
+
+	// Call this function once initially, then after each tick
+	processTick := func() error {
+		numTicks++
+		header, err := ecs.chain.HeaderByNumber(context.Background(), nil)
+		if err != nil {
+			return fmt.Errorf("error in HeaderByNumber: %w", err)
+		}
+
+		// TODO: check if the block containing the transaction is still part of the chain
+		confirmations := int(header.Number.Int64() - initialBlock.Int64())
+		ecs.logger.Trace().Msgf("event block confirmations: %d (goal: %d)", confirmations, REQUIRED_BLOCK_CONFIRMATIONS)
+
+		if confirmations >= REQUIRED_BLOCK_CONFIRMATIONS {
+			err := ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
+			if err != nil {
+				return fmt.Errorf("error in dispatchChainEvents: %w", err)
+			}
+			return nil
+		}
+
+		if numTicks*BLOCK_QUERY_DELAY_SECONDS > MAX_BLOCK_CONFIRMATION_WAIT {
+			return fmt.Errorf("timed out waiting for block confirmations")
+		}
+		return nil
+	}
+
+	// Call the function before entering the loop
+	if err := processTick(); err != nil {
+		errorChan <- err
 		return
 	}
-	defer sub.Unsubscribe()
 
-	confirmations := 0
-	confirmationGoal := 2 // number of confirmations to wait for
-
-	for {
-		select {
-		case err := <-sub.Err():
-			errorChan <- fmt.Errorf("error in new block header subscription: %w", err)
+	for range ticker.C {
+		if err := processTick(); err != nil {
+			errorChan <- err
 			return
-		case header := <-headers:
-			// TODO: check if the block containing the transaction is still part of the chain
-
-			confirmations = int(header.Number.Int64() - initialBlock.Int64())
-			ecs.logger.Trace().Msgf("event block confirmations: %d (goal: %d)", confirmations, confirmationGoal)
-
-			if confirmations >= confirmationGoal {
-				err := ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
-				if err != nil {
-					errorChan <- fmt.Errorf("error in dispatchChainEvents: %w", err)
-				}
-				return
-			}
 		}
 	}
 }
