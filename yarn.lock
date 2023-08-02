@@ -6122,26 +6122,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"boost-demo@workspace:packages/boost-demo":
-  version: 0.0.0-use.local
-  resolution: "boost-demo@workspace:packages/boost-demo"
-  dependencies:
-    "@types/react": ^18.0.37
-    "@types/react-dom": ^18.0.11
-    "@typescript-eslint/eslint-plugin": ^5.59.0
-    "@typescript-eslint/parser": ^5.59.0
-    "@vitejs/plugin-react": ^4.0.0
-    axios: ^1.4.0
-    eslint: ^8.38.0
-    eslint-plugin-react-hooks: ^4.6.0
-    eslint-plugin-react-refresh: ^0.3.4
-    react: ^18.2.0
-    react-dom: ^18.2.0
-    typescript: ^5.0.2
-    vite: ^4.3.9
-  languageName: unknown
-  linkType: soft
-
 "bplist-parser@npm:^0.2.0":
   version: 0.2.0
   resolution: "bplist-parser@npm:0.2.0"
@@ -11694,6 +11674,26 @@ __metadata:
   checksum: 34ab3da2e5aa832ebc6a330ffe3f73d7ba8aec6e899b53b8ec4f4018de08e40742802deb12cf5add9c73b7bf719b62c0778246bd376ca62b0fb23e0dde44b759
   languageName: node
   linkType: hard
+
+"payment-proxy-client@workspace:packages/payment-proxy-client":
+  version: 0.0.0-use.local
+  resolution: "payment-proxy-client@workspace:packages/payment-proxy-client"
+  dependencies:
+    "@types/react": ^18.0.37
+    "@types/react-dom": ^18.0.11
+    "@typescript-eslint/eslint-plugin": ^5.59.0
+    "@typescript-eslint/parser": ^5.59.0
+    "@vitejs/plugin-react": ^4.0.0
+    axios: ^1.4.0
+    eslint: ^8.38.0
+    eslint-plugin-react-hooks: ^4.6.0
+    eslint-plugin-react-refresh: ^0.3.4
+    react: ^18.2.0
+    react-dom: ^18.2.0
+    typescript: ^5.0.2
+    vite: ^4.3.9
+  languageName: unknown
+  linkType: soft
 
 "peek-stream@npm:^1.1.0":
   version: 1.1.3
