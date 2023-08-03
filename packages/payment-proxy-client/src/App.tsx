@@ -13,6 +13,8 @@ import {
   TableCell,
   TableBody,
   InputLabel,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 
 const QUERY_KEY = "rpcUrl";
@@ -45,6 +47,8 @@ function App() {
   const [dataSize, setDataSize] = useState<number>(12);
   const [totalCost, setTotalCost] = useState<number>(costPerByte * dataSize);
   const [errorText, setErrorText] = useState<string>("");
+  const [chunkSize, setChunkSize] = useState<number>(100);
+  const [useMicroPayments, setUseMicroPayments] = useState<boolean>(false);
 
   useEffect(() => {
     NitroRpcClient.CreateHttpNitroClient(url)
@@ -112,15 +116,21 @@ function App() {
     }
 
     try {
-      const file = await fetchFile(
-        fileUrl,
-        costPerByte,
-        costPerByte,
-        selectedChannel,
-        nitroClient
-      );
-
-      console.log(file);
+      const file = useMicroPayments
+        ? await fetchFileInChunks(
+            chunkSize,
+            fileUrl,
+            costPerByte,
+            selectedChannel,
+            nitroClient
+          )
+        : await fetchFile(
+            fileUrl,
+            costPerByte,
+            dataSize,
+            selectedChannel,
+            nitroClient
+          );
 
       triggerFileDownload(file);
 
@@ -132,6 +142,7 @@ function App() {
       setErrorText((e as Error).message);
     }
   };
+
   return (
     <Box>
       <Box p={10} minHeight={200}>
@@ -191,7 +202,36 @@ function App() {
         ></TextField>
       </Box>
       <br></br>
-      <Box>
+      <FormControlLabel
+        label="Use micropayments"
+        control={
+          <Checkbox
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setUseMicroPayments(e.target.checked)
+            }
+            value={useMicroPayments}
+          ></Checkbox>
+        }
+      />
+      <Box visibility={useMicroPayments ? "visible" : "hidden"}>
+        <TextField
+          label="Cost Per Byte(wei)"
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            setCostPerByte(parseInt(e.target.value));
+          }}
+          value={costPerByte}
+          type="number"
+        ></TextField>
+        <TextField
+          label="Chunk size(bytes)"
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            setChunkSize(parseInt(e.target.value));
+          }}
+          value={chunkSize}
+          type="number"
+        ></TextField>
+      </Box>
+      <Box visibility={useMicroPayments ? "hidden" : "visible"}>
         <TextField
           label="Cost Per Byte(wei)"
           onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -212,14 +252,15 @@ function App() {
         ></TextField>
         <TextField
           inputProps={{ readOnly: true }}
-          disabled={true}
           label="Total cost(wei)"
           value={totalCost}
           type="number"
         ></TextField>
-        <Button onClick={fetchAndDownloadFile}>Fetch</Button>
-        <Box>{errorText}</Box>
       </Box>
+      <Button onClick={fetchAndDownloadFile}>
+        {useMicroPayments ? "Fetch with micropayments" : "Fetch"}
+      </Button>
+      <Box>{errorText}</Box>
     </Box>
   );
 }
