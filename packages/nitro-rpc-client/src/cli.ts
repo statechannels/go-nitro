@@ -101,11 +101,17 @@ yargs(hideBin(process.argv))
     "direct-fund <counterparty>",
     "Creates a directly funded ledger channel",
     (yargsBuilder) => {
-      return yargsBuilder.positional("counterparty", {
-        describe: "The counterparty's address",
-        type: "string",
-        demandOption: true,
-      });
+      return yargsBuilder
+        .positional("counterparty", {
+          describe: "The counterparty's address",
+          type: "string",
+          demandOption: true,
+        })
+        .option("amount", {
+          describe: "The amount to fund the channel with",
+          type: "number",
+          default: 1_000_000,
+        });
     },
     async (yargs) => {
       const rpcPort = yargs.p;
@@ -116,7 +122,8 @@ yargs(hideBin(process.argv))
       if (yargs.n) logOutChannelUpdates(rpcClient);
 
       const dfObjective = await rpcClient.CreateLedgerChannel(
-        yargs.counterparty
+        yargs.counterparty,
+        yargs.amount
       );
       const { Id } = dfObjective;
 
@@ -163,7 +170,12 @@ yargs(hideBin(process.argv))
           type: "string",
           demandOption: true,
         })
-        .array("intermediaries");
+        .array("intermediaries")
+        .option("amount", {
+          describe: "The amount to fund the channel with",
+          type: "number",
+          default: 1000,
+        });
     },
     async (yargs) => {
       const rpcPort = yargs.p;
@@ -184,7 +196,8 @@ yargs(hideBin(process.argv))
 
       const vfObjective = await rpcClient.CreatePaymentChannel(
         yargs.counterparty,
-        intermediaries
+        intermediaries,
+        yargs.amount
       );
 
       const { Id } = vfObjective;
