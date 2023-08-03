@@ -191,7 +191,7 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 
 // addScaddrDhtRecord adds this node's state channel address to the custom dht namespace
 func (ms *P2PMessageService) addScaddrDhtRecord(ctx context.Context) {
-	recordData := &DhtData{
+	recordData := &dhtData{
 		SCAddr:    ms.me.String(),
 		PeerID:    ms.Id().String(),
 		Timestamp: time.Time.Unix(time.Now()),
@@ -202,7 +202,7 @@ func (ms *P2PMessageService) addScaddrDhtRecord(ctx context.Context) {
 	signature, err := ms.key.Sign(recordDataBytes)
 	ms.checkError(err)
 
-	fullRecord := &DhtRecord{
+	fullRecord := &dhtRecord{
 		Data:      *recordData,
 		Signature: signature,
 	}
@@ -297,7 +297,7 @@ func (ms *P2PMessageService) getPeerIdFromDht(scaddr string) peer.ID {
 	recordBytes, err := ms.dht.GetValue(context.Background(), DHT_RECORD_PREFIX+scaddr)
 	ms.checkError(err)
 
-	recordData := &DhtRecord{}
+	recordData := &dhtRecord{}
 	err = json.Unmarshal(recordBytes, recordData)
 	ms.checkError(err)
 

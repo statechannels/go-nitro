@@ -3,6 +3,7 @@ package p2pms
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -16,13 +17,13 @@ const (
 
 type stateChannelAddrToPeerIDValidator struct{}
 
-// DhtRecord represents the data stored in the DHT record
-type DhtRecord struct {
-	Data      DhtData `json:"data"`
+// dhtRecord represents the data stored in the DHT record
+type dhtRecord struct {
+	Data      dhtData `json:"data"`
 	Signature []byte  `json:"signature"`
 }
 
-type DhtData struct {
+type dhtData struct {
 	SCAddr    string `json:"scaddr"` // state channel address
 	PeerID    string `json:"peerid"`
 	Timestamp int64  `json:"timestamp"` // Unix timestamp (seconds since January 1, 1970)
@@ -38,7 +39,7 @@ func (v stateChannelAddrToPeerIDValidator) Validate(key string, value []byte) er
 	}
 
 	// Parse the value into a RecordData object
-	var dhtRecord DhtRecord
+	var dhtRecord dhtRecord
 	if err := json.Unmarshal(value, &dhtRecord); err != nil {
 		return errors.New("malformed record value")
 	}
@@ -81,5 +82,21 @@ func (v stateChannelAddrToPeerIDValidator) Validate(key string, value []byte) er
 // In a more complex scenario, we could add logic to select the best record
 // based on some criteria.
 func (v stateChannelAddrToPeerIDValidator) Select(key string, values [][]byte) (int, error) {
-	return 0, nil
+	var mostRecentIndex int
+	var mostRecentTimestamp int64
+
+	for i, value := range values {
+		var record dhtRecord
+		err := json.Unmarshal(value, &record)
+		if err != nil {
+			return -1, fmt.Errorf("error unmarshalling record: %w", err)
+		}
+
+		if record.Data.Timestamp > mostRecentTimestamp {
+			mostRecentIndex = i
+			mostRecentTimestamp = record.Data.Timestamp
+		}
+	}
+
+	return mostRecentIndex, nil
 }
