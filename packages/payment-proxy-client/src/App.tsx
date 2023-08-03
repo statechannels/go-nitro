@@ -14,7 +14,7 @@ import {
   TableBody,
   InputLabel,
 } from "@mui/material";
-import { isAxiosError } from "axios";
+
 const QUERY_KEY = "rpcUrl";
 
 import "./App.css";
@@ -128,18 +128,10 @@ function App() {
       setTimeout(() => {
         updateChannelInfo(selectedChannel);
       }, 50);
-    } catch (e) {
-      if (isAxiosError(e)) {
-        const { message } = e;
-        e.response?.data.text().then((text: string) => {
-          setErrorText(`${message}: ${text}`);
-        });
-      } else {
-        setErrorText(JSON.stringify(e));
-      }
+    } catch (e: unknown) {
+      setErrorText((e as Error).message);
     }
   };
-
   return (
     <Box>
       <Box p={10} minHeight={200}>
