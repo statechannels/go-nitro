@@ -39,7 +39,8 @@ export async function fetchFileInChunks(
   baseUrl: string,
   costPerByte: number,
   selectedChannel: string,
-  nitroClient: NitroRpcClient
+  nitroClient: NitroRpcClient,
+  updateProgress: (progress: number) => void
 ): Promise<File> {
   const firstChunk = await fetchFileChunk(
     0,
@@ -65,6 +66,7 @@ export async function fetchFileInChunks(
 
   if (remainingContentLength <= 0) {
     console.log("We have fetched the entire file in 1 chunk");
+    updateProgress(100);
     return new File([fileContents], fileName);
   }
 
@@ -73,6 +75,7 @@ export async function fetchFileInChunks(
       remainingContentLength / chunkSize
     )} chunks`
   );
+  updateProgress(100 - (remainingContentLength / contentLength) * 100);
 
   while (remainingContentLength > chunkSize) {
     const start = contentLength - remainingContentLength;
@@ -89,6 +92,9 @@ export async function fetchFileInChunks(
 
     fileContents.set(data, start);
     remainingContentLength -= chunkSize;
+
+    updateProgress(100 - (remainingContentLength / contentLength) * 100);
+
     console.log(
       `We have ${remainingContentLength} bytes to fetch in ${Math.ceil(
         remainingContentLength / chunkSize
@@ -111,7 +117,7 @@ export async function fetchFileInChunks(
 
     console.log(`Fetched final chunk of size ${remainingContentLength} bytes`);
   }
-
+  updateProgress(100);
   console.log("Finished fetching all chunks");
   return new File([fileContents], fileName);
 }
