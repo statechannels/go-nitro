@@ -34,6 +34,7 @@ const (
 	otherParamValue            = "2"
 	testFileContent            = "This a simple test file used in the reverse payment proxy"
 	testFileName               = "test_file.txt"
+	serverReadyMaxWait         = 2 * time.Second
 )
 
 func setupTestFile(t *testing.T) func() {
@@ -93,7 +94,7 @@ func TestReversePaymentProxy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error starting proxy: %v", err)
 	}
-	waitForServer(t, fmt.Sprintf("http://%s/", proxyAddress), 1*time.Second)
+	waitForServer(t, fmt.Sprintf("http://%s/", proxyAddress), serverReadyMaxWait)
 
 	voucher := createVoucher(t, aliceClient, paymentChannel, 5)
 	resp := performGetRequest(t, "", fmt.Sprintf("http://%s/resource?channelId=%s&amount=%d&signature=%s", proxyAddress, voucher.ChannelId, voucher.Amount.Int64(), voucher.Signature.ToHexString()))
@@ -343,7 +344,7 @@ func runDestinationServer(t *testing.T, port uint) (destUrl string, cleanup func
 
 	url := fmt.Sprintf("http://localhost:%d", port)
 
-	waitForServer(t, url, 10*time.Second)
+	waitForServer(t, url, serverReadyMaxWait)
 
 	return url, func() {
 		server.Close()
