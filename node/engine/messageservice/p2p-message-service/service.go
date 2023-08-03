@@ -138,9 +138,9 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	ctx := context.Background()
 	var options []dht.Option
 	options = append(options, dht.BucketSize(20))
-	options = append(options, dht.Mode(dht.ModeServer))                                               // allows other peers to connect to this node
-	options = append(options, dht.ProtocolPrefix(DHT_PROTOCOL_PREFIX))                                // need this to allow custom NamespacedValidator
-	options = append(options, dht.NamespacedValidator("scaddr", stateChannelAddrToPeerIDValidator{})) // all records prefixed with /scaddr/ will use this custom validator
+	options = append(options, dht.Mode(dht.ModeServer))                                                    // allows other peers to connect to this node
+	options = append(options, dht.ProtocolPrefix(DHT_PROTOCOL_PREFIX))                                     // need this to allow custom NamespacedValidator
+	options = append(options, dht.NamespacedValidator(DHT_NAMESPACE, stateChannelAddrToPeerIDValidator{})) // all records prefixed with /scaddr/ will use this custom validator
 
 	kademliaDHT, err := dht.New(ctx, ms.p2pHost, options...)
 	ms.checkError(err)

@@ -12,21 +12,22 @@ import (
 )
 
 const (
-	DHT_RECORD_PREFIX = "/scaddr/"
+	DHT_RECORD_PREFIX = "/" + DHT_NAMESPACE + "/"
+	DHT_NAMESPACE     = "scaddr"
 )
 
 type stateChannelAddrToPeerIDValidator struct{}
 
 // dhtRecord represents the data stored in the DHT record
 type dhtRecord struct {
-	Data      dhtData `json:"data"`
-	Signature []byte  `json:"signature"`
+	Data      dhtData
+	Signature []byte
 }
 
 type dhtData struct {
-	SCAddr    string `json:"scaddr"` // state channel address
-	PeerID    string `json:"peerid"`
-	Timestamp int64  `json:"timestamp"` // Unix timestamp (seconds since January 1, 1970)
+	SCAddr    string // state channel address
+	PeerID    string
+	Timestamp int64 // Unix timestamp (seconds since January 1, 1970)
 }
 
 func (v stateChannelAddrToPeerIDValidator) Validate(key string, value []byte) error {
@@ -38,7 +39,6 @@ func (v stateChannelAddrToPeerIDValidator) Validate(key string, value []byte) er
 		return errors.New("invalid state channel address used for key")
 	}
 
-	// Parse the value into a RecordData object
 	var dhtRecord dhtRecord
 	if err := json.Unmarshal(value, &dhtRecord); err != nil {
 		return errors.New("malformed record value")
@@ -78,9 +78,7 @@ func (v stateChannelAddrToPeerIDValidator) Validate(key string, value []byte) er
 	return nil
 }
 
-// Simply return the first record as the best record.
-// In a more complex scenario, we could add logic to select the best record
-// based on some criteria.
+// Choose the most recent record if we receive multiple records for the same key
 func (v stateChannelAddrToPeerIDValidator) Select(key string, values [][]byte) (int, error) {
 	var mostRecentIndex int
 	var mostRecentTimestamp int64
