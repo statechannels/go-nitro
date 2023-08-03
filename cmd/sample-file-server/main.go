@@ -40,7 +40,7 @@ func main() {
 				fileName = "test.txt"
 			)
 
-			fileContent := strings.Repeat("Hello world! This is some sample text.", 100)
+			fileContent := strings.Repeat("Hello world! This is some sample text.", 5)
 			filePath, cleanup := setupFile(fileName, fileContent)
 			defer cleanup()
 
