@@ -50,8 +50,14 @@ export async function fetchFileInChunks(
     nitroClient
   );
 
+  console.log(
+    `Fetched the first chunk of the file using a chunk size of ${chunkSize} bytes`
+  );
+
   const { contentLength, fileName } = firstChunk;
   const remainingChunks = Math.ceil(contentLength / chunkSize) - 1;
+  console.log(`The total length of the file is ${contentLength} bytes`);
+  console.log(`We have ${remainingChunks} more chunks to fetch`);
 
   const fileContents = new Uint8Array(contentLength);
   fileContents.set(firstChunk.data);
@@ -69,9 +75,11 @@ export async function fetchFileInChunks(
       nitroClient
     );
 
+    console.log(`Fetched chunk ${i + 1} of ${remainingChunks + 1}`);
     fileContents.set(data, i * chunkSize);
   }
 
+  console.log("Finished fetching all chunks");
   return new File([fileContents], fileName);
 }
 
