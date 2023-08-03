@@ -358,7 +358,7 @@ func waitForServer(t *testing.T, url string, timeout time.Duration) {
 		for {
 			_, err := http.Get(url)
 			if err == nil {
-				isReady <- struct{}{}
+				close(isReady)
 				return
 			}
 
