@@ -84,7 +84,7 @@ export async function fetchFileChunk(
   nitroClient: NitroRpcClient
 ): Promise<{ data: Uint8Array; contentLength: number; fileName: string }> {
   const dataLength = stop - start + 1; // +1 because stop is inclusive
-  console.log(dataLength);
+
   const chunkCost = dataLength * costPerByte;
 
   const voucher = await nitroClient.CreateVoucher(selectedChannel, chunkCost);
@@ -103,7 +103,6 @@ export async function fetchFileChunk(
     throw new Error(`Response status ${response.status}`);
   }
   const result = await response.body.getReader().read();
-  console.log(...response.headers);
 
   return {
     data: result.value || new Uint8Array(),
