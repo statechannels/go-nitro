@@ -55,15 +55,27 @@ export async function fetchFileInChunks(
   );
 
   const { contentLength, fileName } = firstChunk;
-  const remainingChunks = Math.ceil(contentLength / chunkSize) - 1;
-  console.log(`The total length of the file is ${contentLength} bytes`);
-  console.log(`We have ${remainingChunks} more chunks to fetch`);
+
+  console.log(`The file ${fileName} is ${contentLength} bytes in size`);
 
   const fileContents = new Uint8Array(contentLength);
   fileContents.set(firstChunk.data);
 
-  for (let i = 1; i <= remainingChunks; i++) {
-    const start = i * chunkSize;
+  let remainingContentLength = contentLength - chunkSize;
+
+  if (remainingContentLength <= 0) {
+    console.log("We have fetched the entire file in 1 chunk");
+    return new File([fileContents], fileName);
+  }
+
+  console.log(
+    `We have ${remainingContentLength} bytes to fetch in ${Math.ceil(
+      remainingContentLength / chunkSize
+    )} chunks`
+  );
+
+  while (remainingContentLength > chunkSize) {
+    const start = contentLength - remainingContentLength;
     const stop = start + chunkSize - 1;
 
     const { data } = await fetchFileChunk(
@@ -75,8 +87,29 @@ export async function fetchFileInChunks(
       nitroClient
     );
 
-    console.log(`Fetched chunk ${i + 1} of ${remainingChunks + 1}`);
-    fileContents.set(data, i * chunkSize);
+    fileContents.set(data, start);
+    remainingContentLength -= chunkSize;
+    console.log(
+      `We have ${remainingContentLength} bytes to fetch in ${Math.ceil(
+        remainingContentLength / chunkSize
+      )} chunks`
+    );
+  }
+
+  if (remainingContentLength > 0) {
+    const start = contentLength - remainingContentLength;
+    const stop = contentLength - 1;
+    const { data } = await fetchFileChunk(
+      start,
+      stop,
+      baseUrl,
+      costPerByte,
+      selectedChannel,
+      nitroClient
+    );
+    fileContents.set(data, start);
+
+    console.log(`Fetched final chunk of size ${remainingContentLength} bytes`);
   }
 
   console.log("Finished fetching all chunks");
