@@ -20,7 +20,7 @@ const QUERY_KEY = "rpcUrl";
 import "./App.css";
 import { fetchFile } from "./file-helpers";
 
-const retrievalProvider = "0xbbb676f9cff8d242e9eac39d063848807d3d1d94";
+const provider = "0xbbb676f9cff8d242e9eac39d063848807d3d1d94";
 const hub = "0x111a00868581f73ab42feef67d235ca09ca1e8db";
 const defaultNitroRPCUrl = "localhost:4005/api/v1";
 const defaultFileUrl = "http://localhost:5511/test.txt";
@@ -64,7 +64,7 @@ function App() {
 
           nitroClient.GetPaymentChannelsByLedger(l.ID).then((payChs) => {
             const withProvider = payChs.filter(
-              (p) => p.Balance.Payee == retrievalProvider
+              (p) => p.Balance.Payee == provider
             );
             setPaymentChannels(withProvider);
           });
