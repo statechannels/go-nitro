@@ -15,6 +15,7 @@ import {
   InputLabel,
   Checkbox,
   FormControlLabel,
+  LinearProgress,
 } from "@mui/material";
 
 const QUERY_KEY = "rpcUrl";
@@ -49,7 +50,7 @@ function App() {
   const [errorText, setErrorText] = useState<string>("");
   const [chunkSize, setChunkSize] = useState<number>(100);
   const [useMicroPayments, setUseMicroPayments] = useState<boolean>(false);
-
+  const [microPaymentProgress, setMicroPaymentProgress] = useState<number>(0);
   useEffect(() => {
     NitroRpcClient.CreateHttpNitroClient(url)
       .then((c) => setNitroClient(c))
@@ -116,13 +117,15 @@ function App() {
     }
 
     try {
+      setMicroPaymentProgress(0);
       const file = useMicroPayments
         ? await fetchFileInChunks(
             chunkSize,
             fileUrl,
             costPerByte,
             selectedChannel,
-            nitroClient
+            nitroClient,
+            setMicroPaymentProgress
           )
         : await fetchFile(
             fileUrl,
@@ -256,9 +259,14 @@ function App() {
           type="number"
         ></TextField>
       </Box>
+
       <Button onClick={fetchAndDownloadFile}>
         {useMicroPayments ? "Fetch with micropayments" : "Fetch"}
       </Button>
+      <Box visibility={useMicroPayments ? "visible" : "hidden"}>
+        <LinearProgress value={microPaymentProgress} variant="determinate" />
+      </Box>
+
       <Box>{errorText}</Box>
     </Box>
   );
