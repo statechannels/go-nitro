@@ -212,7 +212,7 @@ func (ms *P2PMessageService) addScaddrDhtRecord(ctx context.Context) {
 	key := DHT_RECORD_PREFIX + ms.me.String()
 	err = ms.dht.PutValue(ctx, key, fullRecordBytes)
 	ms.checkError(err)
-	ms.logger.Info().Msgf("Added value to dht - [key: %v, value: %v]", key, ms.Id())
+	ms.logger.Info().Str(key, ms.Id().String()).Msg("Added value to dht")
 }
 
 // HandlePeerFound is called by the mDNS service when a peer is found.
@@ -292,6 +292,23 @@ func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
 	}
 }
 
+func (ms *P2PMessageService) getPeerIdFromDht(scaddr string) peer.ID {
+	ms.logger.Info().Msgf("did not find address %s in local map, will query dht", scaddr)
+	recordBytes, err := ms.dht.GetValue(context.Background(), DHT_RECORD_PREFIX+scaddr)
+	ms.checkError(err)
+
+	recordData := &DhtRecord{}
+	err = json.Unmarshal(recordBytes, recordData)
+	ms.checkError(err)
+
+	peerId, err := peer.Decode(recordData.Data.PeerID)
+	ms.checkError(err)
+	ms.logger.Info().Msgf("found address in dht: %s (peerId: %s)", scaddr, peerId.String())
+
+	ms.peers.Store(scaddr, peerId) // Cache this info locally for use next time
+	return peerId
+}
+
 // Send sends messages to other participants.
 // It blocks until the message is sent.
 // It will retry establishing a stream NUM_CONNECT_ATTEMPTS times before giving up
@@ -303,19 +320,7 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 	// query the dht to retrieve the peerId, then store in local map for next time
 	peerId, ok := ms.peers.Load(msg.To.String())
 	if !ok {
-		ms.logger.Info().Msgf("did not find address %s in local map, will query dht", msg.To.String())
-		recordBytes, err := ms.dht.GetValue(context.Background(), DHT_RECORD_PREFIX+msg.To.String())
-		ms.checkError(err)
-
-		recordData := &DhtRecord{}
-		err = json.Unmarshal(recordBytes, recordData)
-		ms.checkError(err)
-
-		peerId, err = peer.Decode(recordData.Data.PeerID)
-		ms.checkError(err)
-
-		ms.logger.Info().Msgf("found address in dht: %s (peerId: %s)", msg.To.String(), peerId.String())
-		ms.peers.Store(msg.To.String(), peerId)
+		peerId = ms.getPeerIdFromDht(msg.To.String())
 	}
 
 	for i := 0; i < NUM_CONNECT_ATTEMPTS; i++ {
