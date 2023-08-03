@@ -3,18 +3,19 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/urfave/cli/v2"
 )
 
 const (
-	PORT     = "port"
-	FILE_URL = "fileurl"
+	PORT        = "port"
+	FILE_URL    = "fileurl"
+	FILE_LENGTH = "filelength"
 )
 
 func main() {
@@ -34,13 +35,19 @@ func main() {
 				Value:   "/test.txt",
 				Aliases: []string{"f"},
 			},
+			&cli.UintFlag{
+				Name:    FILE_LENGTH,
+				Usage:   "Specifies the length of the file to serve.",
+				Value:   100,
+				Aliases: []string{"l"},
+			},
 		},
 		Action: func(c *cli.Context) error {
 			const (
 				fileName = "test.txt"
 			)
 
-			fileContent := strings.Repeat("Hello world! This is some sample text.", 5)
+			fileContent := generateFileData(c.Int(FILE_LENGTH))
 			filePath, cleanup := setupFile(fileName, fileContent)
 			defer cleanup()
 
@@ -98,4 +105,22 @@ func setupFile(fileName string, fileContent string) (string, func()) {
 			panic(err)
 		}
 	}
+}
+
+// generateFileData generates a string of the given length composed of random words
+func generateFileData(length int) (fileData string) {
+	wordSelection := []string{
+		"Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel",
+		"India", "Juliet", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa",
+		"Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey",
+		"X-ray", "Yankee", "Zulu",
+	}
+	fileData = wordSelection[rand.Intn(len(wordSelection))]
+	// Continue adding words until we reach the desired length or beyond
+	for len(fileData) < length {
+		randomIndex := rand.Intn(len(wordSelection))
+		fileData = fileData + " " + wordSelection[randomIndex]
+	}
+
+	return fileData[:length]
 }
