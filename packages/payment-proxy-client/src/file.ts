@@ -42,6 +42,8 @@ export async function fetchFileInChunks(
   nitroClient: NitroRpcClient,
   updateProgress: (progress: number) => void
 ): Promise<File> {
+  updateProgress(0);
+
   const firstChunk = await fetchFileChunk(
     0,
     chunkSize - 1,
@@ -51,18 +53,17 @@ export async function fetchFileInChunks(
     nitroClient
   );
 
+  const { contentLength, fileName } = firstChunk;
+  let remainingContentLength = contentLength - chunkSize;
+
   console.log(
     `Fetched the first chunk of the file using a chunk size of ${chunkSize} bytes`
   );
-
-  const { contentLength, fileName } = firstChunk;
 
   console.log(`The file ${fileName} is ${contentLength} bytes in size`);
 
   const fileContents = new Uint8Array(contentLength);
   fileContents.set(firstChunk.data);
-
-  let remainingContentLength = contentLength - chunkSize;
 
   if (remainingContentLength <= 0) {
     console.log("We have fetched the entire file in 1 chunk");
@@ -70,14 +71,14 @@ export async function fetchFileInChunks(
     return new File([fileContents], fileName);
   }
 
-  console.log(
-    `We have ${remainingContentLength} bytes to fetch in ${Math.ceil(
-      remainingContentLength / chunkSize
-    )} chunks`
-  );
-  updateProgress(100 - (remainingContentLength / contentLength) * 100);
-
   while (remainingContentLength > chunkSize) {
+    updateProgress(100 - (remainingContentLength / contentLength) * 100);
+    console.log(
+      `We have ${remainingContentLength} bytes to fetch in ${Math.ceil(
+        remainingContentLength / chunkSize
+      )} chunks`
+    );
+
     const start = contentLength - remainingContentLength;
     const stop = start + chunkSize - 1;
 
@@ -92,14 +93,6 @@ export async function fetchFileInChunks(
 
     fileContents.set(data, start);
     remainingContentLength -= chunkSize;
-
-    updateProgress(100 - (remainingContentLength / contentLength) * 100);
-
-    console.log(
-      `We have ${remainingContentLength} bytes to fetch in ${Math.ceil(
-        remainingContentLength / chunkSize
-      )} chunks`
-    );
   }
 
   if (remainingContentLength > 0) {
