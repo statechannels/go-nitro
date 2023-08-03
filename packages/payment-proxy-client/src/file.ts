@@ -1,42 +1,26 @@
 import { NitroRpcClient } from "@statechannels/nitro-rpc-client";
+import { Voucher } from "@statechannels/nitro-rpc-client/src/types";
 
 export async function fetchFile(
-  baseUrl: string,
-  costPerByte: number,
-  fileSize: number,
+  url: string,
+  paymentAmount: number,
   selectedChannel: string,
   nitroClient: NitroRpcClient
 ): Promise<File> {
   const voucher = await nitroClient.CreateVoucher(
     selectedChannel,
-    fileSize * costPerByte
+    paymentAmount
   );
 
-  const response = await fetch(
-    `${baseUrl}?channelId=${voucher.ChannelId}&amount=${voucher.Amount}&signature=${voucher.Signature}`
-  );
+  const response = await fetch(addVoucherToUrl(url, voucher));
 
   const fileName = parseFileNameFromUrl(response.url);
 
   return new File([await response.blob()], fileName);
 }
-
-function parseFileNameFromUrl(url: string): string {
-  try {
-    const parsedUrl = new URL(url);
-    const segments = parsedUrl.pathname.split("/");
-
-    // Get the last segment of the pathname, which should be the file name
-    return segments[segments.length - 1];
-  } catch (error) {
-    // If we can't parse the URL, just return a default file name
-    return "fetched-file";
-  }
-}
-
 export async function fetchFileInChunks(
   chunkSize: number,
-  baseUrl: string,
+  url: string,
   costPerByte: number,
   selectedChannel: string,
   nitroClient: NitroRpcClient,
@@ -44,10 +28,10 @@ export async function fetchFileInChunks(
 ): Promise<File> {
   updateProgress(0);
 
-  const firstChunk = await fetchFileChunk(
+  const firstChunk = await fetchChunk(
     0,
     chunkSize - 1,
-    baseUrl,
+    url,
     costPerByte,
     selectedChannel,
     nitroClient
@@ -82,10 +66,10 @@ export async function fetchFileInChunks(
     const start = contentLength - remainingContentLength;
     const stop = start + chunkSize - 1;
 
-    const { data } = await fetchFileChunk(
+    const { data } = await fetchChunk(
       start,
       stop,
-      baseUrl,
+      url,
       costPerByte,
       selectedChannel,
       nitroClient
@@ -98,10 +82,10 @@ export async function fetchFileInChunks(
   if (remainingContentLength > 0) {
     const start = contentLength - remainingContentLength;
     const stop = contentLength - 1;
-    const { data } = await fetchFileChunk(
+    const { data } = await fetchChunk(
       start,
       stop,
-      baseUrl,
+      url,
       costPerByte,
       selectedChannel,
       nitroClient
@@ -115,48 +99,71 @@ export async function fetchFileInChunks(
   return new File([fileContents], fileName);
 }
 
-export async function fetchFileChunk(
+async function fetchChunk(
   start: number,
   stop: number,
-  baseUrl: string,
+  url: string,
   costPerByte: number,
   selectedChannel: string,
   nitroClient: NitroRpcClient
 ): Promise<{ data: Uint8Array; contentLength: number; fileName: string }> {
   const dataLength = stop - start + 1; // +1 because stop is inclusive
-
   const chunkCost = dataLength * costPerByte;
 
   const voucher = await nitroClient.CreateVoucher(selectedChannel, chunkCost);
 
-  const req = new Request(
-    `${baseUrl}?channelId=${voucher.ChannelId}&amount=${voucher.Amount}&signature=${voucher.Signature}`
-  );
+  const req = new Request(addVoucherToUrl(url, voucher));
   req.headers.set("Range", `bytes=${start}-${stop}`);
 
   const response = await fetch(req);
-  if (!response.body) {
-    throw new Error("Response body is null");
-  }
-
-  if (!response.ok) {
-    throw new Error(`Response status ${response.status}`);
-  }
-  const result = await response.body.getReader().read();
 
   return {
-    data: result.value || new Uint8Array(),
+    data: await getChunkData(response),
     contentLength: parseTotalSizeFromContentRange(
-      response.headers.get("Content-Range") || ""
+      response.headers.get("Content-Range")
     ),
     fileName: parseFileNameFromUrl(response.url),
   };
 }
 
-function parseTotalSizeFromContentRange(contentRange: string): number {
+function addVoucherToUrl(url: string, voucher: Voucher): string {
+  return `${url}?channelId=${voucher.ChannelId}&amount=${voucher.Amount}&signature=${voucher.Signature}`;
+}
+
+async function getChunkData(res: Response): Promise<Uint8Array> {
+  if (!res.body) {
+    throw new Error("Response body is null");
+  }
+
+  if (!res.ok) {
+    throw new Error(`Response status ${res.status}`);
+  }
+  const result = await res.body.getReader().read();
+  return result.value || new Uint8Array();
+}
+
+function parseTotalSizeFromContentRange(
+  contentRange: string | null | undefined
+): number {
+  if (!contentRange) {
+    throw new Error("Content range is null or undefined");
+  }
   const match = /^.*\/([0-9]*)$/.exec(contentRange);
   if (!match) {
     throw new Error(`Could not parse content range ${contentRange}`);
   }
   return parseInt(match[1]);
+}
+
+function parseFileNameFromUrl(url: string): string {
+  try {
+    const parsedUrl = new URL(url);
+    const segments = parsedUrl.pathname.split("/");
+
+    // Get the last segment of the pathname, which should be the file name
+    return segments[segments.length - 1];
+  } catch (error) {
+    // If we can't parse the URL, just return a default file name
+    return "fetched-file";
+  }
 }
