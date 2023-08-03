@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
@@ -92,6 +93,7 @@ func TestReversePaymentProxy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error starting proxy: %v", err)
 	}
+	waitForServer(t, fmt.Sprintf("http://%s/", proxyAddress), 1*time.Second)
 
 	voucher := createVoucher(t, aliceClient, paymentChannel, 5)
 	resp := performGetRequest(t, "", fmt.Sprintf("http://%s/resource?channelId=%s&amount=%d&signature=%s", proxyAddress, voucher.ChannelId, voucher.Amount.Int64(), voucher.Signature.ToHexString()))
@@ -338,7 +340,34 @@ func runDestinationServer(t *testing.T, port uint) (destUrl string, cleanup func
 		err := server.ListenAndServe()
 		checkError(err)
 	}()
-	return fmt.Sprintf("http://localhost:%d", port), func() {
+
+	url := fmt.Sprintf("http://localhost:%d", port)
+
+	waitForServer(t, url, 10*time.Second)
+
+	return url, func() {
 		server.Close()
+	}
+}
+
+// waitForServer waits for the given url to be available by performing GET requests
+func waitForServer(t *testing.T, url string, timeout time.Duration) {
+	isReady := make(chan struct{})
+	go func() {
+		for {
+			_, err := http.Get(url)
+			if err == nil {
+				isReady <- struct{}{}
+			}
+
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
+
+	select {
+	case <-isReady:
+		return
+	case <-time.After(timeout):
+		t.Fatalf("server did not reply after %v", timeout)
 	}
 }
