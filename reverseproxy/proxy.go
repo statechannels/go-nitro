@@ -216,6 +216,7 @@ func enableCORS(w http.ResponseWriter, r *http.Request) {
 	// Add CORS headers to allow all origins (*).
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "*")
+	w.Header().Set("Access-Control-Expose-Headers", "*")
 	// Check if the request is an OPTIONS preflight request.
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
