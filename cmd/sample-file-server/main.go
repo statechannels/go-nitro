@@ -109,18 +109,21 @@ func setupFile(fileName string, fileContent string) (string, func()) {
 
 // generateFileData generates a string of the given length composed of random words
 func generateFileData(length int) (fileData string) {
+	if length < 10 {
+		panic("file length must be at least 10")
+	}
 	wordSelection := []string{
 		"Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel",
 		"India", "Juliet", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa",
 		"Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey",
 		"X-ray", "Yankee", "Zulu",
 	}
-	fileData = wordSelection[rand.Intn(len(wordSelection))]
+	fileData = "START"
 	// Continue adding words until we reach the desired length or beyond
 	for len(fileData) < length {
 		randomIndex := rand.Intn(len(wordSelection))
 		fileData = fileData + " " + wordSelection[randomIndex]
 	}
 
-	return fileData[:length]
+	return fileData[:length-3] + "END"
 }
