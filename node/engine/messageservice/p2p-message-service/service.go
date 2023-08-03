@@ -180,35 +180,39 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 			}
 		}
 
-		// Add my state channel address to the custom dht
-		recordData := &DhtData{
-			SCAddr:    ms.me.String(),
-			PeerID:    ms.Id().String(),
-			Timestamp: time.Time.Unix(time.Now()),
-		}
-		recordDataBytes, err := json.Marshal(recordData)
-		ms.checkError(err)
-
-		signature, err := ms.key.Sign(recordDataBytes)
-		ms.checkError(err)
-
-		fullRecord := &DhtRecord{
-			Data:      *recordData,
-			Signature: signature,
-		}
-		fullRecordBytes, err := json.Marshal(fullRecord)
-		ms.checkError(err)
-
-		key := DHT_RECORD_PREFIX + ms.me.String()
-		err = ms.dht.PutValue(ctx, key, fullRecordBytes)
-		ms.checkError(err)
-		ms.logger.Info().Msgf("Added value to dht - [key: %v, value: %v]", key, ms.Id())
+		ms.addScaddrDhtRecord(ctx)
 	}
 
 	err = ms.dht.Bootstrap(ctx) // Runs periodically to maintain a healthy routing table
 	ms.checkError(err)
 
 	ms.logger.Info().Msgf("DHT setup complete")
+}
+
+// addScaddrDhtRecord adds this node's state channel address to the custom dht namespace
+func (ms *P2PMessageService) addScaddrDhtRecord(ctx context.Context) {
+	recordData := &DhtData{
+		SCAddr:    ms.me.String(),
+		PeerID:    ms.Id().String(),
+		Timestamp: time.Time.Unix(time.Now()),
+	}
+	recordDataBytes, err := json.Marshal(recordData)
+	ms.checkError(err)
+
+	signature, err := ms.key.Sign(recordDataBytes)
+	ms.checkError(err)
+
+	fullRecord := &DhtRecord{
+		Data:      *recordData,
+		Signature: signature,
+	}
+	fullRecordBytes, err := json.Marshal(fullRecord)
+	ms.checkError(err)
+
+	key := DHT_RECORD_PREFIX + ms.me.String()
+	err = ms.dht.PutValue(ctx, key, fullRecordBytes)
+	ms.checkError(err)
+	ms.logger.Info().Msgf("Added value to dht - [key: %v, value: %v]", key, ms.Id())
 }
 
 // HandlePeerFound is called by the mDNS service when a peer is found.
