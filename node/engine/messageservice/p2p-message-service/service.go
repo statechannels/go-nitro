@@ -146,8 +146,16 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	ms.checkError(err)
 	ms.dht = kademliaDHT
 
-	// Setup notifications so we exchange state channel addresses when connected
-	n := &NetworkNotifiee{ms: ms}
+	// Setup notifications so we exchange nitro signing addresses when connected
+	n := &network.NotifyBundle{}
+	n.ConnectedF = func(n network.Network, conn network.Conn) {
+		ms.logger.Debug().Msgf("notification: connected to peer %s", conn.RemotePeer().String())
+		go ms.sendPeerInfo(conn.RemotePeer(), false)
+	}
+	n.DisconnectedF = func(n network.Network, conn network.Conn) {
+		ms.logger.Debug().Msgf("notification: disconnected from peer: %s", conn.RemotePeer().String())
+	}
+
 	ms.p2pHost.Network().Notify(n)
 
 	expectedPeers := len(bootPeers)
