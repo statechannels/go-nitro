@@ -201,7 +201,6 @@ function App() {
           value={fileUrl}
         ></TextField>
       </Box>
-      <br></br>
       <FormControlLabel
         label="Use micropayments"
         control={
