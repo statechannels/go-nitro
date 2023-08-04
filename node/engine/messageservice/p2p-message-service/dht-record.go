@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -46,11 +45,6 @@ func (v stateChannelAddrToPeerIDValidator) Validate(key string, value []byte) er
 
 	if common.HexToAddress(dhtRecord.Data.SCAddr) != common.HexToAddress(signingAddrStr) {
 		return errors.New("record key does not match state channel address")
-	}
-
-	// Make sure the timestamp is not in the future or negative number
-	if dhtRecord.Data.Timestamp > time.Time.Unix(time.Now()) || dhtRecord.Data.Timestamp < 0 {
-		return errors.New("invalid timestamp")
 	}
 
 	// Check if the value can be parsed into a valid libp2p peer.ID
