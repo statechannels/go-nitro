@@ -44,6 +44,10 @@ func (v stateChannelAddrToPeerIDValidator) Validate(key string, value []byte) er
 		return errors.New("malformed record value")
 	}
 
+	if common.HexToAddress(dhtRecord.Data.SCAddr) != common.HexToAddress(signingAddrStr) {
+		return errors.New("record key does not match state channel address")
+	}
+
 	// Make sure the timestamp is not in the future or negative number
 	if dhtRecord.Data.Timestamp > time.Time.Unix(time.Now()) || dhtRecord.Data.Timestamp < 0 {
 		return errors.New("invalid timestamp")
