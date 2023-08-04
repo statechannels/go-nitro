@@ -55,6 +55,7 @@ func waitForPeerInfoExchange(services ...*p2pms.P2PMessageService) {
 			peerInfo := <-s.PeerInfoReceived()
 			fmt.Printf("Service num: %d, peer num: %d, peerInfo: %v\n", sNum, i, peerInfo)
 		}
+		<-s.InitComplete
 	}
 }
 
