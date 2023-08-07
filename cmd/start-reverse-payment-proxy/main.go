@@ -1,14 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"math/big"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/cmd/utils"
 	"github.com/statechannels/go-nitro/reverseproxy"
 	"github.com/urfave/cli/v2"
 )
@@ -71,19 +69,11 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
-	waitForKillSignal()
+	utils.WaitForKillSignal()
 	if rProxy != nil {
 		err := rProxy.Stop()
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-}
-
-// waitForKillSignal blocks until we receive a kill or interrupt signal
-func waitForKillSignal() {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	sig := <-sigs
-	fmt.Printf("Received signal %s, exiting..\n", sig)
 }

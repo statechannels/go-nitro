@@ -7,9 +7,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"os/signal"
-	"syscall"
 
+	"github.com/statechannels/go-nitro/cmd/utils"
 	"github.com/statechannels/go-nitro/internal/chain"
 	"github.com/statechannels/go-nitro/types"
 	"github.com/urfave/cli/v2"
@@ -101,7 +100,7 @@ func main() {
 			if cCtx.Bool(START_ANVIL) {
 				anvilCmd, err := chain.StartAnvil()
 				if err != nil {
-					stopCommands(running...)
+					utils.StopCommands(running...)
 					panic(err)
 				}
 				running = append(running, anvilCmd)
@@ -116,7 +115,7 @@ func main() {
 
 			naAddress, vpaAddress, caAddress, err := chain.DeployContracts(context.Background(), chainUrl, chainAuthToken, chainPk)
 			if err != nil {
-				stopCommands(running...)
+				utils.StopCommands(running...)
 				panic(err)
 			}
 
@@ -124,29 +123,20 @@ func main() {
 			for _, p := range participants {
 				client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
 				if err != nil {
-					stopCommands(running...)
+					utils.StopCommands(running...)
 					panic(err)
 				}
 				running = append(running, client)
 			}
 
-			waitForKillSignal()
-
-			stopCommands(running...)
+			utils.WaitForKillSignal()
+			utils.StopCommands(running...)
 			return nil
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
-}
-
-// waitForKillSignal blocks until we receive a kill or interrupt signal
-func waitForKillSignal() {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	sig := <-sigs
-	fmt.Printf("Received signal %s, exiting..\n", sig)
 }
 
 // setupRPCServer starts up an RPC server for the given participant
@@ -198,21 +188,6 @@ func newColorWriter(c color, w io.Writer) colorWriter {
 	return colorWriter{
 		writer: w,
 		color:  c,
-	}
-}
-
-// stopCommands stops the given executing commands
-func stopCommands(cmds ...*exec.Cmd) {
-	for _, cmd := range cmds {
-		fmt.Printf("Stopping process %v\n", cmd.Args)
-		err := cmd.Process.Signal(syscall.SIGINT)
-		if err != nil {
-			panic(err)
-		}
-		err = cmd.Process.Kill()
-		if err != nil {
-			panic(err)
-		}
 	}
 }
 
