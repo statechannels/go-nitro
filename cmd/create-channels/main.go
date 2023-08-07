@@ -2,12 +2,10 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/BurntSushi/toml"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/rs/zerolog"
-	"github.com/statechannels/go-nitro/internal/logging"
+	"github.com/statechannels/go-nitro/cmd/utils"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/rpc/transport/ws"
@@ -24,42 +22,9 @@ type participantOpts struct {
 	ChainAuthToken  string
 }
 
-func createLogger(logDestination *os.File, clientName string) zerolog.Logger {
-	return zerolog.New(logDestination).
-		Level(zerolog.TraceLevel).
-		With().
-		Timestamp().
-		Str("client", clientName).
-		Str("rpc", "client").
-		Logger()
-}
-
-func createLedgerChannel(left rpc.RpcClientApi, right rpc.RpcClientApi) error {
-	leftAddress, err := left.Address()
-	if err != nil {
-		return err
-	}
-	rightAddress, err := right.Address()
-	if err != nil {
-		return err
-	}
-	ledgerChannelDeposit := uint(5_000_000)
-	asset := types.Address{}
-	outcome := testdata.Outcomes.Create(leftAddress, rightAddress, ledgerChannelDeposit, ledgerChannelDeposit, asset)
-	response, err := left.CreateLedgerChannel(rightAddress, 0, outcome)
-	if err != nil {
-		return err
-	}
-
-	<-left.ObjectiveCompleteChan(response.Id)
-	<-right.ObjectiveCompleteChan(response.Id)
-	return nil
-}
+const LOG_FILE = "create-channels.log"
 
 func createChannels() error {
-	logFile := "create-channels.log"
-	logDestination := logging.NewLogWriter("./artifacts", logFile)
-	defer logDestination.Close()
 	participants := []string{"alice", "irene", "bob"}
 	clients := map[string]rpc.RpcClientApi{}
 	for _, participant := range participants {
@@ -68,8 +33,11 @@ func createChannels() error {
 		if _, err := toml.DecodeFile(fmt.Sprintf("./cmd/test-configs/%s.toml", participant), &participantOpts); err != nil {
 			return err
 		}
+
+		logger, logFile := utils.CreateLogger(LOG_FILE, participant)
+		defer logFile.Close()
+
 		url := fmt.Sprintf(":%d/api/v1", participantOpts.RpcPort)
-		logger := createLogger(logDestination, participant)
 		clientConnection, err := ws.NewWebSocketTransportAsClient(url, logger)
 		if err != nil {
 			return err
@@ -81,15 +49,6 @@ func createChannels() error {
 	}
 
 	alice, bob, irene := clients["alice"], clients["bob"], clients["irene"]
-
-	err := createLedgerChannel(alice, irene)
-	if err != nil {
-		return err
-	}
-	err = createLedgerChannel(irene, bob)
-	if err != nil {
-		return err
-	}
 
 	aliceAddress, err := alice.Address()
 	if err != nil {
@@ -103,6 +62,17 @@ func createChannels() error {
 	if err != nil {
 		return err
 	}
+
+	err = utils.CreateLedgerChannel(alice, ireneAddress)
+	if err != nil {
+		return err
+	}
+
+	err = utils.CreateLedgerChannel(irene, bobAddress)
+	if err != nil {
+		return err
+	}
+
 	outcome := testdata.Outcomes.Create(aliceAddress, bobAddress, 1_000, 0, types.Address{})
 	response, err := alice.CreatePaymentChannel([]common.Address{ireneAddress}, bobAddress, 0, outcome)
 	if err != nil {
