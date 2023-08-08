@@ -83,6 +83,7 @@ func (sbcs *SimulatedBackendChainService) SendTransaction(tx protocols.ChainTran
 		return err
 	}
 	sbcs.sim.Commit()
+	sbcs.sim.Commit()
 	return nil
 }
 
