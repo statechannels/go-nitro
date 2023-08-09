@@ -5,10 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/internal/logging"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
-	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/node/engine"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
@@ -59,9 +57,11 @@ func TestCrashTolerance(t *testing.T) {
 	defer closeNode(t, &nodeB)
 	// End Client setup
 
+	t.Log("Node setup complete")
+
 	// test successful condition for setup / teadown of unused ledger channel
 	{
-		channelId := directlyFundALedgerChannel(t, nodeA, nodeB, types.Address{})
+		channelId := setupLedgerChannel(t, sim, nodeA, nodeB, types.Address{})
 
 		closeNode(t, &nodeA)
 		anotherMessageserviceA := messageservice.NewTestMessageService(ta.Alice.Address(), broker, 0)
@@ -79,31 +79,7 @@ func TestCrashTolerance(t *testing.T) {
 			anotherStoreA, logDestination, &engine.PermissivePolicy{}, nil)
 		defer closeNode(t, &anotherClientA)
 
-		directlyDefundALedgerChannel(t, anotherClientA, nodeB, channelId)
+		closeLedgerChannel(t, sim, anotherClientA, nodeB, channelId)
 
 	}
-}
-
-func directlyDefundALedgerChannel(t *testing.T, alpha node.Node, beta node.Node, channelId types.Destination) {
-	id, err := alpha.CloseLedgerChannel(channelId)
-	if err != nil {
-		t.Fatal(err)
-	}
-	<-alpha.ObjectiveCompleteChan(id)
-	<-beta.ObjectiveCompleteChan(id)
-}
-
-func directlyFundALedgerChannel(t *testing.T, alpha node.Node, beta node.Node, asset common.Address) types.Destination {
-	// Set up an outcome that requires both participants to deposit
-	outcome := testdata.Outcomes.Create(*alpha.Address, *beta.Address, ledgerChannelDeposit, ledgerChannelDeposit, asset)
-
-	response, err := alpha.CreateLedgerChannel(*beta.Address, 0, outcome)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	<-alpha.ObjectiveCompleteChan(response.Id)
-	<-beta.ObjectiveCompleteChan(response.Id)
-
-	return response.ChannelId
 }

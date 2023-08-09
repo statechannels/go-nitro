@@ -176,7 +176,7 @@ func finalPaymentOutcome(alpha, beta, asset types.Address, numPayments, paymentA
 		asset)
 }
 
-func setupLedgerChannel(t *testing.T, alpha node.Node, beta node.Node, asset common.Address) types.Destination {
+func setupLedgerChannel(t *testing.T, sim chainservice.SimulatedChain, alpha node.Node, beta node.Node, asset common.Address) types.Destination {
 	// Set up an outcome that requires both participants to deposit
 	outcome := initialLedgerOutcome(*alpha.Address, *beta.Address, asset)
 
@@ -185,20 +185,39 @@ func setupLedgerChannel(t *testing.T, alpha node.Node, beta node.Node, asset com
 		t.Fatal(err)
 	}
 
+	if sim != nil {
+		// This delay + block commit ensures chainservice event subs trigger and process events
+		time.Sleep(100 * time.Millisecond)
+		sim.Commit()
+	}
+
+	t.Log("Waiting for direct-fund objective to complete...")
+
 	<-alpha.ObjectiveCompleteChan(response.Id)
 	<-beta.ObjectiveCompleteChan(response.Id)
+
+	t.Log("Completed direct-fund objective")
 
 	return response.ChannelId
 }
 
-func closeLedgerChannel(t *testing.T, alpha node.Node, beta node.Node, channelId types.Destination) {
+func closeLedgerChannel(t *testing.T, sim chainservice.SimulatedChain, alpha node.Node, beta node.Node, channelId types.Destination) {
 	response, err := alpha.CloseLedgerChannel(channelId)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	if sim != nil {
+		time.Sleep(100 * time.Millisecond)
+		sim.Commit()
+	}
+
+	t.Log("Waiting for direct-defund objective to complete...")
+
 	<-alpha.ObjectiveCompleteChan(response)
 	<-beta.ObjectiveCompleteChan(response)
+
+	t.Log("Completed direct-defund objective")
 }
 
 func waitForObjectives(t *testing.T, a, b node.Node, intermediaries []node.Node, objectiveIds []protocols.ObjectiveId) {
