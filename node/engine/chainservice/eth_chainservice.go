@@ -209,6 +209,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 	for _, l := range logs {
 		switch l.Topics[0] {
 		case depositedTopic:
+			ecs.logger.Debug().Msg("Processing Deposited event")
 			nad, err := ecs.na.ParseDeposited(l)
 			if err != nil {
 				return fmt.Errorf("error in ParseDeposited: %w", err)
@@ -216,7 +217,9 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 
 			event := NewDepositedEvent(nad.Destination, l.BlockNumber, nad.Asset, nad.DestinationHoldings)
 			ecs.out <- event
+
 		case allocationUpdatedTopic:
+			ecs.logger.Debug().Msg("Processing AllocationUpdated event")
 			au, err := ecs.na.ParseAllocationUpdated(l)
 			if err != nil {
 				return fmt.Errorf("error in ParseAllocationUpdated: %w", err)
@@ -240,7 +243,9 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 
 			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, assetAddress, amount)
 			ecs.out <- event
+
 		case concludedTopic:
+			ecs.logger.Debug().Msg("Processing Concluded event")
 			ce, err := ecs.na.ParseConcluded(l)
 			if err != nil {
 				return fmt.Errorf("error in ParseConcluded: %w", err)
@@ -309,22 +314,22 @@ out:
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
 			// We unsub here and recreate the subscription in the next iteration of the select.
 			eventSub.Unsubscribe()
-			newBlockSub.Unsubscribe()
 
 		case chainEvent := <-eventChan:
 			for _, topic := range topicsToWatch {
 				if chainEvent.Topics[0] == topic {
+					ecs.logger.Debug().Msgf("queueing new chainEvent from block: %d", chainEvent.BlockNumber)
 					heap.Push(eventQueue, chainEvent)
 				}
 			}
 
 		case newBlock := <-newBlockChan:
 			ecs.logger.Debug().Msgf("detected new block: %d", newBlock.Number.Uint64())
-			// When we get a new block, check the logs at the top of the queue.
-			// If they're ready to be processed, process them and remove them from the queue.
+			// When we get a new block, check the events at the top of the queue.
+			// If they have enough block confirmations, remove them from the queue and process them
 			for eventQueue.Len() > 0 && newBlock.Number.Uint64() >= (*eventQueue)[0].BlockNumber+REQUIRED_BLOCK_CONFIRMATIONS {
 				chainEvent := heap.Pop(eventQueue).(ethTypes.Log)
-				ecs.logger.Debug().Msgf("processing chainEvent in block: %d", newBlock.Number.Uint64())
+				ecs.logger.Debug().Msgf("event popped from queue (updated queue length: %d)", eventQueue.Len())
 				err := ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
 				if err != nil {
 					errorChan <- fmt.Errorf("failed dispatchChainEvents: %w", err)
