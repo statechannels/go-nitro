@@ -6,9 +6,15 @@ import (
 
 type EventQueue []types.Log
 
-func (q EventQueue) Len() int           { return len(q) }
-func (q EventQueue) Less(i, j int) bool { return q[i].BlockNumber < q[j].BlockNumber }
-func (q EventQueue) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
+func (q EventQueue) Len() int { return len(q) }
+func (q EventQueue) Less(i, j int) bool {
+	if q[i].BlockNumber == q[j].BlockNumber {
+		return i < j
+	}
+	return q[i].BlockNumber < q[j].BlockNumber
+}
+
+func (q EventQueue) Swap(i, j int) { q[i], q[j] = q[j], q[i] }
 
 func (q *EventQueue) Push(x interface{}) {
 	*q = append(*q, x.(types.Log))
