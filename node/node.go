@@ -2,12 +2,10 @@
 package node // import "github.com/statechannels/go-nitro/node"
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"math/big"
 	"runtime/debug"
-	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -44,9 +42,6 @@ type Node struct {
 	store                     store.Store
 	vm                        *payments.VoucherManager
 	logger                    zerolog.Logger
-	cancelEventHandler        context.CancelFunc
-
-	wg *sync.WaitGroup
 }
 
 // New is the constructor for a Node. It accepts a messaging service, a chain service, and a store as injected dependencies.
@@ -66,7 +61,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	n.vm = payments.NewVoucherManager(*store.GetAddress(), store)
 	n.logger = logging.WithAddress(zerolog.New(logDestination).With().Timestamp(), n.Address).Caller().Logger()
 
-	n.engine = engine.New(n.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi)
+	n.engine = engine.New(n.vm, messageService, chainservice, store, logDestination, policymaker, n.handleEngineEvent, metricsApi)
 	n.completedObjectives = &safesync.Map[chan struct{}]{}
 	n.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
 
@@ -76,59 +71,40 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 
 	n.channelNotifier = notifier.NewChannelNotifier(store, n.vm)
 
-	// Start the engine in a go routine
-	ctx, cancel := context.WithCancel(context.Background())
-
-	n.wg = &sync.WaitGroup{}
-	n.wg.Add(1)
-
-	n.cancelEventHandler = cancel
-	// Start the event handler in a go routine
-	// It will listen for events from the engine and dispatch events to node channels
-	go n.handleEngineEvents(ctx)
-
 	return n
 }
 
 // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
 // It parses events from the ToApi chan and then dispatches events to the necessary node chan.
-func (n *Node) handleEngineEvents(ctx context.Context) {
-	for {
+func (n *Node) handleEngineEvent(update engine.EngineEvent) {
+	for _, completed := range update.CompletedObjectives {
+		d, _ := n.completedObjectives.LoadOrStore(string(completed.Id()), make(chan struct{}))
+		close(d)
+
+		// use a nonblocking send to the RPC Client in case no one is listening
 		select {
-		case <-ctx.Done():
-			n.wg.Done()
-			return
-		case update := <-n.engine.ToApi():
-			for _, completed := range update.CompletedObjectives {
-				d, _ := n.completedObjectives.LoadOrStore(string(completed.Id()), make(chan struct{}))
-				close(d)
-
-				// use a nonblocking send to the RPC Client in case no one is listening
-				select {
-				case n.completedObjectivesForRPC <- completed.Id():
-				default:
-				}
-			}
-
-			for _, erred := range update.FailedObjectives {
-				n.failedObjectives <- erred
-			}
-
-			for _, payment := range update.ReceivedVouchers {
-				n.receivedVouchers <- payment
-			}
-
-			for _, updated := range update.LedgerChannelUpdates {
-
-				err := n.channelNotifier.NotifyLedgerUpdated(updated)
-				n.handleError(err)
-			}
-			for _, updated := range update.PaymentChannelUpdates {
-
-				err := n.channelNotifier.NotifyPaymentUpdated(updated)
-				n.handleError(err)
-			}
+		case n.completedObjectivesForRPC <- completed.Id():
+		default:
 		}
+	}
+
+	for _, erred := range update.FailedObjectives {
+		n.failedObjectives <- erred
+	}
+
+	for _, payment := range update.ReceivedVouchers {
+		n.receivedVouchers <- payment
+	}
+
+	for _, updated := range update.LedgerChannelUpdates {
+
+		err := n.channelNotifier.NotifyLedgerUpdated(updated)
+		n.handleError(err)
+	}
+	for _, updated := range update.PaymentChannelUpdates {
+
+		err := n.channelNotifier.NotifyPaymentUpdated(updated)
+		n.handleError(err)
 	}
 }
 
@@ -307,16 +283,8 @@ func (n *Node) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, 
 	return query.GetLedgerChannelInfo(id, n.store)
 }
 
-// stopEventHandler stops the event handler goroutine and waits for it to quit successfully.
-func (n *Node) stopEventHandler() {
-	n.cancelEventHandler()
-	n.wg.Wait()
-}
-
 // Close stops the node from responding to any input.
 func (n *Node) Close() error {
-	n.stopEventHandler()
-
 	if err := n.channelNotifier.Close(); err != nil {
 		return err
 	}

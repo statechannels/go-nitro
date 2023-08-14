@@ -65,7 +65,7 @@ type Engine struct {
 	fromMsg    <-chan protocols.Message
 	fromLedger chan consensus_channel.Proposal
 
-	toApi chan EngineEvent
+	eventHandler func(EngineEvent)
 
 	msg   messageservice.MessageService
 	chain chainservice.ChainService
@@ -129,7 +129,7 @@ type CompletedObjectiveEvent struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker PolicyMaker, metricsApi MetricsApi) Engine {
+func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker PolicyMaker, eventHandler func(EngineEvent), metricsApi MetricsApi) Engine {
 	e := Engine{}
 
 	e.store = store
@@ -145,7 +145,7 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	e.chain = chain
 	e.msg = msg
 
-	e.toApi = make(chan EngineEvent, 100)
+	e.eventHandler = eventHandler
 
 	logging.ConfigureZeroLogger()
 	e.logger = logging.WithAddress(zerolog.New(logDestination).With().Timestamp(), e.store.GetAddress()).Caller().Logger()
@@ -172,10 +172,6 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	return e
 }
 
-func (e *Engine) ToApi() <-chan EngineEvent {
-	return e.toApi
-}
-
 func (e *Engine) Close() error {
 	e.cancel()
 	e.wg.Wait()
@@ -183,7 +179,6 @@ func (e *Engine) Close() error {
 		return err
 	}
 
-	close(e.toApi)
 	return e.chain.Close()
 }
 
@@ -227,7 +222,7 @@ func (e *Engine) run(ctx context.Context) {
 				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
 				e.metrics.RecordObjectiveCompleted(obj.Id())
 			}
-			e.toApi <- res
+			e.eventHandler(res)
 		}
 
 	}
