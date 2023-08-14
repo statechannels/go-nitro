@@ -26,7 +26,7 @@ import (
 const logLevel = zerolog.DebugLevel
 
 var (
-	allocationUpdatedTopic   = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256)"))
+	allocationUpdatedTopic   = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256,uint256)"))
 	concludedTopic           = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
 	depositedTopic           = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256)"))
 	challengeRegisteredTopic = crypto.Keccak256Hash([]byte("ChallengeRegistered(bytes32 indexed channelId, uint48 turnNumRecord, uint48 finalizesAt, bool isFinal, (address[],uint64,address,uint48) fixedPart, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[])[] proof, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[]) candidate)"))
@@ -76,7 +76,7 @@ const MAX_QUERY_BLOCK_RANGE = 2000
 const RESUB_INTERVAL = 15 * time.Second
 
 // REQUIRED_BLOCK_CONFIRMATIONS is how many blocks must be mined before an emitted event is processed
-const REQUIRED_BLOCK_CONFIRMATIONS = 0
+const REQUIRED_BLOCK_CONFIRMATIONS = 2
 
 // NewEthChainService is a convenient wrapper around newEthChainService, which provides a simpler API
 func NewEthChainService(chainUrl, chainAuthToken, chainPk string, naAddress, caAddress, vpaAddress common.Address, logDestination io.Writer) (*EthChainService, error) {
@@ -229,19 +229,17 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 			if pending {
 				return fmt.Errorf("expected transaction to be part of the chain, but the transaction is pending")
 			}
-			var assetAddress types.Address
-			var amount *big.Int
-
 			if err != nil {
 				return fmt.Errorf("error in TransactionByHash: %w", err)
 			}
 
-			assetAddress, amount, err = getChainHolding(ecs.na, tx, au)
+			assetAddress, err := assetAddressForIndex(ecs.na, tx, au.AssetIndex)
 			if err != nil {
-				return fmt.Errorf("error in getChainHolding: %w", err)
+				return fmt.Errorf("error in assetAddressForIndex: %w", err)
 			}
+			ecs.logger.Debug().Msgf("assetAddress: %s", assetAddress)
 
-			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, assetAddress, amount)
+			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, assetAddress, au.FinalHoldings)
 			ecs.out <- event
 
 		case concludedTopic:
