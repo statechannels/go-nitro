@@ -176,7 +176,7 @@ func finalPaymentOutcome(alpha, beta, asset types.Address, numPayments, paymentA
 		asset)
 }
 
-func setupLedgerChannel(t *testing.T, sim chainservice.SimulatedChain, alpha node.Node, beta node.Node, asset common.Address) types.Destination {
+func openLedgerChannel(t *testing.T, sim chainservice.SimulatedChain, alpha node.Node, beta node.Node, asset common.Address) types.Destination {
 	// Set up an outcome that requires both participants to deposit
 	outcome := initialLedgerOutcome(*alpha.Address, *beta.Address, asset)
 
