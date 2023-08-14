@@ -40,7 +40,8 @@ type Objective struct {
 	Status                       protocols.ObjectiveStatus
 	C                            *channel.Channel
 	finalTurnNum                 uint64
-	withdrawTransactionSubmitted bool // whether a withdraw transaction has been declared as a side effect in a previous crank
+	// whether a withdraw transaction has been declared as a side effect in a previous crank
+	withdrawTransactionSubmitted bool
 }
 
 // isInConsensusOrFinalState returns true if the channel has a final state or latest state that is supported
