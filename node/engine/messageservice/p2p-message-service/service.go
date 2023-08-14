@@ -256,10 +256,12 @@ func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 	}
 	if err != nil {
 		ms.logger.Err(err)
+		return
 	}
 	m, err := protocols.DeserializeMessage(raw)
 	if err != nil {
 		ms.logger.Err(err)
+		return
 	}
 	ms.toEngine <- m
 }
@@ -270,6 +272,7 @@ func (ms *P2PMessageService) sendPeerInfo(recipientId peer.ID, expectResponse bo
 	stream, err := ms.p2pHost.NewStream(context.Background(), recipientId, PEER_EXCHANGE_PROTOCOL_ID)
 	if err != nil {
 		ms.logger.Err(err)
+		return
 	}
 	defer stream.Close()
 
@@ -280,6 +283,7 @@ func (ms *P2PMessageService) sendPeerInfo(recipientId peer.ID, expectResponse bo
 	})
 	if err != nil {
 		ms.logger.Err(err)
+		return
 	}
 
 	writer := bufio.NewWriter(stream)
@@ -287,6 +291,7 @@ func (ms *P2PMessageService) sendPeerInfo(recipientId peer.ID, expectResponse bo
 	_, err = writer.WriteString(string(raw) + string(DELIMITER))
 	if err != nil {
 		ms.logger.Err(err)
+		return
 	}
 	writer.Flush()
 }
@@ -306,12 +311,14 @@ func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
 	}
 	if err != nil {
 		ms.logger.Err(err)
+		return
 	}
 
 	var msg *peerExchangeMessage
 	err = json.Unmarshal([]byte(raw), &msg)
 	if err != nil {
 		ms.logger.Err(err)
+		return
 	}
 
 	_, foundPeer := ms.peers.LoadOrStore(msg.Address.String(), msg.Id)
