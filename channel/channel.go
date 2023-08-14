@@ -12,12 +12,21 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+type AdjudicationMode int
+
+const (
+	Open AdjudicationMode = iota
+	Challenge
+	Finalized
+)
+
 // Channel contains states and metadata and exposes convenience methods.
 type Channel struct {
 	Id      types.Destination
 	MyIndex uint
 
 	OnChainFunding types.Funds
+	OnChainMode    AdjudicationMode
 
 	state.FixedPart
 	// Support []uint64 // TODO: this property will be important, and allow the Channel to store the necessary data to close out the channel on chain

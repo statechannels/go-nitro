@@ -35,6 +35,14 @@ func NewDepositTransaction(channelId types.Destination, deposit types.Funds) Dep
 	return DepositTransaction{ChainTransaction: ChainTransactionBase{channelId: channelId}, Deposit: deposit}
 }
 
+type ChallengeTransaction struct {
+	ChainTransaction
+}
+
+func NewChallengeTransaction(channelId types.Destination) ChallengeTransaction {
+	return ChallengeTransaction{ChainTransaction: ChainTransactionBase{channelId: channelId}}
+}
+
 type WithdrawAllTransaction struct {
 	ChainTransaction
 	SignedState state.SignedState

@@ -18,9 +18,10 @@ import (
 )
 
 const (
-	WaitingForFinalization protocols.WaitingFor = "WaitingForFinalization"
-	WaitingForWithdraw     protocols.WaitingFor = "WaitingForWithdraw"
-	WaitingForNothing      protocols.WaitingFor = "WaitingForNothing" // Finished
+	WaitingForChallengeToResolve protocols.WaitingFor = "WaitingForChallengeToResolve"
+	WaitingForFinalization       protocols.WaitingFor = "WaitingForFinalization"
+	WaitingForWithdraw           protocols.WaitingFor = "WaitingForWithdraw"
+	WaitingForNothing            protocols.WaitingFor = "WaitingForNothing" // Finished
 )
 
 const (
@@ -37,10 +38,12 @@ const (
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type Objective struct {
-	Status               protocols.ObjectiveStatus
-	C                    *channel.Channel
-	finalTurnNum         uint64
-	transactionSubmitted bool // whether a transition for the objective has been submitted or not
+	Status                        protocols.ObjectiveStatus
+	C                             *channel.Channel
+	finalTurnNum                  uint64
+	confederate                   bool // whether we are attempting to rely on cooperation to finalise the channel
+	challengeTransactionSubmitted bool // whether a challenge tx was declared as a side effect
+	withdrawTransactionSubmitted  bool // whether a transition for the objective has been submitted or not
 }
 
 // isInConsensusOrFinalState returns true if the channel has a final state or latest state that is supported
@@ -244,44 +247,55 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		return &updated, sideEffects, WaitingForNothing, protocols.ErrNotApproved
 	}
 
-	latestSignedState, err := updated.C.LatestSignedState()
-	if err != nil {
-		return &updated, sideEffects, WaitingForNothing, errors.New("the channel must contain at least one signed state to crank the defund objective")
+	if updated.C.OnChainMode == channel.Challenge {
+		return &updated, protocols.SideEffects{}, WaitingForChallengeToResolve, nil
 	}
 
-	// Finalize and sign a state if no supported, finalized state exists
-	if !latestSignedState.State().IsFinal || !latestSignedState.HasSignatureForParticipant(updated.C.MyIndex) {
-		stateToSign := latestSignedState.State().Clone()
-		if !stateToSign.IsFinal {
-			stateToSign.TurnNum += 1
-			stateToSign.IsFinal = true
-		}
-		ss, err := updated.C.SignAndAddState(stateToSign, secretKey)
+	if updated.confederate && updated.C.OnChainMode == channel.Open { // proceed with happy path
+		latestSignedState, err := updated.C.LatestSignedState()
 		if err != nil {
-			return &updated, protocols.SideEffects{}, WaitingForFinalization, fmt.Errorf("could not sign final state %w", err)
+			return &updated, sideEffects, WaitingForNothing, errors.New("the channel must contain at least one signed state to crank the defund objective")
 		}
-		messages, err := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, o.otherParticipants()...)
-		if err != nil {
-			return &updated, protocols.SideEffects{}, WaitingForFinalization, fmt.Errorf("could not create payload message %w", err)
-		}
-		sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
-	}
 
-	latestSupportedState, err := updated.C.LatestSupportedState()
-	if err != nil {
-		return &updated, sideEffects, WaitingForFinalization, fmt.Errorf("error finding a supported state: %w", err)
-	}
-	if !latestSupportedState.IsFinal {
-		return &updated, sideEffects, WaitingForFinalization, nil
+		// Sign a final state if no supported, final state exists
+		if !latestSignedState.State().IsFinal || !latestSignedState.HasSignatureForParticipant(updated.C.MyIndex) {
+			stateToSign := latestSignedState.State().Clone()
+			if !stateToSign.IsFinal {
+				stateToSign.TurnNum += 1
+				stateToSign.IsFinal = true
+			}
+			ss, err := updated.C.SignAndAddState(stateToSign, secretKey)
+			if err != nil {
+				return &updated, protocols.SideEffects{}, WaitingForFinalization, fmt.Errorf("could not sign final state %w", err)
+			}
+			messages, err := protocols.CreateObjectivePayloadMessage(updated.Id(), ss, SignedStatePayload, o.otherParticipants()...)
+			if err != nil {
+				return &updated, protocols.SideEffects{}, WaitingForFinalization, fmt.Errorf("could not create payload message %w", err)
+			}
+			sideEffects.MessagesToSend = append(sideEffects.MessagesToSend, messages...)
+		}
+
+		latestSupportedState, err := updated.C.LatestSupportedState()
+		if err != nil {
+			return &updated, sideEffects, WaitingForFinalization, fmt.Errorf("error finding a supported state: %w", err)
+		}
+		if !latestSupportedState.IsFinal {
+			return &updated, sideEffects, WaitingForFinalization, nil
+		}
+	} else {
+		if !updated.challengeTransactionSubmitted {
+			updated.challengeTransactionSubmitted = true
+			return &updated, protocols.SideEffects{TransactionsToSubmit: []protocols.ChainTransaction{protocols.NewChallengeTransaction(updated.C.ChannelId())}}, WaitingForChallengeToResolve, nil
+		}
 	}
 
 	// Withdrawal of funds
 	if !updated.fullyWithdrawn() {
 		// The first participant in the channel submits the withdrawAll transaction
-		if updated.C.MyIndex == 0 && !updated.transactionSubmitted {
-			withdrawAll := protocols.NewWithdrawAllTransaction(updated.C.Id, latestSignedState)
+		if updated.C.MyIndex == 0 && !updated.withdrawTransactionSubmitted {
+			withdrawAll := protocols.NewWithdrawAllTransaction(updated.C.Id, latestSignedState) // TODO this should be a method on C which takes care of choosing the right state to use in tx
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
-			updated.transactionSubmitted = true
+			updated.withdrawTransactionSubmitted = true
 		}
 		// Every participant waits for all channel funds to be distributed, even if the participant has no funds in the channel
 		return &updated, sideEffects, WaitingForWithdraw, nil
@@ -323,7 +337,7 @@ func (o *Objective) clone() Objective {
 	cClone := o.C.Clone()
 	clone.C = cClone
 	clone.finalTurnNum = o.finalTurnNum
-	clone.transactionSubmitted = o.transactionSubmitted
+	clone.withdrawTransactionSubmitted = o.withdrawTransactionSubmitted
 
 	return clone
 }
