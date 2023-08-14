@@ -74,8 +74,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	return n
 }
 
-// handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
-// It parses events from the ToApi chan and then dispatches events to the necessary node chan.
+// handleEngineEvents dispatches events to the necessary node chan.
 func (n *Node) handleEngineEvent(update engine.EngineEvent) {
 	for _, completed := range update.CompletedObjectives {
 		d, _ := n.completedObjectives.LoadOrStore(string(completed.Id()), make(chan struct{}))
