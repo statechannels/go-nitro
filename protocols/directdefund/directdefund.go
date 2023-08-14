@@ -37,10 +37,10 @@ const (
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type Objective struct {
-	Status               protocols.ObjectiveStatus
-	C                    *channel.Channel
-	finalTurnNum         uint64
-	transactionSubmitted bool // whether a transition for the objective has been submitted or not
+	Status                       protocols.ObjectiveStatus
+	C                            *channel.Channel
+	finalTurnNum                 uint64
+	withdrawTransactionSubmitted bool // whether a withdraw transaction has been declared as a side effect in a previous crank
 }
 
 // isInConsensusOrFinalState returns true if the channel has a final state or latest state that is supported
@@ -278,10 +278,10 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	// Withdrawal of funds
 	if !updated.fullyWithdrawn() {
 		// The first participant in the channel submits the withdrawAll transaction
-		if updated.C.MyIndex == 0 && !updated.transactionSubmitted {
+		if updated.C.MyIndex == 0 && !updated.withdrawTransactionSubmitted {
 			withdrawAll := protocols.NewWithdrawAllTransaction(updated.C.Id, latestSignedState)
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
-			updated.transactionSubmitted = true
+			updated.withdrawTransactionSubmitted = true
 		}
 		// Every participant waits for all channel funds to be distributed, even if the participant has no funds in the channel
 		return &updated, sideEffects, WaitingForWithdraw, nil
@@ -323,7 +323,7 @@ func (o *Objective) clone() Objective {
 	cClone := o.C.Clone()
 	clone.C = cClone
 	clone.finalTurnNum = o.finalTurnNum
-	clone.transactionSubmitted = o.transactionSubmitted
+	clone.withdrawTransactionSubmitted = o.withdrawTransactionSubmitted
 
 	return clone
 }
