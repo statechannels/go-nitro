@@ -76,7 +76,7 @@ contract NitroAdjudicator is ForceMove, MultiAssetHolder {
         for (uint256 assetIndex = 0; assetIndex < outcome.length; assetIndex++) {
             address asset = outcome[assetIndex].asset;
             holdings[asset][channelId] -= totalPayouts[assetIndex];
-            emit AllocationUpdated(channelId, assetIndex, initialHoldings[assetIndex]);
+            emit AllocationUpdated(channelId, assetIndex, initialHoldings[assetIndex], holdings[asset][channelId]);
         }
 
         if (allocatesOnlyZerosForAllAssets) {
