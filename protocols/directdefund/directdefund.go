@@ -37,10 +37,11 @@ const (
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type Objective struct {
-	Status                       protocols.ObjectiveStatus
-	C                            *channel.Channel
-	finalTurnNum                 uint64
-	// whether a withdraw transaction has been declared as a side effect in a previous crank
+	Status       protocols.ObjectiveStatus
+	C            *channel.Channel
+	finalTurnNum uint64
+
+	// Whether a withdraw transaction has been declared as a side effect in a previous crank
 	withdrawTransactionSubmitted bool
 }
 
