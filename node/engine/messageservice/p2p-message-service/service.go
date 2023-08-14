@@ -188,7 +188,10 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) error {
 			}
 		}
 
-		ms.addScaddrDhtRecord(ctx)
+		err = ms.addScaddrDhtRecord(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = ms.dht.Bootstrap(ctx) // Runs periodically to maintain a healthy routing table
