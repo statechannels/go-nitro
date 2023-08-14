@@ -284,13 +284,13 @@ func (n *Node) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, 
 
 // Close stops the node from responding to any input.
 func (n *Node) Close() error {
-	if err := n.channelNotifier.Close(); err != nil {
-		return err
-	}
 	if err := n.engine.Close(); err != nil {
 		return err
 	}
-	// At this point, the engine ToApi channel has been closed.
+	if err := n.channelNotifier.Close(); err != nil {
+		return err
+	}
+
 	// If there are blocking consumers (for or select channel statements) on any channel for which the node is a producer,
 	// those channels need to be closed.
 	close(n.completedObjectivesForRPC)
