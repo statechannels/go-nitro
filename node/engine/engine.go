@@ -555,7 +555,10 @@ func (e *Engine) sendMessages(msgs []protocols.Message) {
 		message.From = *e.store.GetAddress()
 		e.logMessage(message, Outgoing)
 		e.recordMessageMetrics(message)
-		e.msg.Send(message)
+		err := e.msg.Send(message)
+		if err != nil {
+			e.logger.Err(err)
+		}
 	}
 	e.wg.Done()
 }
