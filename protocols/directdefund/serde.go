@@ -25,7 +25,7 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 		o.Status,
 		o.C.Id,
 		o.finalTurnNum,
-		o.transactionSubmitted,
+		o.withdrawTransactionSubmitted,
 	}
 
 	return json.Marshal(jsonDDFO)
@@ -51,7 +51,7 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	o.Status = jsonDDFO.Status
 	o.C.Id = jsonDDFO.C
 	o.finalTurnNum = jsonDDFO.FinalTurnNum
-	o.transactionSubmitted = jsonDDFO.TransactionSumbmitted
+	o.withdrawTransactionSubmitted = jsonDDFO.TransactionSumbmitted
 
 	return nil
 }
