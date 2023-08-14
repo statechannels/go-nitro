@@ -53,7 +53,7 @@ const (
 
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
 type P2PMessageService struct {
-	InitComplete chan bool
+	initComplete chan struct{}
 	toEngine     chan protocols.Message // for forwarding processed messages to the engine
 	peers        *safesync.Map[peer.ID]
 
@@ -81,7 +81,7 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	logging.ConfigureZeroLogger()
 
 	ms := &P2PMessageService{
-		InitComplete: make(chan bool, 1),
+		initComplete: make(chan struct{}, 1),
 		toEngine:     make(chan protocols.Message, BUFFER_SIZE),
 		newPeerInfo:  make(chan basicPeerInfo, BUFFER_SIZE),
 		peers:        &safesync.Map[peer.ID]{},
@@ -135,7 +135,7 @@ func (ms *P2PMessageService) setupMdns() {
 	err := ms.mdns.Start()
 	ms.checkError(err)
 
-	ms.InitComplete <- true
+	close(ms.initComplete)
 	ms.logger.Info().Msgf("mDNS setup complete")
 }
 
@@ -176,13 +176,18 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 			if dhtSize > 0 {
 				ms.addScaddrDhtRecord(ctx)
 				ticker.Stop()
-				ms.InitComplete <- true
+				close(ms.initComplete)
 				return
 			}
 		}
 	}()
 
 	ms.logger.Info().Msgf("DHT setup complete")
+}
+
+// EventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
+func (ms *P2PMessageService) InitComplete() <-chan struct{} {
+	return ms.initComplete
 }
 
 // addScaddrDhtRecord adds this node's state channel address to the custom dht namespace
