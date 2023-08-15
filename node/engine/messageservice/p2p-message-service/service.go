@@ -35,7 +35,7 @@ type basicPeerInfo struct {
 
 const (
 	DHT_PROTOCOL_PREFIX          protocol.ID = "/nitro" // use /nitro/kad/1.0.0 instead of /ipfs/kad/1.0.0
-	PROTOCOL_ID                  protocol.ID = "/nitro/msg/1.0.0"
+	GENERAL_MSG_PROTOCOL_ID      protocol.ID = "/nitro/msg/1.0.0"
 	PEER_EXCHANGE_PROTOCOL_ID    protocol.ID = "/nitro/peerinfo/1.0.0"
 	DELIMITER                                = '\n'
 	BUFFER_SIZE                              = 1_000
@@ -91,9 +91,10 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	ms.key = messageKey
 	options := []libp2p.Option{
 		libp2p.Identity(messageKey),
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port)),
+		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", "0.0.0.0", port)),
 		libp2p.Transport(tcp.NewTCPTransport),
 		libp2p.NATPortMap(),
+		libp2p.EnableNATService(),
 		libp2p.DefaultMuxers,
 	}
 	host, err := libp2p.New(options...)
@@ -102,7 +103,7 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	}
 
 	ms.p2pHost = host
-	ms.p2pHost.SetStreamHandler(PROTOCOL_ID, ms.msgStreamHandler)
+	ms.p2pHost.SetStreamHandler(GENERAL_MSG_PROTOCOL_ID, ms.msgStreamHandler)
 	ms.p2pHost.SetStreamHandler(PEER_EXCHANGE_PROTOCOL_ID, ms.receivePeerInfo)
 
 	// Print out my own peerInfo
@@ -118,26 +119,32 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	ms.logger.Info().Msgf("libp2p node multiaddrs: %v", addrs)
 
 	if useMdnsPeerDiscovery {
-		ms.setupMdns()
+		err = ms.setupMdns()
 	} else {
-		ms.setupDht(bootPeers)
+		err = ms.setupDht(bootPeers)
+	}
+	if err != nil {
+		panic(err)
 	}
 
 	return ms
 }
 
-func (ms *P2PMessageService) setupMdns() {
+func (ms *P2PMessageService) setupMdns() error {
 	// Since the mdns service could trigger a call to  `HandlePeerFound` at any time once started
 	// We want to start mdns after the message service has been fully constructed
 	ms.mdns = mdns.NewMdnsService(ms.p2pHost, "", ms)
 	err := ms.mdns.Start()
-	ms.checkError(err)
+	if err != nil {
+		return err
+	}
 
 	close(ms.initComplete)
 	ms.logger.Info().Msgf("mDNS setup complete")
+	return nil
 }
 
-func (ms *P2PMessageService) setupDht(bootPeers []string) {
+func (ms *P2PMessageService) setupDht(bootPeers []string) error {
 	ctx := context.Background()
 	var options []dht.Option
 	options = append(options, dht.BucketSize(20))
@@ -146,7 +153,9 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	options = append(options, dht.NamespacedValidator(DHT_NAMESPACE, stateChannelAddrToPeerIDValidator{})) // all records prefixed with /scaddr/ will use this custom validator
 
 	kademliaDHT, err := dht.New(ctx, ms.p2pHost, options...)
-	ms.checkError(err)
+	if err != nil {
+		return err
+	}
 	ms.dht = kademliaDHT
 
 	// Setup network connection notifications
@@ -163,7 +172,9 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	ms.connectBootPeers(bootPeers)
 
 	err = ms.dht.Bootstrap(ctx) // Sends FIND_NODE queries periodically to populate dht routing table
-	ms.checkError(err)
+	if err != nil {
+		return err
+	}
 
 	// Must wait until dht RoutingTable has an entry before adding custom dht record
 	// This is a restriction enforced by the libp2p library. When we try to put a value
@@ -185,6 +196,7 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	}()
 
 	ms.logger.Info().Msgf("DHT setup complete")
+	return nil
 }
 
 // InitComplete returns a chan that gets closed once the message service is initalized
@@ -255,7 +267,7 @@ func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 func (ms *P2PMessageService) sendPeerInfo(recipientId peer.ID) {
 	stream, err := ms.p2pHost.NewStream(context.Background(), recipientId, PEER_EXCHANGE_PROTOCOL_ID)
 	if err != nil {
-		ms.logger.Err(err)
+		ms.logger.Err(err).Msgf("failed to create stream for passing peerInfo with %s", recipientId.String())
 		return
 	}
 	defer stream.Close()
@@ -349,13 +361,13 @@ func (ms *P2PMessageService) Send(msg protocols.Message) error {
 	peerId, ok := ms.peers.Load(msg.To.String())
 	if !ok {
 		peerId, err = ms.getPeerIdFromDht(msg.To.String())
-	}
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	for i := 0; i < NUM_CONNECT_ATTEMPTS; i++ {
-		s, err := ms.p2pHost.NewStream(context.Background(), peerId, PROTOCOL_ID)
+		s, err := ms.p2pHost.NewStream(context.Background(), peerId, GENERAL_MSG_PROTOCOL_ID)
 		if err == nil {
 			writer := bufio.NewWriter(s)
 			_, err = writer.WriteString(raw + string(DELIMITER)) // We don't care about the number of bytes written
@@ -396,7 +408,7 @@ func (ms *P2PMessageService) Close() error {
 			return err
 		}
 	}
-	ms.p2pHost.RemoveStreamHandler(PROTOCOL_ID)
+	ms.p2pHost.RemoveStreamHandler(GENERAL_MSG_PROTOCOL_ID)
 	return ms.p2pHost.Close()
 }
 

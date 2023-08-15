@@ -1,0 +1,22 @@
+usedurablestore = true
+
+msgport = 3005
+rpcport = 4005
+guiport = 5005
+
+# State Channel Public Address: 0x69Ae2DF44965e6f87b25bc648E097B00762583Dc
+pk = ""
+
+# Chain Public Address: 0x8571687Bdc6F3ff6ba5d8E97B59cB62A7d638B4b
+chainpk = ""
+
+naaddress = "0x86dbCA138C8aF6f9710d17F892bA788e87BeF000"
+vpaaddress = "0x9B955E99c325Be47e4De330F90d36D2E3D4778a9"
+caaddress = "0xC0FA32D0ca8067C9B5b4471Eb41299537E7B6a33"
+
+# RPC provider docs: https://lotus.filecoin.io/lotus/developers/glif-nodes/#testnet-endpoint
+chainurl = "wss://wss.calibration.node.glif.io/apigw/lotus/rpc/v0"
+chainauthtoken = ""
+
+bootpeers = ""
+usemdns = false

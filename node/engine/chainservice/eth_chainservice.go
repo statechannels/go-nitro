@@ -1,6 +1,7 @@
 package chainservice
 
 import (
+	"container/heap"
 	"context"
 	"fmt"
 	"io"
@@ -25,16 +26,25 @@ import (
 const logLevel = zerolog.DebugLevel
 
 var (
-	allocationUpdatedTopic   = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256)"))
+	allocationUpdatedTopic   = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256,uint256)"))
 	concludedTopic           = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
 	depositedTopic           = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256)"))
 	challengeRegisteredTopic = crypto.Keccak256Hash([]byte("ChallengeRegistered(bytes32 indexed channelId, uint48 turnNumRecord, uint48 finalizesAt, bool isFinal, (address[],uint64,address,uint48) fixedPart, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[])[] proof, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[]) candidate)"))
 	challengeClearedTopic    = crypto.Keccak256Hash([]byte("ChallengeCleared(bytes32 indexed channelId, uint48 newTurnNumRecord)"))
 )
 
+var topicsToWatch = []common.Hash{
+	allocationUpdatedTopic,
+	concludedTopic,
+	depositedTopic,
+	challengeRegisteredTopic,
+	challengeClearedTopic,
+}
+
 type ethChain interface {
 	bind.ContractBackend
 	ethereum.TransactionReader
+	ethereum.ChainReader
 	ChainID(ctx context.Context) (*big.Int, error)
 }
 
@@ -64,6 +74,9 @@ const MAX_QUERY_BLOCK_RANGE = 2000
 // See https://github.com/ethereum/go-ethereum/blob/e14164d516600e9ac66f9060892e078f5c076229/eth/filters/filter_system.go#L43
 // This has been reduced to 15 seconds to support local devnets with much shorter timeouts.
 const RESUB_INTERVAL = 15 * time.Second
+
+// REQUIRED_BLOCK_CONFIRMATIONS is how many blocks must be mined before an emitted event is processed
+const REQUIRED_BLOCK_CONFIRMATIONS = 2
 
 // NewEthChainService is a convenient wrapper around newEthChainService, which provides a simpler API
 func NewEthChainService(chainUrl, chainAuthToken, chainPk string, naAddress, caAddress, vpaAddress common.Address, logDestination io.Writer) (*EthChainService, error) {
@@ -95,20 +108,26 @@ func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, &sync.WaitGroup{}}
-	errChan, err := ecs.subscribeForLogs()
+	errChan, newBlockSub, newBlockChan, eventSub, eventChan, eventQuery, err := ecs.subscribeForLogs()
 	if err != nil {
 		return nil, err
 	}
+
+	eventQueue := &EventQueue{}
+	heap.Init(eventQueue)
+
 	// TODO: Return error from chain service instead of panicking
-	ecs.wg.Add(1)
-	go ecs.listenForErrors(ctx, errChan)
+	ecs.wg.Add(3)
+	go ecs.listenForEventLogs(errChan, eventSub, eventChan, eventQuery, eventQueue)
+	go ecs.listenForNewBlocks(errChan, newBlockSub, newBlockChan, eventQueue)
+	go ecs.listenForErrors(errChan)
 
 	return &ecs, nil
 }
 
 // listenForErrors listens for errors on the error channel and attempts to handle them if they occur.
 // TODO: Currently "handle" is panicking
-func (ecs *EthChainService) listenForErrors(ctx context.Context, errChan <-chan error) {
+func (ecs *EthChainService) listenForErrors(errChan <-chan error) {
 	for {
 		select {
 		case <-ecs.ctx.Done():
@@ -155,8 +174,10 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 				if err != nil {
 					return err
 				}
+				// TODO: wait for the Approve tx to be mined before continuing
 			}
 			holdings, err := ecs.na.Holdings(&bind.CallOpts{}, tokenAddress, tx.ChannelId())
+			ecs.logger.Debug().Msgf("existing holdings: %v", holdings)
 			if err != nil {
 				return err
 			}
@@ -192,6 +213,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 	for _, l := range logs {
 		switch l.Topics[0] {
 		case depositedTopic:
+			ecs.logger.Debug().Msg("Processing Deposited event")
 			nad, err := ecs.na.ParseDeposited(l)
 			if err != nil {
 				return fmt.Errorf("error in ParseDeposited: %w", err)
@@ -199,7 +221,9 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 
 			event := NewDepositedEvent(nad.Destination, l.BlockNumber, nad.Asset, nad.DestinationHoldings)
 			ecs.out <- event
+
 		case allocationUpdatedTopic:
+			ecs.logger.Debug().Msg("Processing AllocationUpdated event")
 			au, err := ecs.na.ParseAllocationUpdated(l)
 			if err != nil {
 				return fmt.Errorf("error in ParseAllocationUpdated: %w", err)
@@ -209,21 +233,21 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 			if pending {
 				return fmt.Errorf("expected transaction to be part of the chain, but the transaction is pending")
 			}
-			var assetAddress types.Address
-			var amount *big.Int
-
 			if err != nil {
 				return fmt.Errorf("error in TransactionByHash: %w", err)
 			}
 
-			assetAddress, amount, err = getChainHolding(ecs.na, tx, au)
+			assetAddress, err := assetAddressForIndex(ecs.na, tx, au.AssetIndex)
 			if err != nil {
-				return fmt.Errorf("error in getChainHoldings: %w", err)
+				return fmt.Errorf("error in assetAddressForIndex: %w", err)
 			}
+			ecs.logger.Debug().Msgf("assetAddress: %s", assetAddress)
 
-			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, assetAddress, amount)
+			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, assetAddress, au.FinalHoldings)
 			ecs.out <- event
+
 		case concludedTopic:
+			ecs.logger.Debug().Msg("Processing Concluded event")
 			ce, err := ecs.na.ParseConcluded(l)
 			if err != nil {
 				return fmt.Errorf("error in ParseConcluded: %w", err)
@@ -243,39 +267,85 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 	return nil
 }
 
-func (ecs *EthChainService) listenForLogs(sub ethereum.Subscription, errorChan chan<- error, logs chan ethTypes.Log, query ethereum.FilterQuery) {
+func (ecs *EthChainService) listenForEventLogs(errorChan chan<- error, eventSub ethereum.Subscription, eventChan chan ethTypes.Log, eventQuery ethereum.FilterQuery, eventQueue *EventQueue) {
 out:
 	for {
 		select {
 		case <-ecs.ctx.Done():
-			sub.Unsubscribe()
+			eventSub.Unsubscribe()
 			ecs.wg.Done()
 			return
-		case err := <-sub.Err():
+
+		case err := <-eventSub.Err():
 			if err != nil {
-				errorChan <- fmt.Errorf("received error from the subscription channel: %w", err)
+				errorChan <- fmt.Errorf("received error from event subscription channel: %w", err)
 				break out
 			}
 
 			// If the error is nil then the subscription was closed and we need to re-subscribe.
 			// This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
 			var sErr error
-			sub, sErr = ecs.chain.SubscribeFilterLogs(ecs.ctx, query, logs)
+			eventSub, sErr = ecs.chain.SubscribeFilterLogs(ecs.ctx, eventQuery, eventChan)
 			if sErr != nil {
 				errorChan <- fmt.Errorf("subscribeFilterLogs failed on resubscribe: %w", err)
 				break out
 			}
-			ecs.logger.Trace().Msg("resubscribed to filtered logs")
+			ecs.logger.Trace().Msg("resubscribed to filtered event logs")
 
 		case <-time.After(RESUB_INTERVAL):
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
 			// We unsub here and recreate the subscription in the next iteration of the select.
-			sub.Unsubscribe()
-		case chainEvent := <-logs:
-			err := ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
+			eventSub.Unsubscribe()
+
+		case chainEvent := <-eventChan:
+			for _, topic := range topicsToWatch {
+				if chainEvent.Topics[0] == topic {
+					ecs.logger.Debug().Msgf("queueing new chainEvent from block: %d", chainEvent.BlockNumber)
+					heap.Push(eventQueue, chainEvent)
+				}
+			}
+
+		}
+	}
+}
+
+func (ecs *EthChainService) listenForNewBlocks(errorChan chan<- error, newBlockSub ethereum.Subscription, newBlockChan chan *ethTypes.Header, eventQueue *EventQueue) {
+out:
+	for {
+		select {
+		case <-ecs.ctx.Done():
+			newBlockSub.Unsubscribe()
+			ecs.wg.Done()
+			return
+
+		case err := <-newBlockSub.Err():
 			if err != nil {
-				errorChan <- fmt.Errorf("error in dispatchChainEvents: %w", err)
+				errorChan <- fmt.Errorf("received error from new block subscription channel: %w", err)
 				break out
+			}
+
+			// If the error is nil then the subscription was closed and we need to re-subscribe.
+			// This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
+			var sErr error
+			newBlockSub, sErr = ecs.chain.SubscribeNewHead(ecs.ctx, newBlockChan)
+			if sErr != nil {
+				errorChan <- fmt.Errorf("subscribeNewHead failed on resubscribe: %w", err)
+				break out
+			}
+			ecs.logger.Trace().Msg("resubscribed to new blocks")
+
+		case newBlock := <-newBlockChan:
+			ecs.logger.Debug().Msgf("detected new block: %d", newBlock.Number.Uint64())
+			// When we get a new block, check the events at the top of the queue.
+			// If they have enough block confirmations, remove them from the queue and process them
+			for eventQueue.Len() > 0 && newBlock.Number.Uint64() >= (*eventQueue)[0].BlockNumber+REQUIRED_BLOCK_CONFIRMATIONS {
+				chainEvent := heap.Pop(eventQueue).(ethTypes.Log)
+				ecs.logger.Debug().Msgf("event popped from queue (updated queue length: %d)", eventQueue.Len())
+				err := ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
+				if err != nil {
+					errorChan <- fmt.Errorf("failed dispatchChainEvents: %w", err)
+					break out
+				}
 			}
 		}
 	}
@@ -283,22 +353,25 @@ out:
 
 // subscribeForLogs subscribes for logs and pushes them to the out channel.
 // It relies on notifications being supported by the chain node.
-func (ecs *EthChainService) subscribeForLogs() (<-chan error, error) {
+func (ecs *EthChainService) subscribeForLogs() (chan error, ethereum.Subscription, chan *ethTypes.Header, ethereum.Subscription, chan ethTypes.Log, ethereum.FilterQuery, error) {
 	// Subscribe to Adjudicator events
-	query := ethereum.FilterQuery{
+	eventQuery := ethereum.FilterQuery{
 		Addresses: []common.Address{ecs.naAddress},
 	}
-	logs := make(chan ethTypes.Log)
-	sub, err := ecs.chain.SubscribeFilterLogs(ecs.ctx, query, logs)
+	eventChan := make(chan ethTypes.Log)
+	eventSub, err := ecs.chain.SubscribeFilterLogs(ecs.ctx, eventQuery, eventChan)
 	if err != nil {
-		return nil, fmt.Errorf("subscribeFilterLogs failed: %w", err)
+		return nil, nil, nil, nil, nil, ethereum.FilterQuery{}, fmt.Errorf("subscribeFilterLogs failed: %w", err)
 	}
 	errorChan := make(chan error)
-	// Must be in a goroutine to not block chain service constructor
-	ecs.wg.Add(1)
-	go ecs.listenForLogs(sub, errorChan, logs, query)
 
-	return errorChan, nil
+	newBlockChan := make(chan *ethTypes.Header)
+	newBlockSub, err := ecs.chain.SubscribeNewHead(ecs.ctx, newBlockChan)
+	if err != nil {
+		return nil, nil, nil, nil, nil, ethereum.FilterQuery{}, fmt.Errorf("subscribeNewHead failed: %w", err)
+	}
+
+	return errorChan, newBlockSub, newBlockChan, eventSub, eventChan, eventQuery, nil
 }
 
 // EventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.

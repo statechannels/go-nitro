@@ -1,4 +1,8 @@
-docker/Dockerfile
-
 artifacts
 data
+
+.adr
+.yarn
+docs
+node_modules
+packages
