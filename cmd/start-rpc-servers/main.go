@@ -38,10 +38,7 @@ const (
 	gray    color = "[90m"
 )
 
-var (
-	participants     = []participant{alice, bob, irene, ivan}
-	participantColor = map[participant]color{alice: blue, irene: green, ivan: cyan, bob: yellow}
-)
+var participantColor = map[participant]color{alice: blue, irene: green, ivan: cyan, bob: yellow}
 
 const (
 	FUNDED_TEST_PK  = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
