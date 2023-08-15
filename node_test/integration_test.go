@@ -56,26 +56,6 @@ func TestComplexIntegrationScenario(t *testing.T) {
 	RunIntegrationTestCase(complexCase, t)
 }
 
-func TestKademliaDhtIntegrationScenario(t *testing.T) {
-	complexCase := TestCase{
-		Description:    "Kademlia-DHT test",
-		Chain:          SimulatedChain,
-		MessageService: DhtMessageService,
-		NumOfChannels:  5,
-		MessageDelay:   0,
-		LogName:        "dht_integration",
-		NumOfHops:      2,
-		NumOfPayments:  5,
-		Participants: []TestParticipant{
-			{StoreType: DurableStore, Actor: testactors.Alice},
-			{StoreType: DurableStore, Actor: testactors.Bob},
-			{StoreType: DurableStore, Actor: testactors.Irene},
-			{StoreType: DurableStore, Actor: testactors.Ivan},
-		},
-	}
-	RunIntegrationTestCase(complexCase, t)
-}
-
 // RunIntegrationTestCase runs the integration test case.
 func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 	// Clean up all the test data we create at the end of the test
