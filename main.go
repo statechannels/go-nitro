@@ -30,7 +30,6 @@ func main() {
 		RPC_PORT              = "rpcport"
 		GUI_PORT              = "guiport"
 		BOOT_PEERS            = "bootpeers"
-		USE_MDNS              = "usemdns"
 
 		// Keys
 		KEYS_CATEGORY = "Keys:"
@@ -44,7 +43,7 @@ func main() {
 	)
 	var pkString, chainUrl, chainAuthToken, naAddress, vpaAddress, caAddress, chainPk, durableStoreFolder, bootPeers string
 	var msgPort, rpcPort, guiPort int
-	var useNats, useDurableStore, useMdns bool
+	var useNats, useDurableStore bool
 
 	flags := []cli.Flag{
 		&cli.StringFlag{
@@ -65,13 +64,7 @@ func main() {
 			Value:       false,
 			Destination: &useDurableStore,
 		}),
-		altsrc.NewBoolFlag(&cli.BoolFlag{
-			Name:        USE_MDNS,
-			Usage:       "Specifies whether to use mDNS for peer discovery (if 'false', will use kademlia-dht)",
-			Category:    CONNECTIVITY_CATEGORY,
-			Value:       true,
-			Destination: &useMdns,
-		}),
+
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        PK,
 			Usage:       "Specifies the private key used by the nitro node.",
