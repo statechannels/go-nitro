@@ -17,7 +17,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/protocol"
-	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/rs/zerolog"
@@ -54,7 +53,6 @@ type P2PMessageService struct {
 	me          types.Address
 	key         p2pcrypto.PrivKey
 	p2pHost     host.Host
-	mdns        mdns.Service
 	dht         *dht.IpfsDHT
 	newPeerInfo chan basicPeerInfo
 	logger      zerolog.Logger
@@ -382,13 +380,6 @@ func (ms *P2PMessageService) Out() <-chan protocols.Message {
 
 // Close closes the P2PMessageService
 func (ms *P2PMessageService) Close() error {
-	// The mdns service is optional so we only close it if it exists
-	if ms.mdns != nil {
-		err := ms.mdns.Close()
-		if err != nil {
-			return err
-		}
-	}
 	ms.p2pHost.RemoveStreamHandler(GENERAL_MSG_PROTOCOL_ID)
 	return ms.p2pHost.Close()
 }
