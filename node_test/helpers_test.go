@@ -70,7 +70,7 @@ func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastru
 	case TestMessageService:
 		return messageservice.NewTestMessageService(tp.Address(), *si.broker, tc.MessageDelay), ""
 
-	case DhtMessageService:
+	case P2PMessageService:
 		ms := p2pms.NewMessageService(
 			"127.0.0.1",
 			int(tp.Port),
