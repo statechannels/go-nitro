@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/statechannels/go-nitro/cmd/utils"
 	"github.com/statechannels/go-nitro/internal/chain"
@@ -120,7 +121,21 @@ func main() {
 			}
 
 			hostUI := cCtx.Bool(HOST_UI)
-			for _, p := range participants {
+
+			for _, p := range []participant{ivan} {
+				client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
+				if err != nil {
+					utils.StopCommands(running...)
+					panic(err)
+				}
+				running = append(running, client)
+			}
+
+			// TODO: There's not an easy way to detect when the server is up and running so we just sleep for now
+			time.Sleep(5 * time.Second)
+
+			for _, p := range []participant{alice, bob, irene} {
+
 				client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
 				if err != nil {
 					utils.StopCommands(running...)
