@@ -6,7 +6,10 @@ msgport = 3005
 rpcport = 4005
 guiport = 5005
 
+# PeerID: 16Uiu2HAmSjXJqsyBJgcBUU2HQmykxGseafSatbpq5471XmuaUqyv
+# SCAddr: 0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE
 pk = "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d"
+
 chainpk = "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
 
 chainurl = "ws://127.0.0.1:8545"

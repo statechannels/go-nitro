@@ -37,10 +37,12 @@ const (
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data
 type Objective struct {
-	Status               protocols.ObjectiveStatus
-	C                    *channel.Channel
-	finalTurnNum         uint64
-	transactionSubmitted bool // whether a transition for the objective has been submitted or not
+	Status       protocols.ObjectiveStatus
+	C            *channel.Channel
+	finalTurnNum uint64
+
+	// Whether a withdraw transaction has been declared as a side effect in a previous crank
+	withdrawTransactionSubmitted bool
 }
 
 // isInConsensusOrFinalState returns true if the channel has a final state or latest state that is supported
@@ -249,7 +251,7 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 		return &updated, sideEffects, WaitingForNothing, errors.New("the channel must contain at least one signed state to crank the defund objective")
 	}
 
-	// Finalize and sign a state if no supported, finalized state exists
+	// Sign a final state if no supported, final state exists
 	if !latestSignedState.State().IsFinal || !latestSignedState.HasSignatureForParticipant(updated.C.MyIndex) {
 		stateToSign := latestSignedState.State().Clone()
 		if !stateToSign.IsFinal {
@@ -278,10 +280,10 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 	// Withdrawal of funds
 	if !updated.fullyWithdrawn() {
 		// The first participant in the channel submits the withdrawAll transaction
-		if updated.C.MyIndex == 0 && !updated.transactionSubmitted {
+		if updated.C.MyIndex == 0 && !updated.withdrawTransactionSubmitted {
 			withdrawAll := protocols.NewWithdrawAllTransaction(updated.C.Id, latestSignedState)
 			sideEffects.TransactionsToSubmit = append(sideEffects.TransactionsToSubmit, withdrawAll)
-			updated.transactionSubmitted = true
+			updated.withdrawTransactionSubmitted = true
 		}
 		// Every participant waits for all channel funds to be distributed, even if the participant has no funds in the channel
 		return &updated, sideEffects, WaitingForWithdraw, nil
@@ -323,7 +325,7 @@ func (o *Objective) clone() Objective {
 	cClone := o.C.Clone()
 	clone.C = cClone
 	clone.finalTurnNum = o.finalTurnNum
-	clone.transactionSubmitted = o.transactionSubmitted
+	clone.withdrawTransactionSubmitted = o.withdrawTransactionSubmitted
 
 	return clone
 }

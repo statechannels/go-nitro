@@ -92,8 +92,9 @@ func (tms TestMessageService) connect(b Broker) {
 }
 
 // Send dispatches messages
-func (tms TestMessageService) Send(msg protocols.Message) {
+func (tms TestMessageService) Send(msg protocols.Message) error {
 	tms.dispatchMessage(msg)
+	return nil
 }
 
 // HandleMessage deserialize the message and feed it to the engine

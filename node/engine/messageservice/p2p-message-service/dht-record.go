@@ -3,29 +3,30 @@ package p2pms
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 const (
-	DHT_RECORD_PREFIX = "/scaddr/"
+	DHT_RECORD_PREFIX = "/" + DHT_NAMESPACE + "/"
+	DHT_NAMESPACE     = "scaddr"
 )
 
 type stateChannelAddrToPeerIDValidator struct{}
 
-// DhtRecord represents the data stored in the DHT record
-type DhtRecord struct {
-	Data      DhtData `json:"data"`
-	Signature []byte  `json:"signature"`
+// dhtRecord represents the data stored in the DHT record
+type dhtRecord struct {
+	Data      dhtData
+	Signature []byte
 }
 
-type DhtData struct {
-	SCAddr    string `json:"scaddr"` // state channel address
-	PeerID    string `json:"peerid"`
-	Timestamp int64  `json:"timestamp"` // Unix timestamp (seconds since January 1, 1970)
+type dhtData struct {
+	SCAddr    string // state channel address
+	PeerID    string
+	Timestamp int64 // Unix timestamp (seconds since January 1, 1970)
 }
 
 func (v stateChannelAddrToPeerIDValidator) Validate(key string, value []byte) error {
@@ -37,15 +38,13 @@ func (v stateChannelAddrToPeerIDValidator) Validate(key string, value []byte) er
 		return errors.New("invalid state channel address used for key")
 	}
 
-	// Parse the value into a RecordData object
-	var dhtRecord DhtRecord
+	var dhtRecord dhtRecord
 	if err := json.Unmarshal(value, &dhtRecord); err != nil {
 		return errors.New("malformed record value")
 	}
 
-	// Make sure the timestamp is not in the future or negative number
-	if dhtRecord.Data.Timestamp > time.Time.Unix(time.Now()) || dhtRecord.Data.Timestamp < 0 {
-		return errors.New("invalid timestamp")
+	if common.HexToAddress(dhtRecord.Data.SCAddr) != common.HexToAddress(signingAddrStr) {
+		return errors.New("record key does not match state channel address")
 	}
 
 	// Check if the value can be parsed into a valid libp2p peer.ID
@@ -77,9 +76,23 @@ func (v stateChannelAddrToPeerIDValidator) Validate(key string, value []byte) er
 	return nil
 }
 
-// Simply return the first record as the best record.
-// In a more complex scenario, we could add logic to select the best record
-// based on some criteria.
+// Choose the most recent record if we receive multiple records for the same key
 func (v stateChannelAddrToPeerIDValidator) Select(key string, values [][]byte) (int, error) {
-	return 0, nil
+	var mostRecentIndex int
+	var mostRecentTimestamp int64
+
+	for i, value := range values {
+		var record dhtRecord
+		err := json.Unmarshal(value, &record)
+		if err != nil {
+			return -1, fmt.Errorf("error unmarshalling record: %w", err)
+		}
+
+		if record.Data.Timestamp > mostRecentTimestamp {
+			mostRecentIndex = i
+			mostRecentTimestamp = record.Data.Timestamp
+		}
+	}
+
+	return mostRecentIndex, nil
 }
