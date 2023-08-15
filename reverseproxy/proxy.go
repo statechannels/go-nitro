@@ -81,6 +81,7 @@ func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinati
 // It is responsible for parsing the voucher from the query params and moving it to the request header
 // It then delegates to the reverse proxy to handle rewriting the request and sending it to the destination
 func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	enableCORS(w, r)
 	v, err := parseVoucher(r.URL.Query())
 	if err != nil {
 		p.handleError(w, r, createPaymentError(fmt.Errorf("could not parse voucher: %w", err)))
@@ -100,6 +101,10 @@ func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 // It will check the voucher amount against the cost (response size * cost per byte)
 // If the voucher amount is less than the cost, it will return a 402 Payment Required error instead of serving the content
 func (p *ReversePaymentProxy) handleDestinationResponse(r *http.Response) error {
+	// Ignore OPTIONS requests as they are preflight requests
+	if r.Request.Method == "OPTIONS" {
+		return nil
+	}
 	contentLength, err := strconv.ParseUint(r.Header.Get("Content-Length"), 10, 64)
 	if err != nil {
 		return err
@@ -204,4 +209,17 @@ func removeVoucher(r *http.Request) {
 	queryParams.Del(SIGNATURE_VOUCHER_PARAM)
 
 	r.URL.RawQuery = queryParams.Encode()
+}
+
+// enableCORS enables CORS headers in the response.
+func enableCORS(w http.ResponseWriter, r *http.Request) {
+	// Add CORS headers to allow all origins (*).
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	w.Header().Set("Access-Control-Expose-Headers", "*")
+	// Check if the request is an OPTIONS preflight request.
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 }

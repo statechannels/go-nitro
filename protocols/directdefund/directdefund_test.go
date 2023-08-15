@@ -177,7 +177,7 @@ func TestCrankAlice(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !updated.(*Objective).transactionSubmitted {
+	if !updated.(*Objective).withdrawTransactionSubmitted {
 		t.Fatalf("Expected transactionSubmitted flag to be set to true")
 	}
 
@@ -260,7 +260,7 @@ func TestCrankBob(t *testing.T) {
 		t.Error(err)
 	}
 
-	if updated.(*Objective).transactionSubmitted {
+	if updated.(*Objective).withdrawTransactionSubmitted {
 		t.Fatalf("Expected transactionSubmitted flag to be set to false")
 	}
 

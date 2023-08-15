@@ -83,7 +83,8 @@ export class NitroRpcClient {
    * @returns A promise that resolves to an objective response, containing the ID of the objective and the channel id.
    */
   public async CreateLedgerChannel(
-    counterParty: string
+    counterParty: string,
+    amount: number
   ): Promise<ObjectiveResponse> {
     const asset = `0x${"00".repeat(20)}`;
     const params: DirectFundParams = {
@@ -93,7 +94,7 @@ export class NitroRpcClient {
         asset,
         await this.GetAddress(),
         counterParty,
-        1_000_000
+        amount
       ),
       AppDefinition: asset,
       AppData: "0x00",
@@ -111,7 +112,8 @@ export class NitroRpcClient {
    */
   public async CreatePaymentChannel(
     counterParty: string,
-    intermediaries: string[]
+    intermediaries: string[],
+    amount: number
   ): Promise<ObjectiveResponse> {
     const asset = `0x${"00".repeat(20)}`;
     const params: VirtualFundParams = {
@@ -122,7 +124,7 @@ export class NitroRpcClient {
         asset,
         await this.GetAddress(),
         counterParty,
-        1_000
+        amount
       ),
       AppDefinition: asset,
       Nonce: Date.now(),

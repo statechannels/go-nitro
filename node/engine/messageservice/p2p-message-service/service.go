@@ -90,7 +90,9 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	}
 
 	messageKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(pk)
-	ms.checkError(err)
+	if err != nil {
+		panic(err)
+	}
 
 	ms.key = messageKey
 	options := []libp2p.Option{
@@ -115,14 +117,19 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 		Addrs: ms.p2pHost.Addrs(),
 	}
 	addrs, err := peer.AddrInfoToP2pAddrs(&peerInfo)
-	ms.checkError(err)
+	if err != nil {
+		panic(err)
+	}
 	ms.MultiAddr = addrs[0].String()
 	ms.logger.Info().Msgf("libp2p node multiaddrs: %v", addrs)
 
 	if useMdnsPeerDiscovery {
-		ms.setupMdns()
+		err = ms.setupMdns()
 	} else {
-		ms.setupDht(bootPeers)
+		err = ms.setupDht(bootPeers)
+	}
+	if err != nil {
+		panic(err)
 	}
 
 	return ms
@@ -148,7 +155,7 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	options = append(options, dht.NamespacedValidator(DHT_NAMESPACE, stateChannelAddrToPeerIDValidator{})) // all records prefixed with /scaddr/ will use this custom validator
 
 	kademliaDHT, err := dht.New(ctx, ms.p2pHost, options...)
-	ms.checkError(err)
+  ms.checkError(err)
 	ms.dht = kademliaDHT
 
 	// Setup network connection notifications
@@ -241,16 +248,25 @@ func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 	if errors.Is(err, io.EOF) {
 		return
 	}
-	ms.checkError(err)
+	if err != nil {
+		ms.logger.Err(err)
+		return
+	}
 	m, err := protocols.DeserializeMessage(raw)
-	ms.checkError(err)
+	if err != nil {
+		ms.logger.Err(err)
+		return
+	}
 	ms.toEngine <- m
 }
 
 // sendPeerInfo sends our peer info to a given peerId
 func (ms *P2PMessageService) sendPeerInfo(recipientId peer.ID, expectResponse bool) {
 	stream, err := ms.p2pHost.NewStream(context.Background(), recipientId, PEER_EXCHANGE_PROTOCOL_ID)
-	ms.checkError(err)
+	if err != nil {
+		ms.logger.Err(err)
+		return
+	}
 	defer stream.Close()
 
 	raw, err := json.Marshal(peerExchangeMessage{
@@ -258,12 +274,18 @@ func (ms *P2PMessageService) sendPeerInfo(recipientId peer.ID, expectResponse bo
 		Address:        ms.me,
 		ExpectResponse: expectResponse,
 	})
-	ms.checkError(err)
+	if err != nil {
+		ms.logger.Err(err)
+		return
+	}
 
 	writer := bufio.NewWriter(stream)
 	// We don't care about the number of bytes written
 	_, err = writer.WriteString(string(raw) + string(DELIMITER))
-	ms.checkError(err)
+	if err != nil {
+		ms.logger.Err(err)
+		return
+	}
 	writer.Flush()
 }
 
@@ -280,11 +302,17 @@ func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
 	if errors.Is(err, io.EOF) {
 		return
 	}
-	ms.checkError(err)
+	if err != nil {
+		ms.logger.Err(err)
+		return
+	}
 
 	var msg *peerExchangeMessage
 	err = json.Unmarshal([]byte(raw), &msg)
-	ms.checkError(err)
+	if err != nil {
+		ms.logger.Err(err)
+		return
+	}
 
 	_, foundPeer := ms.peers.LoadOrStore(msg.Address.String(), msg.Id)
 	if !foundPeer {
@@ -298,35 +326,46 @@ func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
 	}
 }
 
-func (ms *P2PMessageService) getPeerIdFromDht(scaddr string) peer.ID {
+func (ms *P2PMessageService) getPeerIdFromDht(scaddr string) (peer.ID, error) {
 	ms.logger.Info().Msgf("did not find address %s in local map, will query dht", scaddr)
 	recordBytes, err := ms.dht.GetValue(context.Background(), DHT_RECORD_PREFIX+scaddr)
-	ms.checkError(err)
+	if err != nil {
+		return "", err
+	}
 
 	recordData := &dhtRecord{}
 	err = json.Unmarshal(recordBytes, recordData)
-	ms.checkError(err)
+	if err != nil {
+		return "", err
+	}
 
 	peerId, err := peer.Decode(recordData.Data.PeerID)
-	ms.checkError(err)
+	if err != nil {
+		return "", err
+	}
 	ms.logger.Info().Msgf("found address in dht: %s (peerId: %s)", scaddr, peerId.String())
 
 	ms.peers.Store(scaddr, peerId) // Cache this info locally for use next time
-	return peerId
+	return peerId, nil
 }
 
 // Send sends messages to other participants.
 // It blocks until the message is sent.
 // It will retry establishing a stream NUM_CONNECT_ATTEMPTS times before giving up
-func (ms *P2PMessageService) Send(msg protocols.Message) {
+func (ms *P2PMessageService) Send(msg protocols.Message) error {
 	raw, err := msg.Serialize()
-	ms.checkError(err)
+	if err != nil {
+		return err
+	}
 
 	// First try to get peerId from local "peers" map. If the address is not found there,
 	// query the dht to retrieve the peerId, then store in local map for next time
 	peerId, ok := ms.peers.Load(msg.To.String())
 	if !ok {
-		peerId = ms.getPeerIdFromDht(msg.To.String())
+		peerId, err = ms.getPeerIdFromDht(msg.To.String())
+	}
+	if err != nil {
+		return err
 	}
 
 	for i := 0; i < NUM_CONNECT_ATTEMPTS; i++ {
@@ -334,24 +373,19 @@ func (ms *P2PMessageService) Send(msg protocols.Message) {
 		if err == nil {
 			writer := bufio.NewWriter(s)
 			_, err = writer.WriteString(raw + string(DELIMITER)) // We don't care about the number of bytes written
-			ms.checkError(err)
+			if err != nil {
+				return err
+			}
 
 			writer.Flush()
 			s.Close()
-			return
+			return nil
 		}
 
 		ms.logger.Info().Int("attempt", i).Str("to", msg.To.String()).Msg("could not open stream: " + err.Error())
 		time.Sleep(RETRY_SLEEP_DURATION)
 	}
-}
-
-// checkError panics if the message service is running and there is an error, otherwise it just returns
-func (ms *P2PMessageService) checkError(err error) {
-	if err == nil {
-		return
-	}
-	ms.logger.Panic().Msg(err.Error())
+	return nil
 }
 
 // Out returns a channel that can be used to receive messages from the message service

@@ -28,7 +28,10 @@ var aToB protocols.Message = protocols.CreateSignedProposalMessage(
 func TestConnect(t *testing.T) {
 	bobOut := bobMS.Out()
 
-	aliceMS.Send(aToB)
+	err := aliceMS.Send(aToB)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	got := <-bobOut
 

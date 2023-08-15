@@ -96,6 +96,18 @@ yargs(hideBin(process.argv))
           type: "number",
           default: 5,
         })
+        .option("ledgerdeposit", {
+          describe:
+            "The amount of wei for each participant to deposit into the ledger channel",
+          type: "number",
+          default: 1_000_000_000_000,
+        })
+        .option("virtualdeposit", {
+          describe:
+            "The amount of wei for each participant to deposit into a virtual channel",
+          type: "number",
+          default: 1_000_000,
+        })
         .option("numclosevirtual", {
           describe: "The number of virtual channels to close and defund.",
           type: "number",
@@ -150,8 +162,14 @@ yargs(hideBin(process.argv))
       if (yargs.createledgers) {
         // Setup ledger channels
         console.log("Constructing ledger channels");
-        const aliceLedger = await aliceClient.CreateLedgerChannel(ireneAddress);
-        const bobLedger = await ireneClient.CreateLedgerChannel(bobAddress);
+        const aliceLedger = await aliceClient.CreateLedgerChannel(
+          ireneAddress,
+          yargs.ledgerdeposit
+        );
+        const bobLedger = await ireneClient.CreateLedgerChannel(
+          bobAddress,
+          yargs.ledgerdeposit
+        );
 
         await Promise.all([
           aliceClient.WaitForObjective(aliceLedger.Id),
@@ -165,9 +183,11 @@ yargs(hideBin(process.argv))
       const virtualChannels: string[] = [];
       console.log(`Constructing ${yargs.numvirtual} virtual channels`);
       for (let i = 0; i < yargs.numvirtual; i++) {
-        const res = await aliceClient.CreatePaymentChannel(bobAddress, [
-          ireneAddress,
-        ]);
+        const res = await aliceClient.CreatePaymentChannel(
+          bobAddress,
+          [ireneAddress],
+          yargs.virtualdeposit
+        );
         await aliceClient.WaitForObjective(res.Id);
         console.log(`Virtual channel ${res.ChannelId} created`);
         virtualChannels.push(res.ChannelId);
@@ -239,7 +259,10 @@ yargs(hideBin(process.argv))
 
       // Setup ledger channels
       console.log("Constructing ledger channels");
-      const ledger = await leftClient.CreateLedgerChannel(rightAddress);
+      const ledger = await leftClient.CreateLedgerChannel(
+        rightAddress,
+        1_000_000
+      );
       await leftClient.WaitForObjective(ledger.Id);
       console.log(`Ledger channel ${ledger.ChannelId} created`);
 
