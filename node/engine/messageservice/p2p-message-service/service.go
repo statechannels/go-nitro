@@ -124,12 +124,9 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	ms.logger.Info().Msgf("libp2p node multiaddrs: %v", addrs)
 
 	if useMdnsPeerDiscovery {
-		err = ms.setupMdns()
+		ms.setupMdns()
 	} else {
-		err = ms.setupDht(bootPeers)
-	}
-	if err != nil {
-		panic(err)
+		ms.setupDht(bootPeers)
 	}
 
 	return ms
@@ -155,7 +152,7 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	options = append(options, dht.NamespacedValidator(DHT_NAMESPACE, stateChannelAddrToPeerIDValidator{})) // all records prefixed with /scaddr/ will use this custom validator
 
 	kademliaDHT, err := dht.New(ctx, ms.p2pHost, options...)
-  ms.checkError(err)
+	ms.checkError(err)
 	ms.dht = kademliaDHT
 
 	// Setup network connection notifications
@@ -386,6 +383,14 @@ func (ms *P2PMessageService) Send(msg protocols.Message) error {
 		time.Sleep(RETRY_SLEEP_DURATION)
 	}
 	return nil
+}
+
+// checkError panics if the message service is running and there is an error, otherwise it just returns
+func (ms *P2PMessageService) checkError(err error) {
+	if err == nil {
+		return
+	}
+	ms.logger.Panic().Msg(err.Error())
 }
 
 // Out returns a channel that can be used to receive messages from the message service
