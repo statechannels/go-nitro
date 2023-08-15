@@ -119,26 +119,32 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	ms.logger.Info().Msgf("libp2p node multiaddrs: %v", addrs)
 
 	if useMdnsPeerDiscovery {
-		ms.setupMdns()
+		err = ms.setupMdns()
 	} else {
-		ms.setupDht(bootPeers)
+		err = ms.setupDht(bootPeers)
+	}
+	if err != nil {
+		panic(err)
 	}
 
 	return ms
 }
 
-func (ms *P2PMessageService) setupMdns() {
+func (ms *P2PMessageService) setupMdns() error {
 	// Since the mdns service could trigger a call to  `HandlePeerFound` at any time once started
 	// We want to start mdns after the message service has been fully constructed
 	ms.mdns = mdns.NewMdnsService(ms.p2pHost, "", ms)
 	err := ms.mdns.Start()
-	ms.checkError(err)
+	if err != nil {
+		return err
+	}
 
 	close(ms.initComplete)
 	ms.logger.Info().Msgf("mDNS setup complete")
+	return nil
 }
 
-func (ms *P2PMessageService) setupDht(bootPeers []string) {
+func (ms *P2PMessageService) setupDht(bootPeers []string) error {
 	ctx := context.Background()
 	var options []dht.Option
 	options = append(options, dht.BucketSize(20))
@@ -147,7 +153,9 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	options = append(options, dht.NamespacedValidator(DHT_NAMESPACE, stateChannelAddrToPeerIDValidator{})) // all records prefixed with /scaddr/ will use this custom validator
 
 	kademliaDHT, err := dht.New(ctx, ms.p2pHost, options...)
-	ms.checkError(err)
+	if err != nil {
+		return err
+	}
 	ms.dht = kademliaDHT
 
 	// Setup network connection notifications
@@ -164,7 +172,9 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	ms.connectBootPeers(bootPeers)
 
 	err = ms.dht.Bootstrap(ctx) // Sends FIND_NODE queries periodically to populate dht routing table
-	ms.checkError(err)
+	if err != nil {
+		return err
+	}
 
 	// Must wait until dht RoutingTable has an entry before adding custom dht record
 	// This is a restriction enforced by the libp2p library. When we try to put a value
@@ -186,6 +196,7 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	}()
 
 	ms.logger.Info().Msgf("DHT setup complete")
+	return nil
 }
 
 // InitComplete returns a chan that gets closed once the message service is initalized
@@ -350,9 +361,9 @@ func (ms *P2PMessageService) Send(msg protocols.Message) error {
 	peerId, ok := ms.peers.Load(msg.To.String())
 	if !ok {
 		peerId, err = ms.getPeerIdFromDht(msg.To.String())
-	}
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	for i := 0; i < NUM_CONNECT_ATTEMPTS; i++ {
