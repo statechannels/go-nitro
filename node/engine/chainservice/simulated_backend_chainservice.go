@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"math/big"
-	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
@@ -84,12 +83,7 @@ func (sbcs *SimulatedBackendChainService) SendTransaction(tx protocols.ChainTran
 		return err
 	}
 	sbcs.sim.Commit()
-	// Delay then mint two additional blocks to satisfy REQUIRED_BLOCK_CONFIRMATIONS.
-	// The delay helps eliminate a potential race condition where a node detects all
-	// new blocks before it adds an on-chain event to the EventQueue. If that happens,
-	// it will never process the event because it needs to detect a new block before
-	// checking the EventQueue
-	time.Sleep(100 * time.Millisecond)
+	// Mint two additional blocks to satisfy REQUIRED_BLOCK_CONFIRMATIONS.
 	sbcs.sim.Commit()
 	sbcs.sim.Commit()
 	return nil
