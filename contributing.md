@@ -181,8 +181,8 @@ You may then view `output.log` in VSCode. A typical log line is then:
 To test the creation and execution of channels it is necessary to have a test network with multiple nodes.
 To spin up a docker image with 3 rpc servers and channels pre-populated, run the following:
 
-1. `make docker/build`
-2. `make docker/start`
+1. `make docker/network/build`
+2. `make docker/network/start`
 
 Three rpc go-nitro servers will be available on ports 4005, 4006, and 4007 for Alice, Irene, and Bob. A ledger channel is created between Alice and Irene, and another ledger channel is created between Irene and Bob. A virtual channel is created between Alice and Bob.
 Each server may be communicated with over JSON-RPC at a localhost endpoint with an appropriate port. See [these instructions](./doc.go) on how to do that.
