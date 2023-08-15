@@ -32,15 +32,14 @@ type basicPeerInfo struct {
 }
 
 const (
-	DHT_PROTOCOL_PREFIX          protocol.ID = "/nitro" // use /nitro/kad/1.0.0 instead of /ipfs/kad/1.0.0
-	GENERAL_MSG_PROTOCOL_ID      protocol.ID = "/nitro/msg/1.0.0"
-	PEER_EXCHANGE_PROTOCOL_ID    protocol.ID = "/nitro/peerinfo/1.0.0"
-	DELIMITER                                = '\n'
-	BUFFER_SIZE                              = 1_000
-	NUM_CONNECT_ATTEMPTS                     = 10
-	RETRY_SLEEP_DURATION                     = 5 * time.Second
-	PEER_EXCHANGE_SLEEP_DURATION             = 10 * time.Second       // how often we attempt FindPeers
-	BOOTSTRAP_SLEEP_DURATION                 = 100 * time.Millisecond // how often we check for bootpeers in Peerstore
+	DHT_PROTOCOL_PREFIX     protocol.ID = "/nitro" // use /nitro/kad/1.0.0 instead of /ipfs/kad/1.0.0
+	GENERAL_MSG_PROTOCOL_ID protocol.ID = "/nitro/msg/1.0.0"
+
+	DELIMITER                = '\n'
+	BUFFER_SIZE              = 1_000
+	NUM_CONNECT_ATTEMPTS     = 10
+	RETRY_SLEEP_DURATION     = 5 * time.Second
+	BOOTSTRAP_SLEEP_DURATION = 100 * time.Millisecond // how often we check for bootpeers in Peerstore
 )
 
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
