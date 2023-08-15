@@ -33,12 +33,6 @@ type basicPeerInfo struct {
 	Address types.Address
 }
 
-type peerExchangeMessage struct {
-	Id             peer.ID
-	Address        types.Address
-	ExpectResponse bool
-}
-
 const (
 	DHT_PROTOCOL_PREFIX          protocol.ID = "/nitro" // use /nitro/kad/1.0.0 instead of /ipfs/kad/1.0.0
 	PROTOCOL_ID                  protocol.ID = "/nitro/msg/1.0.0"
@@ -231,7 +225,7 @@ func (ms *P2PMessageService) HandlePeerFound(pi peer.AddrInfo) {
 	ms.logger.Debug().Msgf("Attempting to add mdns peer")
 	ms.p2pHost.Peerstore().AddAddr(pi.ID, pi.Addrs[0], peerstore.PermanentAddrTTL)
 
-	ms.sendPeerInfo(pi.ID, false)
+	ms.sendPeerInfo(pi.ID)
 }
 
 func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
@@ -258,7 +252,7 @@ func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 }
 
 // sendPeerInfo sends our peer info to a given peerId
-func (ms *P2PMessageService) sendPeerInfo(recipientId peer.ID, expectResponse bool) {
+func (ms *P2PMessageService) sendPeerInfo(recipientId peer.ID) {
 	stream, err := ms.p2pHost.NewStream(context.Background(), recipientId, PEER_EXCHANGE_PROTOCOL_ID)
 	if err != nil {
 		ms.logger.Err(err)
@@ -266,10 +260,9 @@ func (ms *P2PMessageService) sendPeerInfo(recipientId peer.ID, expectResponse bo
 	}
 	defer stream.Close()
 
-	raw, err := json.Marshal(peerExchangeMessage{
-		Id:             ms.Id(),
-		Address:        ms.me,
-		ExpectResponse: expectResponse,
+	raw, err := json.Marshal(basicPeerInfo{
+		Id:      ms.Id(),
+		Address: ms.me,
 	})
 	if err != nil {
 		ms.logger.Err(err)
@@ -304,7 +297,7 @@ func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
 		return
 	}
 
-	var msg *peerExchangeMessage
+	var msg *basicPeerInfo
 	err = json.Unmarshal([]byte(raw), &msg)
 	if err != nil {
 		ms.logger.Err(err)
@@ -316,10 +309,6 @@ func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
 		peerInfo := basicPeerInfo{msg.Id, msg.Address}
 		ms.logger.Debug().Msgf("stored new peer in map: %v", peerInfo)
 		ms.newPeerInfo <- peerInfo
-	}
-
-	if msg.ExpectResponse {
-		ms.sendPeerInfo(msg.Id, false)
 	}
 }
 
