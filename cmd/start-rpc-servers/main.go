@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"time"
@@ -128,9 +130,12 @@ func main() {
 				running = append(running, client)
 			}
 
-			// TODO: There's not an easy way to detect when the server is up and running so we just sleep for now
-			time.Sleep(5 * time.Second)
-
+			const IVAN_ADDRESS = "http://127.0.0.1:4008/api/v1"
+			err = waitForRpcClient(IVAN_ADDRESS, 500*time.Millisecond, 1*time.Minute)
+			if err != nil {
+				utils.StopCommands(running...)
+				panic(err)
+			}
 			for _, p := range []participant{alice, bob, irene} {
 
 				client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
@@ -220,4 +225,26 @@ func generateTempStoreFolder() (dataFolder string, cleanup func()) {
 	}
 
 	return
+}
+
+// waitForRpcClient waits for an RPC to be available at the given url
+// It does this by performing a GET request to the url until it receives a response
+func waitForRpcClient(rpcClientUrl string, interval, timeout time.Duration) error {
+	timeoutTicker := time.NewTicker(timeout)
+	defer timeoutTicker.Stop()
+	intervalTicker := time.NewTicker(interval)
+	defer intervalTicker.Stop()
+
+	client := &http.Client{}
+	for {
+		select {
+		case <-timeoutTicker.C:
+			return errors.New("polling timed out")
+		case <-intervalTicker.C:
+			resp, _ := client.Get(rpcClientUrl)
+			if resp != nil {
+				return nil
+			}
+		}
+	}
 }
