@@ -61,7 +61,7 @@ func TestCrashTolerance(t *testing.T) {
 
 	// test successful condition for setup / teardown of unused ledger channel
 	{
-		channelId := openLedgerChannel(t, sim, nodeA, nodeB, types.Address{})
+		channelId := openLedgerChannel(t, nodeA, nodeB, types.Address{})
 
 		closeNode(t, &nodeA)
 		anotherMessageserviceA := messageservice.NewTestMessageService(ta.Alice.Address(), broker, 0)
@@ -79,7 +79,7 @@ func TestCrashTolerance(t *testing.T) {
 			anotherStoreA, logDestination, &engine.PermissivePolicy{}, nil)
 		defer closeNode(t, &anotherClientA)
 
-		closeLedgerChannel(t, sim, anotherClientA, nodeB, channelId)
+		closeLedgerChannel(t, anotherClientA, nodeB, channelId)
 
 	}
 }
