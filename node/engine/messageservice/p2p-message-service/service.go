@@ -15,7 +15,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/multiformats/go-multiaddr"
@@ -100,7 +99,6 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, logWrit
 
 	ms.p2pHost = host
 	ms.p2pHost.SetStreamHandler(GENERAL_MSG_PROTOCOL_ID, ms.msgStreamHandler)
-	ms.p2pHost.SetStreamHandler(PEER_EXCHANGE_PROTOCOL_ID, ms.receivePeerInfo)
 
 	// Print out my own peerInfo
 	peerInfo := peer.AddrInfo{
@@ -211,14 +209,6 @@ func (ms *P2PMessageService) addScaddrDhtRecord(ctx context.Context) {
 	ms.logger.Info().Str(key, ms.Id().String()).Msg("Added value to dht")
 }
 
-// HandlePeerFound is called by the mDNS service when a peer is found.
-func (ms *P2PMessageService) HandlePeerFound(pi peer.AddrInfo) {
-	ms.logger.Debug().Msgf("Attempting to add mdns peer")
-	ms.p2pHost.Peerstore().AddAddr(pi.ID, pi.Addrs[0], peerstore.PermanentAddrTTL)
-
-	ms.sendPeerInfo(pi.ID)
-}
-
 func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 	defer stream.Close()
 
@@ -240,67 +230,6 @@ func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 		return
 	}
 	ms.toEngine <- m
-}
-
-// sendPeerInfo sends our peer info to a given peerId
-func (ms *P2PMessageService) sendPeerInfo(recipientId peer.ID) {
-	stream, err := ms.p2pHost.NewStream(context.Background(), recipientId, PEER_EXCHANGE_PROTOCOL_ID)
-	if err != nil {
-		ms.logger.Err(err).Msgf("failed to create stream for passing peerInfo with %s", recipientId.String())
-		return
-	}
-	defer stream.Close()
-
-	raw, err := json.Marshal(basicPeerInfo{
-		Id:      ms.Id(),
-		Address: ms.me,
-	})
-	if err != nil {
-		ms.logger.Err(err)
-		return
-	}
-
-	writer := bufio.NewWriter(stream)
-	// We don't care about the number of bytes written
-	_, err = writer.WriteString(string(raw) + string(DELIMITER))
-	if err != nil {
-		ms.logger.Err(err)
-		return
-	}
-	writer.Flush()
-}
-
-// receivePeerInfo receives peer info from the given stream
-func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
-	ms.logger.Debug().Msgf("received peerInfo")
-	defer stream.Close()
-
-	// Create a buffer stream for non blocking read and write.
-	reader := bufio.NewReader(stream)
-	raw, err := reader.ReadString(DELIMITER)
-
-	// An EOF means the stream has been closed by the other side.
-	if errors.Is(err, io.EOF) {
-		return
-	}
-	if err != nil {
-		ms.logger.Err(err)
-		return
-	}
-
-	var msg *basicPeerInfo
-	err = json.Unmarshal([]byte(raw), &msg)
-	if err != nil {
-		ms.logger.Err(err)
-		return
-	}
-
-	_, foundPeer := ms.peers.LoadOrStore(msg.Address.String(), msg.Id)
-	if !foundPeer {
-		peerInfo := basicPeerInfo{msg.Id, msg.Address}
-		ms.logger.Debug().Msgf("stored new peer in map: %v", peerInfo)
-		ms.newPeerInfo <- peerInfo
-	}
 }
 
 func (ms *P2PMessageService) getPeerIdFromDht(scaddr string) (peer.ID, error) {
