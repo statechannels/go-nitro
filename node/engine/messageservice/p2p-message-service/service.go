@@ -160,9 +160,7 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) error {
 	go func() {
 		ticker := time.NewTicker(BOOTSTRAP_SLEEP_DURATION)
 		for range ticker.C {
-			dhtSize := ms.dht.RoutingTable().Size()
-			ms.logger.Info().Msgf("routing table size: %d", dhtSize)
-			if dhtSize > 0 {
+			if ms.dht.RoutingTable().Size() > 0 {
 				ms.addScaddrDhtRecord(ctx)
 				ticker.Stop()
 				close(ms.initComplete)
