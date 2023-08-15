@@ -168,6 +168,10 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	ms.checkError(err)
 
 	// Must wait until dht RoutingTable has an entry before adding custom dht record
+	// This is a restriction enforced by the libp2p library. When we try to put a value
+	// into the DHT, the node is not storing it locally. Instead its telling other peers
+	// to store it. The key-value pairs are stored on nodes with IDs closest to the key.
+	// If the RoutingTable is empty, the node has no peers to propagate this information to.
 	go func() {
 		ticker := time.NewTicker(BOOTSTRAP_SLEEP_DURATION)
 		for range ticker.C {
@@ -185,7 +189,7 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) {
 	ms.logger.Info().Msgf("DHT setup complete")
 }
 
-// EventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
+// InitComplete returns a chan that gets closed once the message service is initalized
 func (ms *P2PMessageService) InitComplete() <-chan struct{} {
 	return ms.initComplete
 }
