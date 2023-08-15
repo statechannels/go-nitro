@@ -48,6 +48,7 @@ type ethChain interface {
 	ChainID(ctx context.Context) (*big.Int, error)
 }
 
+// eventTracker holds on to events in memory and dispatches an event after required number of confirmations
 type eventTracker struct {
 	latestBlockNum uint64
 	events         EventQueue
@@ -354,6 +355,7 @@ out:
 
 // updateEventTracker accepts a new block number and/or new event and dispatches a chain event if there are enough block confirmations
 func (ecs *EthChainService) updateEventTracker(errorChan chan<- error, blockNumber *uint64, chainEvent *ethTypes.Log) {
+	// lock the mutex for the shortest amount of time. The mutex only need to be locked to update the eventTracker data structure
 	ecs.eventTracker.mu.Lock()
 
 	if blockNumber != nil && *blockNumber > ecs.eventTracker.latestBlockNum {
