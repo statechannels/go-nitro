@@ -76,7 +76,7 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 		intermediaries := make([]node.Node, 0)
 		bootPeers := make([]string, 0)
 		for _, intermediary := range tc.Participants[2:] {
-			clientI, msgI, multiAddr := setupIntegrationNode(tc, intermediary, infra, bootPeers)
+			clientI, msgI, multiAddr := setupIntegrationNode(tc, intermediary, infra, []string{})
 
 			intermediaries = append(intermediaries, clientI)
 			msgServices = append(msgServices, msgI)
