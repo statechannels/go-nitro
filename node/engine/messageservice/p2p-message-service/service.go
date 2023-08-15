@@ -39,8 +39,8 @@ const (
 	BUFFER_SIZE                              = 1_000
 	NUM_CONNECT_ATTEMPTS                     = 10
 	RETRY_SLEEP_DURATION                     = 5 * time.Second
-	PEER_EXCHANGE_SLEEP_DURATION             = 10 * time.Second // how often we attempt FindPeers
-	BOOTSTRAP_SLEEP_DURATION                 = 1 * time.Second  // how often we check for bootpeers in Peerstore
+	PEER_EXCHANGE_SLEEP_DURATION             = 10 * time.Second       // how often we attempt FindPeers
+	BOOTSTRAP_SLEEP_DURATION                 = 100 * time.Millisecond // how often we check for bootpeers in Peerstore
 )
 
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
