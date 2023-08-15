@@ -113,9 +113,13 @@ func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 		return nil, err
 	}
 
+	eventQueue := &EventQueue{}
+	heap.Init(eventQueue)
+
 	// TODO: Return error from chain service instead of panicking
-	ecs.wg.Add(2)
-	go ecs.listenForLogs(errChan, newBlockSub, newBlockChan, eventSub, eventChan, eventQuery)
+	ecs.wg.Add(3)
+	go ecs.listenForEventLogs(errChan, eventSub, eventChan, eventQuery, eventQueue)
+	go ecs.listenForNewBlocks(errChan, newBlockSub, newBlockChan, eventQueue)
 	go ecs.listenForErrors(errChan)
 
 	return &ecs, nil
@@ -263,16 +267,12 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 	return nil
 }
 
-func (ecs *EthChainService) listenForLogs(errorChan chan<- error, newBlockSub ethereum.Subscription, newBlockChan chan *ethTypes.Header, eventSub ethereum.Subscription, eventChan chan ethTypes.Log, eventQuery ethereum.FilterQuery) {
-	eventQueue := &EventQueue{}
-	heap.Init(eventQueue)
-
+func (ecs *EthChainService) listenForEventLogs(errorChan chan<- error, eventSub ethereum.Subscription, eventChan chan ethTypes.Log, eventQuery ethereum.FilterQuery, eventQueue *EventQueue) {
 out:
 	for {
 		select {
 		case <-ecs.ctx.Done():
 			eventSub.Unsubscribe()
-			newBlockSub.Unsubscribe()
 			ecs.wg.Done()
 			return
 
@@ -292,6 +292,32 @@ out:
 			}
 			ecs.logger.Trace().Msg("resubscribed to filtered event logs")
 
+		case <-time.After(RESUB_INTERVAL):
+			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
+			// We unsub here and recreate the subscription in the next iteration of the select.
+			eventSub.Unsubscribe()
+
+		case chainEvent := <-eventChan:
+			for _, topic := range topicsToWatch {
+				if chainEvent.Topics[0] == topic {
+					ecs.logger.Debug().Msgf("queueing new chainEvent from block: %d", chainEvent.BlockNumber)
+					heap.Push(eventQueue, chainEvent)
+				}
+			}
+
+		}
+	}
+}
+
+func (ecs *EthChainService) listenForNewBlocks(errorChan chan<- error, newBlockSub ethereum.Subscription, newBlockChan chan *ethTypes.Header, eventQueue *EventQueue) {
+out:
+	for {
+		select {
+		case <-ecs.ctx.Done():
+			newBlockSub.Unsubscribe()
+			ecs.wg.Done()
+			return
+
 		case err := <-newBlockSub.Err():
 			if err != nil {
 				errorChan <- fmt.Errorf("received error from new block subscription channel: %w", err)
@@ -307,19 +333,6 @@ out:
 				break out
 			}
 			ecs.logger.Trace().Msg("resubscribed to new blocks")
-
-		case <-time.After(RESUB_INTERVAL):
-			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
-			// We unsub here and recreate the subscription in the next iteration of the select.
-			eventSub.Unsubscribe()
-
-		case chainEvent := <-eventChan:
-			for _, topic := range topicsToWatch {
-				if chainEvent.Topics[0] == topic {
-					ecs.logger.Debug().Msgf("queueing new chainEvent from block: %d", chainEvent.BlockNumber)
-					heap.Push(eventQueue, chainEvent)
-				}
-			}
 
 		case newBlock := <-newBlockChan:
 			ecs.logger.Debug().Msgf("detected new block: %d", newBlock.Number.Uint64())
