@@ -69,9 +69,7 @@ func (ms *P2PMessageService) Id() peer.ID {
 }
 
 // NewMessageService returns a running P2PMessageService listening on the given ip, port and message key.
-// If useMdnsPeerDiscovery is true, the message service will use mDNS to discover peers.
-// Otherwise, peers must be added manually via `AddPeers`.
-func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdnsPeerDiscovery bool, logWriter io.Writer, bootPeers []string) *P2PMessageService {
+func NewMessageService(ip string, port int, me types.Address, pk []byte, logWriter io.Writer, bootPeers []string) *P2PMessageService {
 	logging.ConfigureZeroLogger()
 
 	ms := &P2PMessageService{
@@ -118,30 +116,13 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	ms.MultiAddr = addrs[0].String()
 	ms.logger.Info().Msgf("libp2p node multiaddrs: %v", addrs)
 
-	if useMdnsPeerDiscovery {
-		err = ms.setupMdns()
-	} else {
-		err = ms.setupDht(bootPeers)
-	}
+	err = ms.setupDht(bootPeers)
+
 	if err != nil {
 		panic(err)
 	}
 
 	return ms
-}
-
-func (ms *P2PMessageService) setupMdns() error {
-	// Since the mdns service could trigger a call to  `HandlePeerFound` at any time once started
-	// We want to start mdns after the message service has been fully constructed
-	ms.mdns = mdns.NewMdnsService(ms.p2pHost, "", ms)
-	err := ms.mdns.Start()
-	if err != nil {
-		return err
-	}
-
-	close(ms.initComplete)
-	ms.logger.Info().Msgf("mDNS setup complete")
-	return nil
 }
 
 func (ms *P2PMessageService) setupDht(bootPeers []string) error {
@@ -417,6 +398,7 @@ func (ms *P2PMessageService) PeerInfoReceived() <-chan basicPeerInfo {
 	return ms.newPeerInfo
 }
 
+// connectBootPeers connects to the given boot peers
 func (ms *P2PMessageService) connectBootPeers(bootPeers []string) {
 	expectedPeers := len(bootPeers)
 	if expectedPeers == 0 {

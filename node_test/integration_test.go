@@ -40,7 +40,7 @@ func TestComplexIntegrationScenario(t *testing.T) {
 	complexCase := TestCase{
 		Description:    "Complex test",
 		Chain:          SimulatedChain,
-		MessageService: MdnsMessageService,
+		MessageService: DhtMessageService,
 		NumOfChannels:  5,
 		MessageDelay:   0,
 		LogName:        "complex_integration",

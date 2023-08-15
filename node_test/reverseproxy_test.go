@@ -238,10 +238,11 @@ func setupNitroClients(t *testing.T, logDestination *os.File) (alice, irene, bob
 	aliceChainService := chainservice.NewMockChainService(chain, ta.Alice.Address())
 	bobChainService := chainservice.NewMockChainService(chain, ta.Bob.Address())
 	ireneChainService := chainservice.NewMockChainService(chain, ta.Irene.Address())
+	ireneClient, msgIrene, ireneCleanup := setupNitroNodeWithRPCClient(t, ta.Irene.PrivateKey, 3106, 4106, ireneChainService, logDestination, "ws", []string{})
+	bootPeers := []string{msgIrene.MultiAddr}
+	aliceClient, msgAlice, aliceCleanup := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3105, 4105, aliceChainService, logDestination, "ws", bootPeers)
 
-	aliceClient, msgAlice, aliceCleanup := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3105, 4105, aliceChainService, logDestination, "ws")
-	ireneClient, msgIrene, ireneCleanup := setupNitroNodeWithRPCClient(t, ta.Irene.PrivateKey, 3106, 4106, ireneChainService, logDestination, "ws")
-	bobClient, msgBob, bobCleanup := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3107, 4107, bobChainService, logDestination, "ws")
+	bobClient, msgBob, bobCleanup := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3107, 4107, bobChainService, logDestination, "ws", bootPeers)
 
 	logger.Info().Msg("Clients created")
 

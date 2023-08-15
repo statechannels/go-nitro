@@ -43,7 +43,6 @@ type MessageService string
 
 const (
 	TestMessageService MessageService = "TestMessageService"
-	MdnsMessageService MessageService = "MdnsMessageService"
 	DhtMessageService  MessageService = "DhtMessageService"
 )
 

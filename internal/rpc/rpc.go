@@ -24,7 +24,7 @@ import (
 
 func InitChainServiceAndRunRpcServer(pkString string, chainOpts chain.ChainOpts,
 	useDurableStore bool, durableStoreFolder string, useNats bool, msgPort int, rpcPort int,
-	bootPeers []string, useMdns bool,
+	bootPeers []string,
 ) (*rpc.RpcServer, *node.Node, *p2pms.P2PMessageService, error) {
 	if pkString == "" {
 		panic("pk must be set")
@@ -40,7 +40,7 @@ func InitChainServiceAndRunRpcServer(pkString string, chainOpts chain.ChainOpts,
 	if useNats {
 		transportType = transport.Nats
 	}
-	rpcServer, node, messageService, err := RunRpcServer(pk, chainService, useDurableStore, durableStoreFolder, msgPort, rpcPort, transportType, os.Stdout, bootPeers, useMdns)
+	rpcServer, node, messageService, err := RunRpcServer(pk, chainService, useDurableStore, durableStoreFolder, msgPort, rpcPort, transportType, os.Stdout, bootPeers)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -51,7 +51,7 @@ func InitChainServiceAndRunRpcServer(pkString string, chainOpts chain.ChainOpts,
 
 func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 	useDurableStore bool, durableStoreFolder string, msgPort int, rpcPort int, transportType transport.TransportType, logDestination *os.File,
-	bootPeers []string, useMdns bool,
+	bootPeers []string,
 ) (*rpc.RpcServer, *node.Node, *p2pms.P2PMessageService, error) {
 	me := crypto.GetAddressFromSecretKeyBytes(pk)
 
@@ -78,7 +78,7 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 	}
 
 	logger.Info().Msg("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
-	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, useMdns, logDestination, bootPeers)
+	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, logDestination, bootPeers)
 	node := node.New(
 		messageService,
 		chainService,

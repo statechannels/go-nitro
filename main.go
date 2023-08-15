@@ -171,7 +171,7 @@ func main() {
 			if bootPeers != "" {
 				peerSlice = strings.Split(bootPeers, ",")
 			}
-			rpcServer, _, _, err := rpc.InitChainServiceAndRunRpcServer(pkString, chainOpts, useDurableStore, durableStoreFolder, useNats, msgPort, rpcPort, peerSlice, useMdns)
+			rpcServer, _, _, err := rpc.InitChainServiceAndRunRpcServer(pkString, chainOpts, useDurableStore, durableStoreFolder, useNats, msgPort, rpcPort, peerSlice)
 			if err != nil {
 				return err
 			}
