@@ -15,8 +15,8 @@ jobs:
         with:
           node-version: "18.15.0"
 
-      - name: Install go-nitro dependencies (includes abigen)
-        run: go get .
+      - name: Install go-ethereum (includes abigen)
+        run: go install github.com/ethereum/go-ethereum
 
       - name: Install nitro-protocol dependencies
         run: |
