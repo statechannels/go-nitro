@@ -136,7 +136,7 @@ This is achieved by running the `generate_adjudicator_bindings.sh` script at the
 
 - have successfully run `npm install` in the `nitro-protocol` directory.
 - have [solc](https://docs.soliditylang.org/en/v0.8.17/installing-solidity.html) installed at the correct version (currently 0.8.17, see the [CI](.github/workflows/bindings-check.yml) or linting config for a hint if you think it may have changed)
-- have [abigen](https://geth.ethereum.org/docs/install-and-build/installing-geth) (a tool shipped with go-ethereum) installed. Currently we use version 1.10.8, see the [CI](.github/workflows/bindings-check.yml) for a hint if you think it may have changed.
+- have [abigen](https://geth.ethereum.org/docs/install-and-build/installing-geth) (a tool shipped with go-ethereum) installed. Currently we use version 1.12.2, see the [CI](.github/workflows/bindings-check.yml) for a hint if you think it may have changed.
 
 The resulting Go bindings file is _checked-in_ to the repository. Although it is auto-generated from on-chain source code, it effectively forms part of the off-chain source code.
 
