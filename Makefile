@@ -1,6 +1,10 @@
 docker/cloud/build:
 	docker build -f docker/cloud/Dockerfile -t go-nitro-cloud .
 
+docker/cloud/start:
+	docker remove go-nitro-cloud || true
+	docker run -it -d --name go-nitro-cloud -p 3005:3005 -p 4005:4005 -p 5005:5005 go-nitro-cloud
+
 docker/cloud/push:
 	docker tag go-nitro-cloud:latest registry.digitalocean.com/magmo/go-nitro:latest
 	docker push registry.digitalocean.com/magmo/go-nitro:latest
