@@ -32,9 +32,9 @@ jobs:
 
       - name: Install abigen (part of go-ethereum)
         run: |
-          curl -o geth.tar.gz https://gethstore.blob.core.windows.net/builds/geth-alltools-darwin-amd64-1.12.0-e501b3b0.tar.gz
+          curl -o geth.tar.gz https://gethstore.blob.core.windows.net/builds/geth-alltools-linux-amd64-1.12.2-bed84606.tar.gz
           tar -xzf geth.tar.gz
-          mv geth-alltools-darwin-amd64-1.12.0-e501b3b0/abigen $GITHUB_WORKSPACE/bin
+          mv geth-alltools-linux-amd64-1.12.2-bed84606/abigen $GITHUB_WORKSPACE/bin
           sudo chmod +x $GITHUB_WORKSPACE/bin/abigen
 
       - name: Regenerate contract bindings
