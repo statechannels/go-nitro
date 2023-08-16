@@ -123,7 +123,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	}
 	// Check that the recieved event matches the expected event
 	concludedEvent := <-out
-	expectedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, BlockNum: 5}}
+	expectedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: 5}}
 	if diff := cmp.Diff(expectedEvent, concludedEvent, cmp.AllowUnexported(ConcludedEvent{}, commonEvent{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}

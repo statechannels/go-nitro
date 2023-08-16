@@ -47,7 +47,7 @@ type DepositedEvent struct {
 }
 
 func (de DepositedEvent) String() string {
-	return "Deposited " + de.Asset.String() + " leaving " + de.NowHeld.String() + " now held against channel " + de.channelID.String() + " at Block " + fmt.Sprint(de.BlockNum)
+	return "Deposited " + de.Asset.String() + " leaving " + de.NowHeld.String() + " now held against channel " + de.channelID.String() + " at Block " + fmt.Sprint(de.blockNum)
 }
 
 // AllocationUpdated is an internal representation of the AllocationUpdated blockchain event
@@ -58,7 +58,7 @@ type AllocationUpdatedEvent struct {
 }
 
 func (aue AllocationUpdatedEvent) String() string {
-	return "Channel " + aue.channelID.String() + " has had allocation updated to " + aue.assetAndAmount.String() + " at Block " + fmt.Sprint(aue.BlockNum)
+	return "Channel " + aue.channelID.String() + " has had allocation updated to " + aue.assetAndAmount.String() + " at Block " + fmt.Sprint(aue.blockNum)
 }
 
 // ConcludedEvent is an internal representation of the Concluded blockchain event
@@ -67,7 +67,7 @@ type ConcludedEvent struct {
 }
 
 func (ce ConcludedEvent) String() string {
-	return "Channel " + ce.channelID.String() + " concluded at Block " + fmt.Sprint(ce.BlockNum)
+	return "Channel " + ce.channelID.String() + " concluded at Block " + fmt.Sprint(ce.blockNum)
 }
 
 func NewDepositedEvent(channelId types.Destination, blockNum uint64, assetAddress common.Address, nowHeld *big.Int) DepositedEvent {
