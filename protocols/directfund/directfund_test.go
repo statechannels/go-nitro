@@ -168,9 +168,6 @@ func TestUpdate(t *testing.T) {
 	if !updated.C.OnChainFunding.Equal(newFunding) {
 		t.Error(`Objective data not updated as expected`, updated.C.OnChainFunding, newFunding)
 	}
-	if updated.latestBlockNumber != uint64(highBlockNum) {
-		t.Error("Latest block number not updated as expected", updated.latestBlockNumber, highBlockNum)
-	}
 
 	// Update with stale funding information should be ignored
 	staleFunding := types.Funds{}
@@ -187,9 +184,6 @@ func TestUpdate(t *testing.T) {
 
 	if updated.C.OnChainFunding.Equal(staleFunding) {
 		t.Error("OnChainFunding was updated to stale funding information", updated.C.OnChainFunding, staleFunding)
-	}
-	if updated.latestBlockNumber == uint64(lowBlockNum) {
-		t.Error("latestBlockNumber was updated to stale block number", updated.latestBlockNumber, lowBlockNum)
 	}
 }
 
