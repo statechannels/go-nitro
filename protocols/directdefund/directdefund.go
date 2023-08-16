@@ -219,19 +219,12 @@ func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, e
 	return &updated, nil
 }
 
-// UpdateWithChainEvent updates the objective with observed on-chain data.
-//
-// Only Allocation Updated events are currently handled.
+// UpdateWithChainEvent updates the underlying channel with observed on-chain data.
 func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
 	updated := o.clone()
-	switch e := event.(type) {
-	case chainservice.AllocationUpdatedEvent:
-		// todo: check block number
-		updated.C.OnChainFunding[e.AssetAddress] = e.AssetAmount
-	case chainservice.ConcludedEvent:
-		break
-	default:
-		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
+	_, err := updated.C.UpdateWithChainEvent(event)
+	if err != nil {
+		return &Objective{}, err
 	}
 	return &updated, nil
 }
