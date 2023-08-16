@@ -48,6 +48,13 @@ type ethChain interface {
 	ChainID(ctx context.Context) (*big.Int, error)
 }
 
+// eventTracker holds on to events in memory and dispatches an event after required number of confirmations
+type eventTracker struct {
+	latestBlockNum uint64
+	events         EventQueue
+	mu             sync.Mutex
+}
+
 type EthChainService struct {
 	chain                    ethChain
 	na                       *NitroAdjudicator.NitroAdjudicator
@@ -60,6 +67,7 @@ type EthChainService struct {
 	ctx                      context.Context
 	cancel                   context.CancelFunc
 	wg                       *sync.WaitGroup
+	eventTracker             *eventTracker
 }
 
 // MAX_QUERY_BLOCK_RANGE is the maximum range of blocks we query for events at once.
@@ -106,20 +114,21 @@ func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 	logger := zerolog.New(logDestination).Level(logLevel).With().Timestamp().Str("txSigner", txSigner.From.String()[0:8]).Caller().Logger()
 	ctx, cancelCtx := context.WithCancel(context.Background())
 
+	eventQueue := EventQueue{}
+	heap.Init(&eventQueue)
+	tracker := &eventTracker{latestBlockNum: 0, events: eventQueue}
+
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, &sync.WaitGroup{}}
+	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, &sync.WaitGroup{}, tracker}
 	errChan, newBlockSub, newBlockChan, eventSub, eventChan, eventQuery, err := ecs.subscribeForLogs()
 	if err != nil {
 		return nil, err
 	}
 
-	eventQueue := &EventQueue{}
-	heap.Init(eventQueue)
-
 	// TODO: Return error from chain service instead of panicking
 	ecs.wg.Add(3)
-	go ecs.listenForEventLogs(errChan, eventSub, eventChan, eventQuery, eventQueue)
-	go ecs.listenForNewBlocks(errChan, newBlockSub, newBlockChan, eventQueue)
+	go ecs.listenForEventLogs(errChan, eventSub, eventChan, eventQuery)
+	go ecs.listenForNewBlocks(errChan, newBlockSub, newBlockChan)
 	go ecs.listenForErrors(errChan)
 
 	return &ecs, nil
@@ -267,7 +276,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 	return nil
 }
 
-func (ecs *EthChainService) listenForEventLogs(errorChan chan<- error, eventSub ethereum.Subscription, eventChan chan ethTypes.Log, eventQuery ethereum.FilterQuery, eventQueue *EventQueue) {
+func (ecs *EthChainService) listenForEventLogs(errorChan chan<- error, eventSub ethereum.Subscription, eventChan chan ethTypes.Log, eventQuery ethereum.FilterQuery) {
 out:
 	for {
 		select {
@@ -301,7 +310,7 @@ out:
 			for _, topic := range topicsToWatch {
 				if chainEvent.Topics[0] == topic {
 					ecs.logger.Debug().Msgf("queueing new chainEvent from block: %d", chainEvent.BlockNumber)
-					heap.Push(eventQueue, chainEvent)
+					ecs.updateEventTracker(errorChan, nil, &chainEvent)
 				}
 			}
 
@@ -309,7 +318,7 @@ out:
 	}
 }
 
-func (ecs *EthChainService) listenForNewBlocks(errorChan chan<- error, newBlockSub ethereum.Subscription, newBlockChan chan *ethTypes.Header, eventQueue *EventQueue) {
+func (ecs *EthChainService) listenForNewBlocks(errorChan chan<- error, newBlockSub ethereum.Subscription, newBlockChan chan *ethTypes.Header) {
 out:
 	for {
 		select {
@@ -335,19 +344,39 @@ out:
 			ecs.logger.Trace().Msg("resubscribed to new blocks")
 
 		case newBlock := <-newBlockChan:
-			ecs.logger.Debug().Msgf("detected new block: %d", newBlock.Number.Uint64())
-			// When we get a new block, check the events at the top of the queue.
-			// If they have enough block confirmations, remove them from the queue and process them
-			for eventQueue.Len() > 0 && newBlock.Number.Uint64() >= (*eventQueue)[0].BlockNumber+REQUIRED_BLOCK_CONFIRMATIONS {
-				chainEvent := heap.Pop(eventQueue).(ethTypes.Log)
-				ecs.logger.Debug().Msgf("event popped from queue (updated queue length: %d)", eventQueue.Len())
-				err := ecs.dispatchChainEvents([]ethTypes.Log{chainEvent})
-				if err != nil {
-					errorChan <- fmt.Errorf("failed dispatchChainEvents: %w", err)
-					break out
-				}
-			}
+			newBlockNum := newBlock.Number.Uint64()
+			ecs.logger.Debug().Msgf("detected new block: %d", newBlockNum)
+			ecs.updateEventTracker(errorChan, &newBlockNum, nil)
+
+			ecs.logger.Debug().Msgf("detected new block: %d", newBlockNum)
 		}
+	}
+}
+
+// updateEventTracker accepts a new block number and/or new event and dispatches a chain event if there are enough block confirmations
+func (ecs *EthChainService) updateEventTracker(errorChan chan<- error, blockNumber *uint64, chainEvent *ethTypes.Log) {
+	// lock the mutex for the shortest amount of time. The mutex only need to be locked to update the eventTracker data structure
+	ecs.eventTracker.mu.Lock()
+
+	if blockNumber != nil && *blockNumber > ecs.eventTracker.latestBlockNum {
+		ecs.eventTracker.latestBlockNum = *blockNumber
+	}
+	if chainEvent != nil {
+		heap.Push(&ecs.eventTracker.events, *chainEvent)
+	}
+
+	eventsToDispatch := []ethTypes.Log{}
+	for ecs.eventTracker.events.Len() > 0 && ecs.eventTracker.latestBlockNum >= (ecs.eventTracker.events)[0].BlockNumber+REQUIRED_BLOCK_CONFIRMATIONS {
+		chainEvent := heap.Pop(&ecs.eventTracker.events).(ethTypes.Log)
+		eventsToDispatch = append(eventsToDispatch, chainEvent)
+		ecs.logger.Debug().Msgf("event popped from queue (updated queue length: %d)", ecs.eventTracker.events.Len())
+	}
+	ecs.eventTracker.mu.Unlock()
+
+	err := ecs.dispatchChainEvents(eventsToDispatch)
+	if err != nil {
+		errorChan <- fmt.Errorf("failed dispatchChainEvents: %w", err)
+		return
 	}
 }
 
