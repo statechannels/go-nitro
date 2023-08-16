@@ -31,7 +31,6 @@ runAbigen() {
     --bin=$TEMP_DIR/${1}.bin \
     --pkg=${1} \
     --out=$GONITRO_DIR/node/engine/chainservice/${2}/${1}.go 
-  cd ~-
 }
 
 echo "Using abigen from $GETH_DIR..."
