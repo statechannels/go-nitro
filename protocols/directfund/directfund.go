@@ -275,9 +275,7 @@ func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, e
 	return &updated, nil
 }
 
-// UpdateWithChainEvent updates the objective with observed on-chain data.
-//
-// Only Channel Deposit events are currently handled.
+// UpdateWithChainEvent updates the underlying channel with observed on-chain data.
 func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
 	updated := o.clone()
 	_, err := updated.C.UpdateWithChainEvent(event)
