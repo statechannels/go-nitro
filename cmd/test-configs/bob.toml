@@ -2,9 +2,9 @@
 
 usedurablestore = true
 
+guiport = 5007
 msgport = 3007
 rpcport = 4007
-guiport = 5007
 
 # PeerID: 16Uiu2HAmJDxLM8rSybX78FH51iZq9PdrwCoCyyHRBCndNzcAYMes
 # SCAddr: 0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94
@@ -12,9 +12,8 @@ pk = "0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4"
 
 chainpk = "5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
 
-chainurl = "ws://127.0.0.1:8545"
 chainauthtoken = ""
+chainurl = "ws://127.0.0.1:8545"
 
 # bootpeer = Ivan
 bootpeers = "/ip4/127.0.0.1/tcp/3008/p2p/16Uiu2HAm1hgN2MkrhGen8JPrBBYyXACbZtfqJmraN53XiHYCeoFi"
-usemdns = true

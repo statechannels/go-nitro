@@ -40,30 +40,10 @@ func TestComplexIntegrationScenario(t *testing.T) {
 	complexCase := TestCase{
 		Description:    "Complex test",
 		Chain:          SimulatedChain,
-		MessageService: MdnsMessageService,
+		MessageService: P2PMessageService,
 		NumOfChannels:  5,
 		MessageDelay:   0,
 		LogName:        "complex_integration",
-		NumOfHops:      2,
-		NumOfPayments:  5,
-		Participants: []TestParticipant{
-			{StoreType: DurableStore, Actor: testactors.Alice},
-			{StoreType: DurableStore, Actor: testactors.Bob},
-			{StoreType: DurableStore, Actor: testactors.Irene},
-			{StoreType: DurableStore, Actor: testactors.Ivan},
-		},
-	}
-	RunIntegrationTestCase(complexCase, t)
-}
-
-func TestKademliaDhtIntegrationScenario(t *testing.T) {
-	complexCase := TestCase{
-		Description:    "Kademlia-DHT test",
-		Chain:          SimulatedChain,
-		MessageService: DhtMessageService,
-		NumOfChannels:  5,
-		MessageDelay:   0,
-		LogName:        "dht_integration",
 		NumOfHops:      2,
 		NumOfPayments:  5,
 		Participants: []TestParticipant{
@@ -96,7 +76,7 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 		intermediaries := make([]node.Node, 0)
 		bootPeers := make([]string, 0)
 		for _, intermediary := range tc.Participants[2:] {
-			clientI, msgI, multiAddr := setupIntegrationNode(tc, intermediary, infra, bootPeers)
+			clientI, msgI, multiAddr := setupIntegrationNode(tc, intermediary, infra, []string{})
 
 			intermediaries = append(intermediaries, clientI)
 			msgServices = append(msgServices, msgI)

@@ -15,9 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/protocol"
-	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/rs/zerolog"
@@ -34,15 +32,14 @@ type basicPeerInfo struct {
 }
 
 const (
-	DHT_PROTOCOL_PREFIX          protocol.ID = "/nitro" // use /nitro/kad/1.0.0 instead of /ipfs/kad/1.0.0
-	GENERAL_MSG_PROTOCOL_ID      protocol.ID = "/nitro/msg/1.0.0"
-	PEER_EXCHANGE_PROTOCOL_ID    protocol.ID = "/nitro/peerinfo/1.0.0"
-	DELIMITER                                = '\n'
-	BUFFER_SIZE                              = 1_000
-	NUM_CONNECT_ATTEMPTS                     = 10
-	RETRY_SLEEP_DURATION                     = 5 * time.Second
-	PEER_EXCHANGE_SLEEP_DURATION             = 10 * time.Second // how often we attempt FindPeers
-	BOOTSTRAP_SLEEP_DURATION                 = 1 * time.Second  // how often we check for bootpeers in Peerstore
+	DHT_PROTOCOL_PREFIX     protocol.ID = "/nitro" // use /nitro/kad/1.0.0 instead of /ipfs/kad/1.0.0
+	GENERAL_MSG_PROTOCOL_ID protocol.ID = "/nitro/msg/1.0.0"
+
+	DELIMITER                = '\n'
+	BUFFER_SIZE              = 1_000
+	NUM_CONNECT_ATTEMPTS     = 10
+	RETRY_SLEEP_DURATION     = 5 * time.Second
+	BOOTSTRAP_SLEEP_DURATION = 100 * time.Millisecond // how often we check for bootpeers in Peerstore
 )
 
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
@@ -54,7 +51,6 @@ type P2PMessageService struct {
 	me          types.Address
 	key         p2pcrypto.PrivKey
 	p2pHost     host.Host
-	mdns        mdns.Service
 	dht         *dht.IpfsDHT
 	newPeerInfo chan basicPeerInfo
 	logger      zerolog.Logger
@@ -69,9 +65,7 @@ func (ms *P2PMessageService) Id() peer.ID {
 }
 
 // NewMessageService returns a running P2PMessageService listening on the given ip, port and message key.
-// If useMdnsPeerDiscovery is true, the message service will use mDNS to discover peers.
-// Otherwise, peers must be added manually via `AddPeers`.
-func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdnsPeerDiscovery bool, logWriter io.Writer, bootPeers []string) *P2PMessageService {
+func NewMessageService(ip string, port int, me types.Address, pk []byte, logWriter io.Writer, bootPeers []string) *P2PMessageService {
 	logging.ConfigureZeroLogger()
 
 	ms := &P2PMessageService{
@@ -104,7 +98,6 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 
 	ms.p2pHost = host
 	ms.p2pHost.SetStreamHandler(GENERAL_MSG_PROTOCOL_ID, ms.msgStreamHandler)
-	ms.p2pHost.SetStreamHandler(PEER_EXCHANGE_PROTOCOL_ID, ms.receivePeerInfo)
 
 	// Print out my own peerInfo
 	peerInfo := peer.AddrInfo{
@@ -118,30 +111,13 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, useMdns
 	ms.MultiAddr = addrs[0].String()
 	ms.logger.Info().Msgf("libp2p node multiaddrs: %v", addrs)
 
-	if useMdnsPeerDiscovery {
-		err = ms.setupMdns()
-	} else {
-		err = ms.setupDht(bootPeers)
-	}
+	err = ms.setupDht(bootPeers)
+
 	if err != nil {
 		panic(err)
 	}
 
 	return ms
-}
-
-func (ms *P2PMessageService) setupMdns() error {
-	// Since the mdns service could trigger a call to  `HandlePeerFound` at any time once started
-	// We want to start mdns after the message service has been fully constructed
-	ms.mdns = mdns.NewMdnsService(ms.p2pHost, "", ms)
-	err := ms.mdns.Start()
-	if err != nil {
-		return err
-	}
-
-	close(ms.initComplete)
-	ms.logger.Info().Msgf("mDNS setup complete")
-	return nil
 }
 
 func (ms *P2PMessageService) setupDht(bootPeers []string) error {
@@ -184,9 +160,7 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) error {
 	go func() {
 		ticker := time.NewTicker(BOOTSTRAP_SLEEP_DURATION)
 		for range ticker.C {
-			dhtSize := ms.dht.RoutingTable().Size()
-			ms.logger.Info().Msgf("routing table size: %d", dhtSize)
-			if dhtSize > 0 {
+			if ms.dht.RoutingTable().Size() > 0 {
 				ms.addScaddrDhtRecord(ctx)
 				ticker.Stop()
 				close(ms.initComplete)
@@ -232,14 +206,6 @@ func (ms *P2PMessageService) addScaddrDhtRecord(ctx context.Context) {
 	ms.logger.Info().Str(key, ms.Id().String()).Msg("Added value to dht")
 }
 
-// HandlePeerFound is called by the mDNS service when a peer is found.
-func (ms *P2PMessageService) HandlePeerFound(pi peer.AddrInfo) {
-	ms.logger.Debug().Msgf("Attempting to add mdns peer")
-	ms.p2pHost.Peerstore().AddAddr(pi.ID, pi.Addrs[0], peerstore.PermanentAddrTTL)
-
-	ms.sendPeerInfo(pi.ID)
-}
-
 func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 	defer stream.Close()
 
@@ -261,67 +227,6 @@ func (ms *P2PMessageService) msgStreamHandler(stream network.Stream) {
 		return
 	}
 	ms.toEngine <- m
-}
-
-// sendPeerInfo sends our peer info to a given peerId
-func (ms *P2PMessageService) sendPeerInfo(recipientId peer.ID) {
-	stream, err := ms.p2pHost.NewStream(context.Background(), recipientId, PEER_EXCHANGE_PROTOCOL_ID)
-	if err != nil {
-		ms.logger.Err(err).Msgf("failed to create stream for passing peerInfo with %s", recipientId.String())
-		return
-	}
-	defer stream.Close()
-
-	raw, err := json.Marshal(basicPeerInfo{
-		Id:      ms.Id(),
-		Address: ms.me,
-	})
-	if err != nil {
-		ms.logger.Err(err)
-		return
-	}
-
-	writer := bufio.NewWriter(stream)
-	// We don't care about the number of bytes written
-	_, err = writer.WriteString(string(raw) + string(DELIMITER))
-	if err != nil {
-		ms.logger.Err(err)
-		return
-	}
-	writer.Flush()
-}
-
-// receivePeerInfo receives peer info from the given stream
-func (ms *P2PMessageService) receivePeerInfo(stream network.Stream) {
-	ms.logger.Debug().Msgf("received peerInfo")
-	defer stream.Close()
-
-	// Create a buffer stream for non blocking read and write.
-	reader := bufio.NewReader(stream)
-	raw, err := reader.ReadString(DELIMITER)
-
-	// An EOF means the stream has been closed by the other side.
-	if errors.Is(err, io.EOF) {
-		return
-	}
-	if err != nil {
-		ms.logger.Err(err)
-		return
-	}
-
-	var msg *basicPeerInfo
-	err = json.Unmarshal([]byte(raw), &msg)
-	if err != nil {
-		ms.logger.Err(err)
-		return
-	}
-
-	_, foundPeer := ms.peers.LoadOrStore(msg.Address.String(), msg.Id)
-	if !foundPeer {
-		peerInfo := basicPeerInfo{msg.Id, msg.Address}
-		ms.logger.Debug().Msgf("stored new peer in map: %v", peerInfo)
-		ms.newPeerInfo <- peerInfo
-	}
 }
 
 func (ms *P2PMessageService) getPeerIdFromDht(scaddr string) (peer.ID, error) {
@@ -401,13 +306,6 @@ func (ms *P2PMessageService) Out() <-chan protocols.Message {
 
 // Close closes the P2PMessageService
 func (ms *P2PMessageService) Close() error {
-	// The mdns service is optional so we only close it if it exists
-	if ms.mdns != nil {
-		err := ms.mdns.Close()
-		if err != nil {
-			return err
-		}
-	}
 	ms.p2pHost.RemoveStreamHandler(GENERAL_MSG_PROTOCOL_ID)
 	return ms.p2pHost.Close()
 }
@@ -417,6 +315,7 @@ func (ms *P2PMessageService) PeerInfoReceived() <-chan basicPeerInfo {
 	return ms.newPeerInfo
 }
 
+// connectBootPeers connects to the given boot peers
 func (ms *P2PMessageService) connectBootPeers(bootPeers []string) {
 	expectedPeers := len(bootPeers)
 	if expectedPeers == 0 {

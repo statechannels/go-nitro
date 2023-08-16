@@ -17,4 +17,3 @@ chainauthtoken = ""
 
 # bootpeer = Ivan
 bootpeers = "/ip4/127.0.0.1/tcp/3008/p2p/16Uiu2HAm1hgN2MkrhGen8JPrBBYyXACbZtfqJmraN53XiHYCeoFi"
-usemdns = true

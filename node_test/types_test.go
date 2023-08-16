@@ -43,8 +43,7 @@ type MessageService string
 
 const (
 	TestMessageService MessageService = "TestMessageService"
-	MdnsMessageService MessageService = "MdnsMessageService"
-	DhtMessageService  MessageService = "DhtMessageService"
+	P2PMessageService  MessageService = "P2PMessageService"
 )
 
 // TestCase is a test case for the node integration test.

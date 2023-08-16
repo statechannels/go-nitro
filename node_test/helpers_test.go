@@ -69,25 +69,13 @@ func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastru
 	switch tc.MessageService {
 	case TestMessageService:
 		return messageservice.NewTestMessageService(tp.Address(), *si.broker, tc.MessageDelay), ""
-	case MdnsMessageService:
-		ms := p2pms.NewMessageService(
-			"127.0.0.1",
-			int(tp.Port),
-			tp.Address(),
-			tp.PrivateKey,
-			true,
-			logWriter,
-			[]string{},
-		)
 
-		return ms, ""
-	case DhtMessageService:
+	case P2PMessageService:
 		ms := p2pms.NewMessageService(
 			"127.0.0.1",
 			int(tp.Port),
 			tp.Address(),
 			tp.PrivateKey,
-			false,
 			logWriter,
 			bootPeers,
 		)

@@ -121,13 +121,30 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 
 	clients := make([]rpc.RpcClientApi, n)
 	msgServices := make([]*p2pms.P2PMessageService, n)
+	bootPeers := []string{}
+	// Set up the intermediaries
+	if n > 2 {
+		for i := 1; i < n-1; i++ {
+			rpcClient, msg, cleanup := setupNitroNodeWithRPCClient(t, actors[i].PrivateKey, 3105+i, 4105+i, chainServices[i], logDestination, connectionType, []string{})
+			clients[i] = rpcClient
+			msgServices[i] = msg
+			bootPeers = append(bootPeers, msg.MultiAddr)
+			defer cleanup()
+		}
+	}
 
-	for i := 0; i < n; i++ {
-		rpcClient, msg, cleanup := setupNitroNodeWithRPCClient(t, actors[i].PrivateKey, 3105+i, 4105+i, chainServices[i], logDestination, connectionType)
+	// Set up the first and last client
+	for i := 0; i < n; i = i + (n - 1) {
+		rpcClient, msg, cleanup := setupNitroNodeWithRPCClient(t, actors[i].PrivateKey, 3105+i, 4105+i, chainServices[i], logDestination, connectionType, bootPeers)
 		clients[i] = rpcClient
 		msgServices[i] = msg
 		defer cleanup()
+		// If there are only 2 clients then the first client is the boot peer
+		if n == 2 && i == 0 {
+			bootPeers = append(bootPeers, msg.MultiAddr)
+		}
 	}
+
 	logger.Info().Msgf("%d Clients created", n)
 
 	logger.Info().Msg("Verify that each rpc client fetches the correct address")
@@ -390,9 +407,10 @@ func setupNitroNodeWithRPCClient(
 	chain *chainservice.MockChainService,
 	logDestination *os.File,
 	connectionType transport.TransportType,
+	bootPeers []string,
 ) (rpc.RpcClientApi, *p2pms.P2PMessageService, func()) {
 	var err error
-	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, false, "", msgPort, rpcPort, connectionType, logDestination, []string{}, true)
+	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, false, "", msgPort, rpcPort, connectionType, logDestination, bootPeers)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/statechannels/go-nitro/cmd/utils"
 	"github.com/statechannels/go-nitro/internal/chain"
@@ -37,10 +40,7 @@ const (
 	gray    color = "[90m"
 )
 
-var (
-	participants     = []participant{alice, bob, irene, ivan}
-	participantColor = map[participant]color{alice: blue, irene: green, ivan: cyan, bob: yellow}
-)
+var participantColor = map[participant]color{alice: blue, irene: green, ivan: cyan, bob: yellow}
 
 const (
 	FUNDED_TEST_PK  = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
@@ -120,7 +120,23 @@ func main() {
 			}
 
 			hostUI := cCtx.Bool(HOST_UI)
-			for _, p := range participants {
+
+			// Setup Ivan first, he is the DHT boot peer
+			client, err := setupRPCServer(ivan, participantColor[ivan], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
+			if err != nil {
+				utils.StopCommands(running...)
+				panic(err)
+			}
+			running = append(running, client)
+
+			const IVAN_ADDRESS = "http://127.0.0.1:4008/api/v1"
+			err = waitForRpcClient(IVAN_ADDRESS, 500*time.Millisecond, 1*time.Minute)
+			if err != nil {
+				utils.StopCommands(running...)
+				panic(err)
+			}
+			for _, p := range []participant{alice, bob, irene} {
+
 				client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
 				if err != nil {
 					utils.StopCommands(running...)
@@ -208,4 +224,26 @@ func generateTempStoreFolder() (dataFolder string, cleanup func()) {
 	}
 
 	return
+}
+
+// waitForRpcClient waits for an RPC to be available at the given url
+// It does this by performing a GET request to the url until it receives a response
+func waitForRpcClient(rpcClientUrl string, interval, timeout time.Duration) error {
+	timeoutTicker := time.NewTicker(timeout)
+	defer timeoutTicker.Stop()
+	intervalTicker := time.NewTicker(interval)
+	defer intervalTicker.Stop()
+
+	client := &http.Client{}
+	for {
+		select {
+		case <-timeoutTicker.C:
+			return errors.New("polling timed out")
+		case <-intervalTicker.C:
+			resp, _ := client.Get(rpcClientUrl)
+			if resp != nil {
+				return nil
+			}
+		}
+	}
 }
