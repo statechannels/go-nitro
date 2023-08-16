@@ -428,7 +428,11 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, e
 	if err != nil {
 		return EngineEvent{}, err
 	}
-	e.store.SetChannel(updatedChannel)
+
+	err = e.store.SetChannel(updatedChannel)
+	if err != nil {
+		return EngineEvent{}, err
+	}
 
 	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
 
