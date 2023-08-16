@@ -121,14 +121,13 @@ func main() {
 
 			hostUI := cCtx.Bool(HOST_UI)
 
-			for _, p := range []participant{ivan} {
-				client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
-				if err != nil {
-					utils.StopCommands(running...)
-					panic(err)
-				}
-				running = append(running, client)
+			// Setup Ivan first, he is the DHT boot peer
+			client, err := setupRPCServer(ivan, participantColor[ivan], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
+			if err != nil {
+				utils.StopCommands(running...)
+				panic(err)
 			}
+			running = append(running, client)
 
 			const IVAN_ADDRESS = "http://127.0.0.1:4008/api/v1"
 			err = waitForRpcClient(IVAN_ADDRESS, 500*time.Millisecond, 1*time.Minute)
