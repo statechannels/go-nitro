@@ -4,7 +4,12 @@ on:
   push:
     branches: [main]
   pull_request:
-    paths: ["nitro-protocol/contracts/**", generate-adjudicator-bindings.sh]
+    paths:
+      [
+        "nitro-protocol/contracts/**",
+        generate-adjudicator-bindings.sh,
+        node/engine/chainservice/adjudicator/**,
+      ]
 
 jobs:
   build:
