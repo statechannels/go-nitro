@@ -51,6 +51,9 @@
     "typescript": "^5.0.2",
     "vite": "^4.3.2"
   },
+  "engines": {
+    "node": ">=18.5.0"
+  },
   "msw": {
     "workerDirectory": "public"
   }
