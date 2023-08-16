@@ -14,7 +14,11 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18.15.0"
-      - name: Install dependencies
+
+      - name: Install go-ethereum (includes abigen)
+        run: go install github.com/ethereum/go-ethereum
+
+      - name: Install nitro-protocol dependencies
         run: |
           cd ./nitro-protocol
           npm ci --legacy-peer-deps
@@ -29,13 +33,6 @@ jobs:
           curl -o solc https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.17+commit.8df45f5f
           mv solc $GITHUB_WORKSPACE/bin
           sudo chmod +x $GITHUB_WORKSPACE/bin/solc
-
-      - name: Install abigen (part of go-ethereum)
-        run: |
-          curl -o geth.tar.gz https://gethstore.blob.core.windows.net/builds/geth-alltools-linux-amd64-1.10.8-26675454.tar.gz
-          tar -xzf geth.tar.gz
-          mv geth-alltools-linux-amd64-1.10.8-26675454/abigen $GITHUB_WORKSPACE/bin
-          sudo chmod +x $GITHUB_WORKSPACE/bin/abigen
 
       - name: Regenerate contract bindings
         run: sh ./generate-adjudicator-bindings.sh
