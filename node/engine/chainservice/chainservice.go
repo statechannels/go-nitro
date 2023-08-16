@@ -13,16 +13,21 @@ import (
 // Event dictates which methods all chain events must implement
 type Event interface {
 	ChannelID() types.Destination
+	BlockNum() uint64
 }
 
 // commonEvent declares fields shared by all chain events
 type commonEvent struct {
 	channelID types.Destination
-	BlockNum  uint64
+	blockNum  uint64
 }
 
 func (ce commonEvent) ChannelID() types.Destination {
 	return ce.channelID
+}
+
+func (ce commonEvent) BlockNum() uint64 {
+	return ce.blockNum
 }
 
 type assetAndAmount struct {
