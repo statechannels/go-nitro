@@ -75,8 +75,6 @@ type Engine struct {
 
 	logger zerolog.Logger
 
-	metrics *MetricsRecorder
-
 	vm *payments.VoucherManager
 
 	wg     *sync.WaitGroup
@@ -129,7 +127,7 @@ type CompletedObjectiveEvent struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker PolicyMaker, eventHandler func(EngineEvent), metricsApi MetricsApi) Engine {
+func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker PolicyMaker, eventHandler func(EngineEvent)) Engine {
 	e := Engine{}
 
 	e.store = store
@@ -155,11 +153,6 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	e.vm = vm
 
 	e.logger.Print("Constructed Engine")
-
-	if metricsApi == nil {
-		metricsApi = &NoOpMetrics{}
-	}
-	e.metrics = NewMetricsRecorder(*e.store.GetAddress(), metricsApi)
 
 	e.wg = &sync.WaitGroup{}
 
@@ -189,12 +182,6 @@ func (e *Engine) run(ctx context.Context) {
 		var res EngineEvent
 		var err error
 
-		e.metrics.RecordQueueLength("api_objective_request_queue", len(e.ObjectiveRequestsFromAPI))
-		e.metrics.RecordQueueLength("api_payment_request_queue", len(e.PaymentRequestsFromAPI))
-		e.metrics.RecordQueueLength("chain_events_queue", len(e.fromChain))
-		e.metrics.RecordQueueLength("messages_queue", len(e.fromMsg))
-		e.metrics.RecordQueueLength("proposal_queue", len(e.fromLedger))
-
 		select {
 
 		case or := <-e.ObjectiveRequestsFromAPI:
@@ -220,7 +207,6 @@ func (e *Engine) run(ctx context.Context) {
 
 			for _, obj := range res.CompletedObjectives {
 				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
-				e.metrics.RecordObjectiveCompleted(obj.Id())
 			}
 			e.eventHandler(res)
 		}
@@ -232,8 +218,6 @@ func (e *Engine) run(ctx context.Context) {
 // a running ledger channel by pulling its corresponding objective
 // from the store and attempting progress.
 func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEvent, error) {
-	defer e.metrics.RecordFunctionDuration()()
-
 	id := getProposalObjectiveId(proposal)
 
 	obj, err := e.store.GetObjectiveById(id)
@@ -254,7 +238,6 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 //   - attempts progress on the target Objective,
 //   - attempts progress on related objectives which may have become unblocked.
 func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
-	defer e.metrics.RecordFunctionDuration()()
 	e.logMessage(message, Incoming)
 	allCompleted := EngineEvent{}
 
@@ -412,7 +395,6 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 //   - generates an updated objective, and
 //   - attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, error) {
-	defer e.metrics.RecordFunctionDuration()()
 	e.logger.Printf("handling chain event: %v", chainEvent)
 
 	c, ok := e.store.GetChannelById(chainEvent.ChannelID())
@@ -445,7 +427,6 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, e
 // handleObjectiveRequest handles an ObjectiveRequest (triggered by a client API call).
 // It will attempt to spawn a new, approved objective.
 func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEvent, error) {
-	defer e.metrics.RecordFunctionDuration()()
 	myAddress := *e.store.GetAddress()
 
 	chainId, err := e.chain.GetChainId()
@@ -456,7 +437,6 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 	objectiveId := or.Id(myAddress, chainId)
 	failedEngineEvent := EngineEvent{FailedObjectives: []protocols.ObjectiveId{objectiveId}}
 	e.logger.Printf("handling new objective request for %s", objectiveId)
-	e.metrics.RecordObjectiveStarted(objectiveId)
 	defer or.SignalObjectiveStarted()
 	switch request := or.(type) {
 
@@ -553,12 +533,9 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) (EngineEvent, erro
 
 // sendMessages sends out the messages and records the metrics.
 func (e *Engine) sendMessages(msgs []protocols.Message) {
-	defer e.metrics.RecordFunctionDuration()()
-
 	for _, message := range msgs {
 		message.From = *e.store.GetAddress()
 		e.logMessage(message, Outgoing)
-		e.recordMessageMetrics(message)
 		err := e.msg.Send(message)
 		if err != nil {
 			e.logger.Err(err)
@@ -569,8 +546,6 @@ func (e *Engine) sendMessages(msgs []protocols.Message) {
 
 // executeSideEffects executes the SideEffects declared by cranking an Objective or handling a payment request.
 func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
-	defer e.metrics.RecordFunctionDuration()()
-
 	e.wg.Add(1)
 	// Send messages in a go routine so that we don't block on message delivery
 	go e.sendMessages(sideEffects.MessagesToSend)
@@ -596,8 +571,6 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 //  4. It executes any side effects that were declared during cranking
 //  5. It updates progress metadata in the store
 func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing EngineEvent, err error) {
-	defer e.metrics.RecordFunctionDuration()()
-
 	secretKey := e.store.GetChannelSecretKey()
 	var crankedObjective protocols.Objective
 	var sideEffects protocols.SideEffects
@@ -609,6 +582,9 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	}
 
 	err = e.store.SetObjective(crankedObjective)
+	if err != nil {
+		return EngineEvent{}, err
+	}
 
 	notifEvents, err := e.generateNotifications(crankedObjective)
 	if err != nil {
@@ -695,8 +671,6 @@ func (e Engine) registerPaymentChannel(vfo virtualfund.Objective) error {
 //
 // The associated Channel will remain in the store.
 func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
-	defer e.metrics.RecordFunctionDuration()()
-
 	if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
 		c, err := dfo.CreateConsensusChannel()
 		if err != nil {
@@ -718,7 +692,6 @@ func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective prot
 // getOrCreateObjective retrieves the objective from the store.
 // If the objective does not exist, it creates the objective using the supplied payload and stores it in the store
 func (e *Engine) getOrCreateObjective(p protocols.ObjectivePayload) (protocols.Objective, error) {
-	defer e.metrics.RecordFunctionDuration()()
 	id := p.ObjectiveId
 	objective, err := e.store.GetObjectiveById(id)
 
@@ -730,7 +703,7 @@ func (e *Engine) getOrCreateObjective(p protocols.ObjectivePayload) (protocols.O
 		if err != nil {
 			return nil, fmt.Errorf("error constructing objective from message: %w", err)
 		}
-		e.metrics.RecordObjectiveStarted(newObj.Id())
+
 		err = e.store.SetObjective(newObj)
 		if err != nil {
 			return nil, fmt.Errorf("error setting objective in store: %w", err)
@@ -746,7 +719,6 @@ func (e *Engine) getOrCreateObjective(p protocols.ObjectivePayload) (protocols.O
 // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied payload.
 func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p protocols.ObjectivePayload) (protocols.Objective, error) {
 	e.logger.Printf("Constructing objective %s from message", id)
-	defer e.metrics.RecordFunctionDuration()()
 
 	switch {
 	case directfund.IsDirectFundObjective(id):
@@ -848,21 +820,6 @@ func (e *Engine) logMessage(msg protocols.Message, direction messageDirection) {
 	} else {
 		e.logger.Trace().EmbedObject(msg.Summarize()).Msg("Sending message")
 	}
-}
-
-// recordMessageMetrics records metrics for a message
-func (e *Engine) recordMessageMetrics(message protocols.Message) {
-	e.metrics.RecordQueueLength(fmt.Sprintf("msg_proposal_count,sender=%s,receiver=%s", e.store.GetAddress(), message.To), len(message.LedgerProposals))
-	e.metrics.RecordQueueLength(fmt.Sprintf("msg_payment_count,sender=%s,receiver=%s", e.store.GetAddress(), message.To), len(message.Payments))
-	e.metrics.RecordQueueLength(fmt.Sprintf("msg_payload_count,sender=%s,receiver=%s", e.store.GetAddress(), message.To), len(message.ObjectivePayloads))
-
-	totalPayloadsSize := 0
-	for _, p := range message.ObjectivePayloads {
-		totalPayloadsSize += len(p.PayloadData)
-	}
-	raw, _ := message.Serialize()
-	e.metrics.RecordQueueLength(fmt.Sprintf("msg_payload_size,sender=%s,receiver=%s", e.store.GetAddress(), message.To), totalPayloadsSize)
-	e.metrics.RecordQueueLength(fmt.Sprintf("msg_size,sender=%s,receiver=%s", e.store.GetAddress(), message.To), len(raw))
 }
 
 func (e *Engine) checkError(err error) {

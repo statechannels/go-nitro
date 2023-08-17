@@ -45,13 +45,10 @@ type Node struct {
 }
 
 // New is the constructor for a Node. It accepts a messaging service, a chain service, and a store as injected dependencies.
-func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker engine.PolicyMaker, metricsApi engine.MetricsApi) Node {
+func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker engine.PolicyMaker) Node {
 	n := Node{}
 	n.Address = store.GetAddress()
-	// If a metrics API is not provided we used the no-op version which does nothing.
-	if metricsApi == nil {
-		metricsApi = &engine.NoOpMetrics{}
-	}
+
 	chainId, err := chainservice.GetChainId()
 	if err != nil {
 		panic(err)
@@ -61,7 +58,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	n.vm = payments.NewVoucherManager(*store.GetAddress(), store)
 	n.logger = logging.WithAddress(zerolog.New(logDestination).With().Timestamp(), n.Address).Caller().Logger()
 
-	n.engine = engine.New(n.vm, messageService, chainservice, store, logDestination, policymaker, n.handleEngineEvent, metricsApi)
+	n.engine = engine.New(n.vm, messageService, chainservice, store, logDestination, policymaker, n.handleEngineEvent)
 	n.completedObjectives = &safesync.Map[chan struct{}]{}
 	n.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
 
