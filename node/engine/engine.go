@@ -668,7 +668,6 @@ func (e Engine) registerPaymentChannel(vfo virtualfund.Objective) error {
 }
 
 // spawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective if it is a directfund.Objective.
-//
 // The associated Channel will remain in the store.
 func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
 	if dfo, isDfo := crankedObjective.(*directfund.Objective); isDfo {
