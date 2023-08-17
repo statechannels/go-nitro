@@ -8,7 +8,6 @@ require (
 	github.com/multiformats/go-multiaddr v0.9.0
 	github.com/nats-io/nats-server/v2 v2.9.10
 	github.com/nats-io/nats.go v1.21.0
-	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
 	github.com/stretchr/testify v1.8.4
 )
 
