@@ -96,6 +96,9 @@ func main() {
 		Flags: flags,
 
 		Action: func(cCtx *cli.Context) error {
+			if !cCtx.Bool("should-not-crash") {
+				panic("SOME CRITICAL ERROR TO CATCH")
+			}
 			running := []*exec.Cmd{}
 			if cCtx.Bool(START_ANVIL) {
 				anvilCmd, err := chain.StartAnvil()
@@ -150,6 +153,7 @@ func main() {
 			return nil
 		},
 	}
+
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
