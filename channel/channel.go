@@ -327,7 +327,7 @@ func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState,
 
 // UpdateWithChainEvent mutates the receiver if provided with a "new" chain event (with a greater block number than previously seen)
 func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, error) {
-	if event.BlockNum() <= c.latestBlockNumber {
+	if event.BlockNum() < c.latestBlockNumber {
 		return c, nil // ignore stale information TODO: is this reorg safe?
 	}
 	c.latestBlockNumber = event.BlockNum()
