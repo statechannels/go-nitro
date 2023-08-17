@@ -33,6 +33,11 @@ jobs:
       - name: Test
         run: go test ./... -count=2 -shuffle=on -timeout 1m -v -failfast
 
+      - name: Check for race conditions
+        # Only executes when triggered by a push to the main branch
+        if: ${{ github.ref_name == 'main' }}
+        run: go test ./... -timeout 2m -v -failfast -race
+
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v2
