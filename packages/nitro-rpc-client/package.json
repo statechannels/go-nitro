@@ -47,5 +47,8 @@
     "prettier-plugin-packagejson": "^2.2.18",
     "ts-jest": "^29.1.0",
     "yargs": "^17.7.1"
+  },
+  "engines": {
+    "node": ">=18.5.0"
   }
 }

@@ -11,6 +11,9 @@
     "contracts",
     "dist"
   ],
+  "engines": {
+    "node": ">=18.5.0"
+  },
   "types": "dist/src/index.d.ts",
   "scripts": {
     "build:typescript": "rm -rf dist; npx tsc",
