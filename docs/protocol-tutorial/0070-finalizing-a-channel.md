@@ -75,7 +75,7 @@ The `checkpoint` method allows anyone with a supported off-chain state to establ
 
 ### Call `challenge` again
 
-It is important to understand that a challenge may be "cleared" by another more recent challenge. The channel will be left in challenge mode (so it has not really been 'cleared' in that sense), but some [on chain storage](./understand-adjudicator-status) will be updated, such as the deadline for responding.
+It is important to understand that a challenge may be "cleared" by another more recent challenge. The channel will be left in challenge mode (so it has not really been 'cleared' in that sense), but some [on chain storage](./0040-lifecycle-of-a-channel.md#channel-modes) will be updated, such as the deadline for responding.
 
 ## Extract info from Adjudicator Events
 
