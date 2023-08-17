@@ -130,7 +130,7 @@ func main() {
 			running = append(running, client)
 
 			const IVAN_ADDRESS = "http://127.0.0.1:4008/api/v1"
-			err = waitForRpcClient(IVAN_ADDRESS, 500*time.Millisecond, 1*time.Minute)
+			err = waitForRpcClient(IVAN_ADDRESS, 500*time.Millisecond, 5*time.Minute)
 			if err != nil {
 				utils.StopCommands(running...)
 				panic(err)
