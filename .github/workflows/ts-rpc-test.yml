@@ -26,27 +26,19 @@ jobs:
       - name: Build UI
         run: make ui/build
 
-      - name: Run go-nitro RPC servers with GUI
+      - name: Run go-nitro RPC servers and check if they crashed
         run: |
           go run ./cmd/start-rpc-servers -ui=true &> output.log &
-
-          NITRO_PID=$!
-
-          # Periodically check the status of the start-rpc-server process
-          while true; do
-          # Check if the process is still running
+          echo "NITRO_PID=$!" >> $GITHUB_ENV
+      - name: Check that start-rpc-servers has started
+        run: |
+          for i in {1..5}; do
           if ! ps -p $NITRO_PID > /dev/null; then
-              # If the process has stopped, check its exit code
-              wait $NITRO_PID
-              EXIT_CODE=$?
-              if [ $EXIT_CODE -ne 0 ]; then
-              echo "start-rpc-servers has failed with exit code $EXIT_CODE"
-              exit $EXIT_CODE
-              fi
-              break
+              # If the process is not running, exit with an error
+              echo "start-rpc-servers not running!"
+              exit 1
           fi
-          # Sleep for a short duration before checking again
-          sleep 5
+          sleep 2  
           done
 
       - name: Run Create Channels script
