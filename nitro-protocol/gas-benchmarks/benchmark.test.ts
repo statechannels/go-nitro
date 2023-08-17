@@ -25,7 +25,7 @@ import {
 } from './fixtures';
 import {batchSizes, GasResults} from './gas';
 import {challengeChannelAndExpectGas} from './jestSetup';
-import {nitroAdjudicator, token} from './localSetup';
+import {nitroAdjudicator, batchOperator, token} from './localSetup';
 
 /**
  * Ensures the asset holding contract always has a nonzero token balance.
@@ -81,8 +81,7 @@ describe('Consumes the expected gas for deposits', () => {
 
     it(`when batch funding ${batchSize} channels with ETH (first deposit)`, async () => {
       await expect(
-        await nitroAdjudicator.deposit_batch(
-          MAGIC_ADDRESS_INDICATING_ETH,
+        await batchOperator.deposit_batch_eth(
           batch.map(c => c.channelId),
           batch.map(() => 0),
           batch.map(() => 5),
@@ -94,8 +93,7 @@ describe('Consumes the expected gas for deposits', () => {
     it(`when batch funding ${batchSize} channels with ETH (second deposit)`, async () => {
       // begin setup
       await (
-        await nitroAdjudicator.deposit_batch(
-          MAGIC_ADDRESS_INDICATING_ETH,
+        await batchOperator.deposit_batch_eth(
           batch.map(c => c.channelId),
           batch.map(c => 0),
           batch.map(c => 5),
@@ -105,8 +103,7 @@ describe('Consumes the expected gas for deposits', () => {
       // end setup
 
       await expect(
-        await nitroAdjudicator.deposit_batch(
-          MAGIC_ADDRESS_INDICATING_ETH,
+        await batchOperator.deposit_batch_eth(
           batch.map(c => c.channelId),
           batch.map(c => 5),
           batch.map(c => 5),
