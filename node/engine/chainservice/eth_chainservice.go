@@ -341,14 +341,12 @@ out:
 				errorChan <- fmt.Errorf("subscribeNewHead failed on resubscribe: %w", err)
 				break out
 			}
-			ecs.logger.Trace().Msg("resubscribed to new blocks")
+			ecs.logger.Debug().Msg("resubscribed to new blocks")
 
 		case newBlock := <-newBlockChan:
 			newBlockNum := newBlock.Number.Uint64()
 			ecs.logger.Debug().Msgf("detected new block: %d", newBlockNum)
 			ecs.updateEventTracker(errorChan, &newBlockNum, nil)
-
-			ecs.logger.Debug().Msgf("detected new block: %d", newBlockNum)
 		}
 	}
 }
