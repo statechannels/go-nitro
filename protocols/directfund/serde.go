@@ -17,7 +17,6 @@ type jsonObjective struct {
 	MyDepositSafetyThreshold types.Funds
 	MyDepositTarget          types.Funds
 	FullyFundedThreshold     types.Funds
-	LatestBlockNumber        uint64
 	TransactionSumbmitted    bool
 }
 
@@ -31,7 +30,6 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 		o.myDepositSafetyThreshold,
 		o.myDepositTarget,
 		o.fullyFundedThreshold,
-		o.latestBlockNumber,
 		o.transactionSubmitted,
 	}
 	return json.Marshal(jsonDFO)
@@ -59,7 +57,6 @@ func (o *Objective) UnmarshalJSON(data []byte) error {
 	o.fullyFundedThreshold = jsonDFO.FullyFundedThreshold
 	o.myDepositTarget = jsonDFO.MyDepositTarget
 	o.myDepositSafetyThreshold = jsonDFO.MyDepositSafetyThreshold
-	o.latestBlockNumber = jsonDFO.LatestBlockNumber
 	o.transactionSubmitted = jsonDFO.TransactionSumbmitted
 
 	return nil

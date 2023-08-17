@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -17,7 +18,8 @@ type Channel struct {
 	Id      types.Destination
 	MyIndex uint
 
-	OnChainFunding types.Funds
+	OnChainFunding    types.Funds
+	latestBlockNumber uint64 // the latest block number we've seen
 
 	state.FixedPart
 	// Support []uint64 // TODO: this property will be important, and allow the Channel to store the necessary data to close out the channel on chain
@@ -128,6 +130,7 @@ func (c *Channel) Clone() *Channel {
 		d.SignedStateForTurnNum[i] = ss.Clone()
 	}
 	d.OnChainFunding = c.OnChainFunding.Clone()
+	d.latestBlockNumber = c.latestBlockNumber
 	d.FixedPart = c.FixedPart.Clone()
 	return d
 }
@@ -320,4 +323,23 @@ func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState,
 		return state.SignedState{}, fmt.Errorf("could not add signed state to channel %w", err)
 	}
 	return ss, nil
+}
+
+// UpdateWithChainEvent mutates the receiver if provided with a "new" chain event (with a greater block number than previously seen)
+func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, error) {
+	if event.BlockNum() < c.latestBlockNumber {
+		return c, nil // ignore stale information TODO: is this reorg safe?
+	}
+	c.latestBlockNumber = event.BlockNum()
+	switch e := event.(type) {
+	case chainservice.AllocationUpdatedEvent:
+		c.OnChainFunding[e.AssetAddress] = e.AssetAmount
+	case chainservice.DepositedEvent:
+		c.OnChainFunding[e.Asset] = e.NowHeld
+	case chainservice.ConcludedEvent:
+		break
+	default:
+		return &Channel{}, fmt.Errorf("channel %+v cannot handle event %+v", c, event)
+	}
+	return c, nil
 }

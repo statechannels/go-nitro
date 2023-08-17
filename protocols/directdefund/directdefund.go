@@ -12,7 +12,6 @@ import (
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -216,23 +215,6 @@ func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, e
 	updated := o.clone()
 	updated.C.AddSignedState(ss)
 
-	return &updated, nil
-}
-
-// UpdateWithChainEvent updates the objective with observed on-chain data.
-//
-// Only Allocation Updated events are currently handled.
-func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
-	updated := o.clone()
-	switch e := event.(type) {
-	case chainservice.AllocationUpdatedEvent:
-		// todo: check block number
-		updated.C.OnChainFunding[e.AssetAddress] = e.AssetAmount
-	case chainservice.ConcludedEvent:
-		break
-	default:
-		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
-	}
 	return &updated, nil
 }
 

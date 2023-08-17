@@ -13,16 +13,21 @@ import (
 // Event dictates which methods all chain events must implement
 type Event interface {
 	ChannelID() types.Destination
+	BlockNum() uint64
 }
 
 // commonEvent declares fields shared by all chain events
 type commonEvent struct {
 	channelID types.Destination
-	BlockNum  uint64
+	blockNum  uint64
 }
 
 func (ce commonEvent) ChannelID() types.Destination {
 	return ce.channelID
+}
+
+func (ce commonEvent) BlockNum() uint64 {
+	return ce.blockNum
 }
 
 type assetAndAmount struct {
@@ -42,7 +47,7 @@ type DepositedEvent struct {
 }
 
 func (de DepositedEvent) String() string {
-	return "Deposited " + de.Asset.String() + " leaving " + de.NowHeld.String() + " now held against channel " + de.channelID.String() + " at Block " + fmt.Sprint(de.BlockNum)
+	return "Deposited " + de.Asset.String() + " leaving " + de.NowHeld.String() + " now held against channel " + de.channelID.String() + " at Block " + fmt.Sprint(de.blockNum)
 }
 
 // AllocationUpdated is an internal representation of the AllocationUpdated blockchain event
@@ -53,7 +58,7 @@ type AllocationUpdatedEvent struct {
 }
 
 func (aue AllocationUpdatedEvent) String() string {
-	return "Channel " + aue.channelID.String() + " has had allocation updated to " + aue.assetAndAmount.String() + " at Block " + fmt.Sprint(aue.BlockNum)
+	return "Channel " + aue.channelID.String() + " has had allocation updated to " + aue.assetAndAmount.String() + " at Block " + fmt.Sprint(aue.blockNum)
 }
 
 // ConcludedEvent is an internal representation of the Concluded blockchain event
@@ -62,7 +67,7 @@ type ConcludedEvent struct {
 }
 
 func (ce ConcludedEvent) String() string {
-	return "Channel " + ce.channelID.String() + " concluded at Block " + fmt.Sprint(ce.BlockNum)
+	return "Channel " + ce.channelID.String() + " concluded at Block " + fmt.Sprint(ce.blockNum)
 }
 
 func NewDepositedEvent(channelId types.Destination, blockNum uint64, assetAddress common.Address, nowHeld *big.Int) DepositedEvent {

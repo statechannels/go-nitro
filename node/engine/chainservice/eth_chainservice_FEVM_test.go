@@ -195,7 +195,7 @@ func testAgainstEndpoint(t *testing.T, endpoint string, logFile string, pk *ecds
 			}
 
 		case ConcludedEvent:
-			expectedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, BlockNum: 3}}
+			expectedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: 3}}
 			if diff := cmp.Diff(expectedEvent, receivedEvent,
 				cmp.AllowUnexported(ConcludedEvent{}, commonEvent{}),
 				ignoreBlockNum, ignoreNowHeld); diff != "" {

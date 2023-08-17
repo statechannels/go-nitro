@@ -156,7 +156,7 @@ func TestUpdate(t *testing.T) {
 		common.Address{}: big.NewInt(3),
 	}
 	highBlockNum := uint64(200)
-	updatedObjective, err = s.UpdateWithChainEvent(
+	_, err = updated.C.UpdateWithChainEvent(
 		chainservice.NewDepositedEvent(
 			types.Destination{}, highBlockNum, common.Address{}, big.NewInt(3),
 		),
@@ -168,28 +168,25 @@ func TestUpdate(t *testing.T) {
 	if !updated.C.OnChainFunding.Equal(newFunding) {
 		t.Error(`Objective data not updated as expected`, updated.C.OnChainFunding, newFunding)
 	}
-	if updated.latestBlockNumber != uint64(highBlockNum) {
-		t.Error("Latest block number not updated as expected", updated.latestBlockNumber, highBlockNum)
-	}
 
 	// Update with stale funding information should be ignored
 	staleFunding := types.Funds{}
 	staleFunding[common.Address{}] = big.NewInt(2)
 	lowBlockNum := uint64(100)
 
-	updatedObjective, _ = updated.UpdateWithChainEvent(
+	_, err = updated.C.UpdateWithChainEvent(
 		chainservice.NewDepositedEvent(
 			types.Destination{}, uint64(lowBlockNum), common.Address{}, big.NewInt(2),
 		),
 	)
+	if err != nil {
+		t.Error(err)
+	}
 
 	updated = updatedObjective.(*Objective)
 
 	if updated.C.OnChainFunding.Equal(staleFunding) {
 		t.Error("OnChainFunding was updated to stale funding information", updated.C.OnChainFunding, staleFunding)
-	}
-	if updated.latestBlockNumber == uint64(lowBlockNum) {
-		t.Error("latestBlockNumber was updated to stale block number", updated.latestBlockNumber, lowBlockNum)
 	}
 }
 

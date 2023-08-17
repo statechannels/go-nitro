@@ -12,7 +12,6 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -45,7 +44,6 @@ type Objective struct {
 	myDepositSafetyThreshold types.Funds // if the on chain holdings are equal to this amount it is safe for me to deposit
 	myDepositTarget          types.Funds // I want to get the on chain holdings up to this much
 	fullyFundedThreshold     types.Funds // if the on chain holdings are equal
-	latestBlockNumber        uint64      // the latest block number we've seen
 	transactionSubmitted     bool        // whether a transition for the objective has been submitted or not
 }
 
@@ -276,24 +274,6 @@ func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, e
 	return &updated, nil
 }
 
-// UpdateWithChainEvent updates the objective with observed on-chain data.
-//
-// Only Channel Deposit events are currently handled.
-func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
-	updated := o.clone()
-
-	de, ok := event.(chainservice.DepositedEvent)
-	if !ok {
-		return &updated, fmt.Errorf("objective %+v cannot handle event %+v", updated, event)
-	}
-	if de.BlockNum > updated.latestBlockNumber {
-		updated.C.OnChainFunding[de.Asset] = de.NowHeld
-		updated.latestBlockNumber = de.BlockNum
-	}
-
-	return &updated, nil
-}
-
 func (o *Objective) otherParticipants() []types.Address {
 	others := make([]types.Address, 0)
 	for i, p := range o.C.Participants {
@@ -442,7 +422,6 @@ func (o *Objective) clone() Objective {
 	clone.myDepositSafetyThreshold = o.myDepositSafetyThreshold.Clone()
 	clone.myDepositTarget = o.myDepositTarget.Clone()
 	clone.fullyFundedThreshold = o.fullyFundedThreshold.Clone()
-	clone.latestBlockNumber = o.latestBlockNumber
 	clone.transactionSubmitted = o.transactionSubmitted
 	return clone
 }

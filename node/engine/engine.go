@@ -28,13 +28,13 @@ import (
 
 // ErrUnhandledChainEvent is an engine error when the the engine cannot process a chain event
 type ErrUnhandledChainEvent struct {
-	event     chainservice.Event
-	objective protocols.Objective
-	reason    string
+	event   chainservice.Event
+	channel channel.Channel
+	reason  string
 }
 
 func (uce *ErrUnhandledChainEvent) Error() string {
-	return fmt.Sprintf("chain event %#v could not be handled by objective %#v due to: %s", uce.event, uce.objective, uce.reason)
+	return fmt.Sprintf("chain event %#v could not be handled by channel %#v due to: %s", uce.event, uce.channel, uce.reason)
 }
 
 type ErrGetObjective struct {
@@ -414,7 +414,9 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, error) {
 	defer e.metrics.RecordFunctionDuration()()
 	e.logger.Printf("handling chain event: %v", chainEvent)
-	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
+
+	c, ok := e.store.GetChannelById(chainEvent.ChannelID())
+
 	if !ok {
 		// TODO: Right now the chain service returns chain events for ALL channels even those we aren't involved in
 		// for now we can ignore channels we aren't involved in
@@ -422,15 +424,22 @@ func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, e
 		return EngineEvent{}, nil
 	}
 
-	eventHandler, ok := objective.(chainservice.ChainEventHandler)
-	if !ok {
-		return EngineEvent{}, &ErrUnhandledChainEvent{event: chainEvent, objective: objective, reason: "objective does not handle chain events"}
-	}
-	updatedEventHandler, err := eventHandler.UpdateWithChainEvent(chainEvent)
+	updatedChannel, err := c.UpdateWithChainEvent(chainEvent)
 	if err != nil {
 		return EngineEvent{}, err
 	}
-	return e.attemptProgress(updatedEventHandler)
+
+	err = e.store.SetChannel(updatedChannel)
+	if err != nil {
+		return EngineEvent{}, err
+	}
+
+	objective, ok := e.store.GetObjectiveByChannelId(chainEvent.ChannelID())
+
+	if ok {
+		return e.attemptProgress(objective)
+	}
+	return EngineEvent{}, nil
 }
 
 // handleObjectiveRequest handles an ObjectiveRequest (triggered by a client API call).
