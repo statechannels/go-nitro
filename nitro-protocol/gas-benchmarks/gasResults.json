@@ -1,76 +1,76 @@
 {
   "deployInfrastructureContracts": {
     "satp": {
-      "NitroAdjudicator": 3563821
+      "NitroAdjudicator": 3411089
     }
   },
   "directlyFundAChannelWithETHFirst": {
-    "satp": 46865
+    "satp": 48959
   },
   "directlyFundAChannelWithETHSecond": {
-    "satp": 29777
+    "satp": 31871
   },
   "batchFundChannelsWithETHFirst": {
     "satp": {
-      "1": 56366,
-      "5": 188928,
-      "10": 354646,
-      "20": 686044,
-      "50": 1680359,
-      "100": 3337760
+      "1": 62763,
+      "5": 204415,
+      "10": 381465,
+      "20": 735529,
+      "50": 1797805,
+      "100": 3568161
     }
   },
   "batchFundChannelsWithETHSecond": {
     "satp": {
-      "1": 39278,
-      "5": 103488,
-      "10": 183766,
-      "20": 344284,
-      "50": 825959,
-      "100": 1628960
+      "1": 45675,
+      "5": 118975,
+      "10": 210585,
+      "20": 393769,
+      "50": 943405,
+      "100": 1859361
     }
   },
   "directlyFundAChannelWithERC20First": {
     "satp": {
       "approve": 46218,
-      "deposit": 70398
+      "deposit": 72462
     }
   },
   "directlyFundAChannelWithERC20Second": {
     "satp": {
       "approve": 46218,
-      "deposit": 53310
+      "deposit": 55374
     }
   },
   "ETHexit": {
-    "satp": 111048
+    "satp": 110993
   },
   "ERC20exit": {
-    "satp": 112350
+    "satp": 112283
   },
   "ETHexitSad": {
     "satp": {
-      "challenge": 116268,
-      "transferAllAssets": 81592,
-      "total": 197860
+      "challenge": 116280,
+      "transferAllAssets": 81527,
+      "total": 197807
     }
   },
   "ETHexitSadLedgerFunded": {
     "satp": {
-      "challengeX": 116268,
-      "challengeL": 109403,
-      "transferAllAssetsL": 61679,
-      "transferAllAssetsX": 81592,
-      "total": 368942
+      "challengeX": 116280,
+      "challengeL": 109415,
+      "transferAllAssetsL": 61615,
+      "transferAllAssetsX": 81527,
+      "total": 368837
     }
   },
   "ETHexitSadVirtualFunded": {
     "satp": {
-      "challengeL": 125512,
-      "challengeV": 175988,
-      "reclaimL": 61742,
-      "transferAllAssetsL": 113292,
-      "total": 476534
+      "challengeL": 125524,
+      "challengeV": 176036,
+      "reclaimL": 61733,
+      "transferAllAssetsL": 113227,
+      "total": 476520
     }
   }
 }
