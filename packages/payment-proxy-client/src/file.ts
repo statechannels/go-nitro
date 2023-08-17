@@ -4,13 +4,10 @@ import { Voucher } from "@statechannels/nitro-rpc-client/src/types";
 export async function fetchFile(
   url: string,
   paymentAmount: number,
-  selectedChannel: string,
+  channelId: string,
   nitroClient: NitroRpcClient
 ): Promise<File> {
-  const voucher = await nitroClient.CreateVoucher(
-    selectedChannel,
-    paymentAmount
-  );
+  const voucher = await nitroClient.CreateVoucher(channelId, paymentAmount);
 
   const response = await fetch(addVoucherToUrl(url, voucher));
 
@@ -22,7 +19,7 @@ export async function fetchFileInChunks(
   chunkSize: number,
   url: string,
   costPerByte: number,
-  selectedChannel: string,
+  channelId: string,
   nitroClient: NitroRpcClient,
   updateProgress: (progress: number) => void
 ): Promise<File> {
@@ -33,7 +30,7 @@ export async function fetchFileInChunks(
     chunkSize - 1,
     url,
     costPerByte,
-    selectedChannel,
+    channelId,
     nitroClient
   );
 
@@ -71,7 +68,7 @@ export async function fetchFileInChunks(
       stop,
       url,
       costPerByte,
-      selectedChannel,
+      channelId,
       nitroClient
     );
 
@@ -87,7 +84,7 @@ export async function fetchFileInChunks(
       stop,
       url,
       costPerByte,
-      selectedChannel,
+      channelId,
       nitroClient
     );
     fileContents.set(data, start);
@@ -104,13 +101,13 @@ async function fetchChunk(
   stop: number,
   url: string,
   costPerByte: number,
-  selectedChannel: string,
+  channelId: string,
   nitroClient: NitroRpcClient
 ): Promise<{ data: Uint8Array; contentLength: number; fileName: string }> {
   const dataLength = stop - start + 1; // +1 because stop is inclusive
   const chunkCost = dataLength * costPerByte;
 
-  const voucher = await nitroClient.CreateVoucher(selectedChannel, chunkCost);
+  const voucher = await nitroClient.CreateVoucher(channelId, chunkCost);
 
   const req = new Request(addVoucherToUrl(url, voucher));
   req.headers.set("Range", `bytes=${start}-${stop}`);
