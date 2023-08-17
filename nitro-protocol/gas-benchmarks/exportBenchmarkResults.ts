@@ -23,7 +23,7 @@ import {
   getChannelBatch,
 } from './fixtures';
 import {batchSizes, emptyGasResults} from './gas';
-import {deployContracts, nitroAdjudicator, token} from './localSetup';
+import {deployContracts, nitroAdjudicator, batchOperator, token} from './localSetup';
 
 /**
  * Ensures the asset holding contract always has a nonzero token balance.
@@ -94,8 +94,7 @@ async function main() {
     await executeAndRevert(async () => {
       // batch funding channels with ETH (first deposit)
       gasResults.batchFundChannelsWithETHFirst.satp['' + batchSize] = await gasUsed(
-        await nitroAdjudicator.deposit_batch(
-          MAGIC_ADDRESS_INDICATING_ETH,
+        await batchOperator.deposit_batch_eth(
           batch.map(c => c.channelId),
           batch.map(() => 0),
           batch.map(() => 5),
@@ -104,8 +103,7 @@ async function main() {
       );
       // batch funding channels with ETH (second deposit)
       gasResults.batchFundChannelsWithETHSecond.satp['' + batchSize] = await gasUsed(
-        await nitroAdjudicator.deposit_batch(
-          MAGIC_ADDRESS_INDICATING_ETH,
+        await batchOperator.deposit_batch_eth(
           batch.map(c => c.channelId),
           batch.map(() => 5),
           batch.map(() => 5),
