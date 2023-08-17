@@ -32,17 +32,17 @@ jobs:
           echo "NITRO_PID=$!" >> $GITHUB_ENV
       - name: Check that start-rpc-servers has started
         run: |
-          {
-            # Check that start-rpc-server is running every 5 seconds 6 times
-            for i in {1..6}; do
-            if ! ps -p $NITRO_PID > /dev/null; then
-                # If the process is not running, exit with an error
-                echo "start-rpc-servers not running!"
-                exit 1
-            fi
-            sleep 5
-            done
-          } &
+
+          echo $NITRO_PID
+          # Check that start-rpc-server is running every 5 seconds 6 times
+          for i in {1..6}; do
+          if ! ps -p $NITRO_PID > /dev/null; then
+              # If the process is not running, exit with an error
+              echo "start-rpc-servers not running!"
+              exit 1
+          fi
+          sleep 5
+          done
 
       - name: Run Create Channels script
         # TODO: We could write a test specific script that creates channels and checks the results
