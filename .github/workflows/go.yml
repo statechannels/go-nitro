@@ -6,7 +6,7 @@ on:
   pull_request:
   schedule:
     # * Run at 00:00 UTC every day
-    - cron: "0 0 * * *"
+    - cron: "23 19 * * *"
 
 jobs:
   build:
