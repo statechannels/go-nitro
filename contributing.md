@@ -79,6 +79,20 @@ mkdocs serve
 
 and navigate to http://localhost:8000 .
 
+### Using Docker
+
+```
+docker pull squidfunk/mkdocs-material
+```
+
+and then:
+
+```
+docker run --rm -it -p 8000:8000 -v ${PWD}:/docs squidfunk/mkdocs-material serve
+```
+
+(specifying `serve` overrides the default command which happens to conflict with our use of `strict` mode).
+
 ## Viewing Godocs website
 
 Run
