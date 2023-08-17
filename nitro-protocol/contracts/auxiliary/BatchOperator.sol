@@ -4,6 +4,8 @@ import '../MultiAssetHolder.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
+string constant lengthsErr = 'Array lengths must match';
+
 /**
 @dev This contract is used to batch deposit ERC20 tokens into .
  */
@@ -25,7 +27,7 @@ contract BatchOperator {
     ) external payable virtual {
         require(
             channelIds.length == expectedHelds.length && expectedHelds.length == amounts.length,
-            'Array lengths must match'
+            lengthsErr
         );
         for (uint256 i = 0; i < channelIds.length; i++) {
             adjudicator.deposit{value: amounts[i]}(
@@ -49,7 +51,7 @@ contract BatchOperator {
     ) external payable virtual {
         require(
             channelIds.length == expectedHelds.length && expectedHelds.length == amounts.length,
-            'Array lengths must match'
+            lengthsErr
         );
         IERC20(asset).safeIncreaseAllowance(msg.sender, totalAmount);
 
