@@ -1,8 +1,7 @@
 artifacts
 data
+node_modules
+docs
 
 .adr
-.yarn
-docs
-node_modules
-packages
+.github
