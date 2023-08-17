@@ -12,7 +12,6 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -272,16 +271,6 @@ func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, e
 		}
 	}
 	updated.C.AddSignedState(ss)
-	return &updated, nil
-}
-
-// UpdateWithChainEvent updates the underlying channel with observed on-chain data.
-func (o *Objective) UpdateWithChainEvent(event chainservice.Event) (protocols.Objective, error) {
-	updated := o.clone()
-	_, err := updated.C.UpdateWithChainEvent(event)
-	if err != nil {
-		return &Objective{}, err
-	}
 	return &updated, nil
 }
 

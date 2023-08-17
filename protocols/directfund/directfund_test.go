@@ -156,7 +156,7 @@ func TestUpdate(t *testing.T) {
 		common.Address{}: big.NewInt(3),
 	}
 	highBlockNum := uint64(200)
-	updatedObjective, err = s.UpdateWithChainEvent(
+	_, err = updated.C.UpdateWithChainEvent(
 		chainservice.NewDepositedEvent(
 			types.Destination{}, highBlockNum, common.Address{}, big.NewInt(3),
 		),
@@ -174,11 +174,14 @@ func TestUpdate(t *testing.T) {
 	staleFunding[common.Address{}] = big.NewInt(2)
 	lowBlockNum := uint64(100)
 
-	updatedObjective, _ = updated.UpdateWithChainEvent(
+	_, err = updated.C.UpdateWithChainEvent(
 		chainservice.NewDepositedEvent(
 			types.Destination{}, uint64(lowBlockNum), common.Address{}, big.NewInt(2),
 		),
 	)
+	if err != nil {
+		t.Error(err)
+	}
 
 	updated = updatedObjective.(*Objective)
 
