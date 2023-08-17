@@ -13,13 +13,15 @@ import {
   TableCell,
   TableBody,
   InputLabel,
+  Checkbox,
+  FormControlLabel,
+  LinearProgress,
 } from "@mui/material";
 
 const QUERY_KEY = "rpcUrl";
 
 import "./App.css";
-import { fetchFile } from "./file";
-
+import { fetchFile, fetchFileInChunks } from "./file";
 const provider = "0xbbb676f9cff8d242e9eac39d063848807d3d1d94";
 const hub = "0x111a00868581f73ab42feef67d235ca09ca1e8db";
 const defaultNitroRPCUrl = "localhost:4005/api/v1";
@@ -45,7 +47,9 @@ function App() {
   const [dataSize, setDataSize] = useState<number>(12);
   const [totalCost, setTotalCost] = useState<number>(costPerByte * dataSize);
   const [errorText, setErrorText] = useState<string>("");
-
+  const [chunkSize, setChunkSize] = useState<number>(100);
+  const [useMicroPayments, setUseMicroPayments] = useState<boolean>(false);
+  const [microPaymentProgress, setMicroPaymentProgress] = useState<number>(0);
   useEffect(() => {
     NitroRpcClient.CreateHttpNitroClient(url)
       .then((c) => setNitroClient(c))
@@ -112,15 +116,22 @@ function App() {
     }
 
     try {
-      const file = await fetchFile(
-        fileUrl,
-        costPerByte,
-        costPerByte,
-        selectedChannel,
-        nitroClient
-      );
-
-      console.log(file);
+      setMicroPaymentProgress(0);
+      const file = useMicroPayments
+        ? await fetchFileInChunks(
+            chunkSize,
+            fileUrl,
+            costPerByte,
+            selectedChannel,
+            nitroClient,
+            setMicroPaymentProgress
+          )
+        : await fetchFile(
+            fileUrl,
+            costPerByte * dataSize,
+            selectedChannel,
+            nitroClient
+          );
 
       triggerFileDownload(file);
 
@@ -132,6 +143,7 @@ function App() {
       setErrorText((e as Error).message);
     }
   };
+
   return (
     <Box>
       <Box p={10} minHeight={200}>
@@ -190,8 +202,36 @@ function App() {
           value={fileUrl}
         ></TextField>
       </Box>
-      <br></br>
-      <Box>
+      <FormControlLabel
+        label="Use micropayments"
+        control={
+          <Checkbox
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setUseMicroPayments(e.target.checked)
+            }
+            value={useMicroPayments}
+          ></Checkbox>
+        }
+      />
+      <Box visibility={useMicroPayments ? "visible" : "hidden"}>
+        <TextField
+          label="Cost Per Byte(wei)"
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            setCostPerByte(parseInt(e.target.value));
+          }}
+          value={costPerByte}
+          type="number"
+        ></TextField>
+        <TextField
+          label="Chunk size(bytes)"
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            setChunkSize(parseInt(e.target.value));
+          }}
+          value={chunkSize}
+          type="number"
+        ></TextField>
+      </Box>
+      <Box visibility={useMicroPayments ? "hidden" : "visible"}>
         <TextField
           label="Cost Per Byte(wei)"
           onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -212,14 +252,20 @@ function App() {
         ></TextField>
         <TextField
           inputProps={{ readOnly: true }}
-          disabled={true}
           label="Total cost(wei)"
           value={totalCost}
           type="number"
         ></TextField>
-        <Button onClick={fetchAndDownloadFile}>Fetch</Button>
-        <Box>{errorText}</Box>
       </Box>
+
+      <Button onClick={fetchAndDownloadFile}>
+        {useMicroPayments ? "Fetch with micropayments" : "Fetch"}
+      </Button>
+      <Box visibility={useMicroPayments ? "visible" : "hidden"}>
+        <LinearProgress value={microPaymentProgress} variant="determinate" />
+      </Box>
+
+      <Box>{errorText}</Box>
     </Box>
   );
 }
