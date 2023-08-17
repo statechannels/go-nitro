@@ -24,10 +24,7 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.DO_SSH_PRIVATE_KEY }}
         run: |
-          echo "$SSH_PRIVATE_KEY" > private_key.pem
-          chmod 600 private_key.pem
-          scp -o StrictHostKeyChecking=no -i private_key.pem docker-compose.yml root@67.207.88.72:~/
-          ssh -o StrictHostKeyChecking=no -i private_key.pem root@67.207.88.72 <<'ENDSSH'
+          echo "$SSH_PRIVATE_KEY" | ssh -o StrictHostKeyChecking=no -i /dev/stdin root@67.207.88.72 <<'ENDSSH'
             docker pull registry.digitalocean.com/magmo/go-nitro:latest
             docker run -it -d -p 3005:3005 -p 4005:4005 -p 5005:5005 -e SC_PK=$DO_SC_PK -e CHAIN_PK=$DO_CHAIN_PK registry.digitalocean.com/magmo/go-nitro:latest
           ENDSSH
