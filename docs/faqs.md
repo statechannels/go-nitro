@@ -16,7 +16,7 @@ State channels can be programmed such that assets are redistributed according to
 
 ## What is Nitro Protocol?
 
-Nitro protocol is a state of the art state channel protocol which is focussed on security, performance and extensibility. It has been developed over several [years of research](./research-papers.md).
+Nitro protocol is a state of the art state channel protocol which is focussed on security, performance and extensibility. It has been developed over several [years of research](./research-paperz.md).
 
 One of the key features of Nitro are [_virtual_ channels](./protocol-tutorial/0060-funding-a-channel.md#fund-virtually), where peers can setup a direct connection with each other entirely off-chain.
 
