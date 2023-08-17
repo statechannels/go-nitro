@@ -142,7 +142,7 @@ Visually, the following transformation has been applied:
     channel((X))
     me(( )):::me
     hub(( )):::hub
-    ETHAssetHolder-->|10|ledger;
+    ETHAssetHolder-->|4|ledger;
     ledger-->|2|me;
     ledger-->|2|hub;
     ETHAssetHolder-->|6|channel;
