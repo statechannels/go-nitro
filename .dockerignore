@@ -1,5 +1,6 @@
 artifacts
 data
+node_modules
 docs
 
 .adr
