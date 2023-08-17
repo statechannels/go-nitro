@@ -12,8 +12,13 @@ import './interfaces/IMultiAssetHolder.sol';
  */
 contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     using SafeERC20 for IERC20;
-    
-    event Debug (address indexed asset, bytes32 indexed channelId, uint256 indexed expected, uint256 held);
+
+    event Debug(
+        address indexed asset,
+        bytes32 indexed channelId,
+        uint256 indexed expected,
+        uint256 held
+    );
 
     // *******
     // Storage
@@ -21,7 +26,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
 
     /**
      * holdings[asset][channelId] is the amount of asset held against channel channelId. 0 address implies ETH
-     */ 
+     */
     mapping(address => mapping(bytes32 => uint256)) public holdings;
 
     // **************
@@ -49,7 +54,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         // 3. Participant B submits their deposit
         // 4. The chain re-orgs, leaving B's deposit in the chain but not A's
         uint256 held = holdings[asset][channelId];
-        
+
         emit Debug({channelId: channelId, asset: asset, expected: expectedHeld, held: held});
         // require(held == expectedHeld, 'held != expectedHeld');
 
