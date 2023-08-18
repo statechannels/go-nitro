@@ -2,6 +2,7 @@ package chainservice
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/internal/safesync"
@@ -18,6 +19,8 @@ type MockChain struct {
 	// out maps addresses to an Event channel. Given that MockChainServices only subscribe
 	// (and never unsubscribe) to events, this can be converted to a list.
 	out safesync.Map[chan Event]
+
+	txLock *sync.Mutex
 }
 
 // NewMockChain creates a new MockChain
@@ -26,12 +29,15 @@ func NewMockChain() *MockChain {
 	chain.blockNum = 1
 	chain.holdings = safesync.Map[types.Funds]{}
 	chain.out = safesync.Map[chan Event]{}
+	chain.txLock = &sync.Mutex{}
 	return &chain
 }
 
 // SubmitTransaction updates internal state and broadcasts events
 // unlike an ethereum blockchain, MockChain accepts go-nitro protocols.ChainTransaction
 func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
+	mc.txLock.Lock()
+	defer mc.txLock.Unlock()
 	mc.blockNum++
 	channelIdString := tx.ChannelId().String()
 	h, _ := mc.holdings.Load(channelIdString) // ignore `ok` because the returned zero-value is what we want
