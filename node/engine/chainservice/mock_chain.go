@@ -2,6 +2,7 @@ package chainservice
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/internal/safesync"
@@ -18,6 +19,8 @@ type MockChain struct {
 	// out maps addresses to an Event channel. Given that MockChainServices only subscribe
 	// (and never unsubscribe) to events, this can be converted to a list.
 	out safesync.Map[chan Event]
+	// txMutex is locked when updating chain state
+	txMutex sync.Mutex
 }
 
 // NewMockChain creates a new MockChain
@@ -32,6 +35,8 @@ func NewMockChain() *MockChain {
 // SubmitTransaction updates internal state and broadcasts events
 // unlike an ethereum blockchain, MockChain accepts go-nitro protocols.ChainTransaction
 func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
+	eventsToBroadcast := []Event{}
+	mc.txMutex.Lock()
 	mc.blockNum++
 	channelIdString := tx.ChannelId().String()
 	h, _ := mc.holdings.Load(channelIdString) // ignore `ok` because the returned zero-value is what we want
@@ -43,16 +48,20 @@ func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
 
 		for address := range tx.Deposit {
 			event := NewDepositedEvent(tx.ChannelId(), mc.blockNum, address, h.Add(tx.Deposit)[address])
-			mc.broadcastEvent(event)
+			eventsToBroadcast = append(eventsToBroadcast, event)
 		}
 	case protocols.WithdrawAllTransaction:
 		for assetAddress := range h {
 			event := NewAllocationUpdatedEvent(tx.ChannelId(), mc.blockNum, assetAddress, common.Big0)
-			mc.broadcastEvent(event)
+			eventsToBroadcast = append(eventsToBroadcast, event)
 		}
 		mc.holdings.Store(channelIdString, types.Funds{})
 	default:
 		return fmt.Errorf("unexpected transaction type %T", tx)
+	}
+	mc.txMutex.Unlock()
+	for _, event := range eventsToBroadcast {
+		mc.broadcastEvent(event)
 	}
 	return nil
 }
