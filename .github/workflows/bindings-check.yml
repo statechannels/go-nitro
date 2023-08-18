@@ -4,14 +4,15 @@ on:
   push:
     branches: [main]
   pull_request:
-    paths: [
+    paths:
+      [
         "nitro-protocol/contracts/**",
-        generate-adjudicator-bindings.sh,
-        .github/bindings-check.yml,
-        node/engine/chainservice/adjudicator/NitroAdjudicator.go
-        node/engine/chainservice/consensusapp/ConsensusApp.go,
-        node/engine/chainservice/erc20/Token.go,
-        node/engine/chainservice/virtualpaymentapp/VirtualPaymentApp.go,
+        "generate-adjudicator-bindings.sh",
+        ".github/bindings-check.yml",
+        "node/engine/chainservice/adjudicator/NitroAdjudicator.go",
+        "node/engine/chainservice/consensusapp/ConsensusApp.go",
+        "node/engine/chainservice/erc20/Token.go",
+        "node/engine/chainservice/virtualpaymentapp/VirtualPaymentApp.go",
       ]
 jobs:
   build:
