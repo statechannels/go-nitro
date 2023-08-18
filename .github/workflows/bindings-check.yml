@@ -8,7 +8,7 @@ on:
       [
         "nitro-protocol/contracts/**",
         "generate-adjudicator-bindings.sh",
-        ".github/bindings-check.yml",
+        ".github/workflows/bindings-check.yml",
         "node/engine/chainservice/adjudicator/NitroAdjudicator.go",
         "node/engine/chainservice/consensusapp/ConsensusApp.go",
         "node/engine/chainservice/erc20/Token.go",
