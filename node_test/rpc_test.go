@@ -17,6 +17,7 @@ import (
 	interRpc "github.com/statechannels/go-nitro/internal/rpc"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
+	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/node/query"
@@ -410,7 +411,8 @@ func setupNitroNodeWithRPCClient(
 	bootPeers []string,
 ) (rpc.RpcClientApi, *p2pms.P2PMessageService, func()) {
 	var err error
-	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, false, "", msgPort, rpcPort, connectionType, logDestination, bootPeers)
+	dataFolder, cleanupData := testhelpers.GenerateTempStoreFolder()
+	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, false, dataFolder, msgPort, rpcPort, connectionType, logDestination, bootPeers)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -448,6 +450,7 @@ func setupNitroNodeWithRPCClient(
 		logger.Info().Str("pk", string(pk)).Msg("Rpc client closed")
 		rpcServer.Close()
 		logger.Info().Str("pk", string(pk)).Msg("Rpc server closed")
+		cleanupData()
 	}
 	return rpcClient, messageService, cleanupFn
 }
