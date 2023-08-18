@@ -7,9 +7,9 @@ import {getTestProvider, setupContract} from '../../test-helpers';
 // artifacts
 import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
 import BadTokenArtifact from '../../../artifacts/contracts/test/BadToken.sol/BadToken.json';
-import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
+import NitroAdjudicatorArtifact from '../../../artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
 import BatchOperatorArtifact from '../../../artifacts/contracts/auxiliary/BatchOperator.sol/BatchOperator.json';
-import {Token, BadToken, TESTNitroAdjudicator, BatchOperator} from '../../../typechain-types';
+import {Token, BadToken, BatchOperator, NitroAdjudicator} from '../../../typechain-types';
 const provider = getTestProvider();
 
 const batchOperator = setupContract(
@@ -18,11 +18,11 @@ const batchOperator = setupContract(
   process.env.BATCH_OPERATOR_ADDRESS!
 ) as unknown as BatchOperator & Contract;
 
-const testNitroAdjudicator = setupContract(
+const nitroAdjudicator = setupContract(
   provider,
-  TESTNitroAdjudicatorArtifact,
-  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS!
-) as unknown as TESTNitroAdjudicator & Contract;
+  NitroAdjudicatorArtifact,
+  process.env.NITRO_ADJUDICATOR_ADDRESS!
+) as unknown as NitroAdjudicator & Contract;
 
 const token = setupContract(
   provider,
@@ -144,10 +144,7 @@ describe('deposit_batch', () => {
           await token.increaseAllowance(batchOperator.address, totalValue.add(totalExpectedHeld))
         ).wait();
         await (
-          await token.increaseAllowance(
-            testNitroAdjudicator.address,
-            totalValue.add(totalExpectedHeld)
-          )
+          await token.increaseAllowance(nitroAdjudicator.address, totalValue.add(totalExpectedHeld))
         ).wait();
         // Check Balance Updated
         const allowance = BigNumber.from(
@@ -162,7 +159,7 @@ describe('deposit_batch', () => {
         ).wait();
         await (
           await badToken.increaseAllowance(
-            testNitroAdjudicator.address,
+            nitroAdjudicator.address,
             totalValue.add(totalExpectedHeld)
           )
         ).wait();
@@ -180,7 +177,7 @@ describe('deposit_batch', () => {
           const value =
             reasonString == unexpectedHeld ? expectedHeldsBN[i].add(1) : expectedHeldsBN[i];
           const {events} = await (
-            await testNitroAdjudicator.deposit(assetId, channelId, 0, value, {
+            await nitroAdjudicator.deposit(assetId, channelId, 0, value, {
               value: assetId === ETH ? value : 0,
             })
           ).wait();
@@ -189,7 +186,7 @@ describe('deposit_batch', () => {
       );
 
       for (const c of channelIds) {
-        const holdings = await testNitroAdjudicator.holdings(assetId, c);
+        const holdings = await nitroAdjudicator.holdings(assetId, c);
         console.log(`pre-holdings[${assetId}][${c}]`, holdings);
       }
 
@@ -227,7 +224,7 @@ describe('deposit_batch', () => {
 
         const holdings: BigNumber[] = [];
         for (let i = 0; i < channelIds.length; i++) {
-          holdings.push(await testNitroAdjudicator.holdings(assetId, channelIds[i]));
+          holdings.push(await nitroAdjudicator.holdings(assetId, channelIds[i]));
           console.log(`post-holdings[${assetId}][${channelIds[i]}]`, holdings[i]);
         }
         for (let i = 0; i < channelIds.length; i++) {
