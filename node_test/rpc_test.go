@@ -412,7 +412,7 @@ func setupNitroNodeWithRPCClient(
 ) (rpc.RpcClientApi, *p2pms.P2PMessageService, func()) {
 	var err error
 	dataFolder, cleanupData := testhelpers.GenerateTempStoreFolder()
-	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, false, dataFolder, msgPort, rpcPort, connectionType, logDestination, bootPeers)
+	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, true, dataFolder, msgPort, rpcPort, connectionType, logDestination, bootPeers)
 	if err != nil {
 		t.Fatal(err)
 	}
