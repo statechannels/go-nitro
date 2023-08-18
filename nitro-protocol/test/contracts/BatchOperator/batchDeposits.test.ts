@@ -172,12 +172,13 @@ describe('deposit_batch', () => {
       ///////////////////////////////////////
 
       await Promise.all(
-        channelIds.map(async (channelId, i) => {
+        expectedHeldsBN.map(async (expected, i) => {
+          const channelID = channelIds[i];
           // apply incorrect amount if unexpectedHeld reasonString is set
-          const value =
-            reasonString == unexpectedHeld ? expectedHeldsBN[i].add(1) : expectedHeldsBN[i];
+          const value = reasonString == unexpectedHeld ? expected.add(1) : expected;
+
           const {events} = await (
-            await nitroAdjudicator.deposit(assetId, channelId, 0, value, {
+            await nitroAdjudicator.deposit(assetId, channelID, 0, value, {
               value: assetId === ETH ? value : 0,
             })
           ).wait();
