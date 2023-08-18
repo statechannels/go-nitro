@@ -12,8 +12,7 @@ import (
 )
 
 const (
-	MAX_PARTICIPANTS = 4
-
+	MAX_PARTICIPANTS      = 4
 	ledgerChannelDeposit  = 5_000_000
 	defaultTimeout        = 10 * time.Second
 	virtualChannelDeposit = 5000
