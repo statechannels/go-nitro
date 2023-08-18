@@ -22,11 +22,11 @@ In the case where assets were deposited against the channel on chain (the case o
 
 The conclude method allows anyone with sufficient off-chain state to immediately finalize an outcome for a channel without having to wait for a challenge to expire (more on that later).
 
-The off-chain state(s) is submitted (in an optimized format), and once relevant checks have passed, an expired challenge is stored against the `channelId`. (This is an implementation detail -- the important point is that the chain shows that the channel has been finalized.)
-
-```typescript
-TODO example
+```solidity
+ function conclude(FixedPart memory fixedPart, SignedVariablePart memory candidate) external
 ```
+
+The off-chain state(s) is submitted (in an optimized format), and once relevant checks have passed, an expired challenge is stored against the `channelId`. (This is an implementation detail -- the important point is that the chain shows that the channel has been finalized.)
 
 ## Sad path
 
@@ -38,18 +38,19 @@ The required data for this method consists of a single state, along with `n` sig
 
 This delay allows the challenge to be cleared by a timely and well-formed [respond](./clear-a-challenge#call-respond) or [checkpoint](./clear-a-challenge#call-checkpoint) transaction. We'll get to those shortly. If no such transaction is forthcoming, the challenge will time out, allowing the `outcome` registered to be finalized. A finalized outcome can then be used to extract funds from the channel (more on that below, too).
 
-```typescript
-TODO example
-```
-
 !!! tip
 
     The `challengeDuration` is a [fixed parameter](./execute-state-transitions#construct-a-state-with-the-correct-format) expressed in seconds, that is set when a channel is proposed. It should be set to a value low enough that participants may close a channel in a reasonable amount of time in the case that a counterparty becomes unresponsive; but high enough that malicious challenges can be detected and responded to without placing unreasonable liveness requirements on responders. A `challengeDuration` of 1 day is a reasonable starting point, but the "right" value will likely depend on your application.
 
 ### Call `challenge`
 
-```typescript
-TODO example
+```solidity
+    function challenge(
+        FixedPart memory fixedPart,
+        SignedVariablePart[] memory proof,
+        SignedVariablePart memory candidate,
+        Signature memory challengerSig
+    ) external
 ```
 
 !!!note
@@ -73,9 +74,17 @@ A challenge being registered does _not_ mean that the channel will inexorably fi
 
 The `checkpoint` method allows anyone with a supported off-chain state to establish a new and higher `turnNumRecord` on chain, and leave the resulting channel in the "Open" mode. It can be used to clear a challenge.
 
+```solidity
+    function checkpoint(
+        FixedPart memory fixedPart,
+        SignedVariablePart[] memory proof,
+        SignedVariablePart memory candidate
+    ) external
+```
+
 ### Call `challenge` again
 
-It is important to understand that a challenge may be "cleared" by another more recent challenge. The channel will be left in challenge mode (so it has not really been 'cleared' in that sense), but some [on chain storage](./understand-adjudicator-status) will be updated, such as the deadline for responding.
+It is important to understand that a challenge may be "cleared" by another more recent challenge. The channel will be left in challenge mode (so it has not really been 'cleared' in that sense), but some [on chain storage](./0040-lifecycle-of-a-channel.md#channel-modes) will be updated, such as the deadline for responding.
 
 ## Extract info from Adjudicator Events
 
