@@ -38,7 +38,7 @@ func setupNode(pk []byte, chain chainservice.ChainService, msgBroker messageserv
 	if err != nil {
 		panic(err)
 	}
-	return node.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}, nil), storeA
+	return node.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}), storeA
 }
 
 func closeNode(t *testing.T, node *node.Node) {
@@ -124,7 +124,7 @@ func setupIntegrationNode(tc TestCase, tp TestParticipant, si sharedTestInfrastr
 	messageService, multiAddr := setupMessageService(tc, tp, si, bootPeers, logging.NewLogWriter("../artifacts", tc.LogName+"_message_"+string(tp.Name)+".log"))
 	cs := setupChainService(tc, tp, si)
 	store := setupStore(tc, tp, si)
-	n := node.New(messageService, cs, store, logging.NewLogWriter("../artifacts", tc.LogName+"_engine_"+string(tp.Name)+".log"), &engine.PermissivePolicy{}, nil)
+	n := node.New(messageService, cs, store, logging.NewLogWriter("../artifacts", tc.LogName+"_engine_"+string(tp.Name)+".log"), &engine.PermissivePolicy{})
 	return n, messageService, multiAddr
 }
 
