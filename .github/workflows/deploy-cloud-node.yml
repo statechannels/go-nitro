@@ -1,0 +1,33 @@
+name: Deploy to DigitalOcean
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: make docker/cloud/build
+
+      - name: Login to DigitalOcean Docker Registry
+        run: docker login -u ${{ secrets.DO_API_KEY }} -p ${{ secrets.DO_API_KEY }} registry.digitalocean.com
+
+      - name: Push Docker image to DigitalOcean
+        run: make docker/cloud/push
+
+      - name: Deploy to Droplet
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          ssh -o StrictHostKeyChecking=no -i private_key.pem root@67.207.88.72 <<'ENDSSH'
+            docker pull registry.digitalocean.com/magmo/go-nitro:latest
+            docker run -it -d -p 3005:3005 -p 4005:4005 -p 5005:5005 -e SC_PK=$DO_SC_PK -e CHAIN_PK=$DO_CHAIN_PK registry.digitalocean.com/magmo/go-nitro:latest
+          ENDSSH
+          rm private_key.pem

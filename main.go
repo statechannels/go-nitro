@@ -45,6 +45,12 @@ func main() {
 	var msgPort, rpcPort, guiPort int
 	var useNats, useDurableStore bool
 
+	// urfave default precedence for flag value sources (highest to lowest):
+	// 1. Command line flag value
+	// 2. Environment variable (if specified)
+	// 3. Configuration file (if specified)
+	// 4. Default defined on the flag
+
 	flags := []cli.Flag{
 		&cli.StringFlag{
 			Name:  CONFIG,
@@ -70,6 +76,7 @@ func main() {
 			Usage:       "Specifies the private key used by the nitro node.",
 			Category:    KEYS_CATEGORY,
 			Destination: &pkString,
+			EnvVars:     []string{"SC_PK"},
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CHAIN_URL,
@@ -90,6 +97,7 @@ func main() {
 			Usage:       "Specifies the private key to use when interacting with the chain.",
 			Category:    KEYS_CATEGORY,
 			Destination: &chainPk,
+			EnvVars:     []string{"CHAIN_PK"},
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        NA_ADDRESS,
