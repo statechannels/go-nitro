@@ -116,8 +116,6 @@ describe('deposit_batch', () => {
       heldAfters,
       reasonString,
     }: testParams) => {
-      console.log('asset', assetId);
-
       ///////////////////////////////////////
       //
       // Construct deposit_batch parameters
@@ -176,18 +174,11 @@ describe('deposit_batch', () => {
         })
       );
 
-      for (const c of channelIds) {
-        const holdings = await nitroAdjudicator.holdings(assetId, c);
-        console.log(`pre-holdings[${assetId}][${c}]`, holdings);
-      }
-
       ///////////////////////////////////////
       //
       // Execute deposit
       //
       ///////////////////////////////////////
-
-      console.log(`expectedHeldsBN`, expectedHeldsBN);
 
       const tx =
         assetId === ETH
