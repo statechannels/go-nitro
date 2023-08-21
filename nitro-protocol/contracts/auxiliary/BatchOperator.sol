@@ -53,7 +53,9 @@ contract BatchOperator {
             channelIds.length == expectedHelds.length && expectedHelds.length == amounts.length,
             lengthsErr
         );
-        IERC20(asset).safeIncreaseAllowance(msg.sender, totalAmount);
+
+        IERC20(asset).safeTransferFrom(msg.sender, address(this), totalAmount);
+        IERC20(asset).safeApprove(address(adjudicator), totalAmount);
 
         for (uint256 i = 0; i < channelIds.length; i++) {
             adjudicator.deposit(asset, channelIds[i], expectedHelds[i], amounts[i]);
