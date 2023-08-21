@@ -111,6 +111,52 @@ describe('Consumes the expected gas for deposits', () => {
         )
       ).toConsumeGas(gasRequiredTo.batchFundChannelsWithETHSecond.satp[batchSize]);
     });
+
+    it(`when batch funding ${batchSize} channels with ERC20 (first deposit)`, async () => {
+      // begin setup
+      const totalAmount = batchSize * 5;
+      await (await token.transfer(nitroAdjudicator.address, 1)).wait(); // The asset holder already has some tokens (for other channels)
+      await (await token.increaseAllowance(batchOperator.address, totalAmount)).wait();
+      // end setup
+
+      await expect(
+        await batchOperator.deposit_batch_erc(
+          token.address,
+          batch.map(c => c.channelId),
+          batch.map(() => 0),
+          batch.map(() => 5),
+          totalAmount
+        )
+      ).toConsumeGas(gasRequiredTo.batchFundChannelsWithERCFirst.satp[batchSize]);
+    });
+
+    it(`when batch funding ${batchSize} channels with ERC20 (second deposit)`, async () => {
+      // begin setup
+      const totalAmount = batchSize * 5;
+      await (await token.transfer(nitroAdjudicator.address, 1)).wait(); // The asset holder already has some tokens (for other channels)
+      await (await token.increaseAllowance(batchOperator.address, totalAmount)).wait();
+
+      await (
+        await batchOperator.deposit_batch_erc(
+          token.address,
+          batch.map(c => c.channelId),
+          batch.map(c => 0),
+          batch.map(c => 5),
+          totalAmount
+        )
+      ).wait();
+      // end setup
+
+      await expect(
+        await batchOperator.deposit_batch_erc(
+          token.address,
+          batch.map(c => c.channelId),
+          batch.map(c => 5),
+          batch.map(c => 5),
+          totalAmount
+        )
+      ).toConsumeGas(gasRequiredTo.batchFundChannelsWithERCSecond.satp[batchSize]);
+    });
   }
 
   it(`when directly funding a channel with an ERC20 (first deposit)`, async () => {

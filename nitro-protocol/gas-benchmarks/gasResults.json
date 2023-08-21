@@ -30,6 +30,26 @@
       "100": 1645661
     }
   },
+  "batchFundChannelsWithERCFirst": {
+    "satp": {
+      "1": 119672,
+      "5": 241350,
+      "10": 405788,
+      "20": 734676,
+      "50": 1721328,
+      "100": 3365720
+    }
+  },
+  "batchFundChannelsWithERCSecond": {
+    "satp": {
+      "1": 92322,
+      "5": 142888,
+      "10": 213008,
+      "20": 371016,
+      "50": 845028,
+      "100": 1635020
+    }
+  },
   "directlyFundAChannelWithERC20First": {
     "satp": {
       "approve": 46218,
