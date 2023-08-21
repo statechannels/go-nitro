@@ -56,7 +56,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         uint256 held = holdings[asset][channelId];
 
         emit Debug({channelId: channelId, asset: asset, expected: expectedHeld, held: held});
-        // require(held == expectedHeld, 'held != expectedHeld');
+        require(held == expectedHeld, 'held != expectedHeld');
 
         // require successful deposit before updating holdings (protect against reentrancy)
         if (asset == address(0)) {
@@ -264,7 +264,9 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     /**
      * @dev Checks that the source and target channels are finalized; that the supplied outcomes match the stored fingerprints; that the asset is identical in source and target. Computes and returns the decoded outcomes.
      */
-    function _apply_reclaim_checks(ReclaimArgs memory reclaimArgs)
+    function _apply_reclaim_checks(
+        ReclaimArgs memory reclaimArgs
+    )
         internal
         view
         returns (
@@ -423,11 +425,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
      * @param destination ethereum address to be credited.
      * @param amount Quantity of assets to be transferred.
      */
-    function _transferAsset(
-        address asset,
-        address destination,
-        uint256 amount
-    ) internal {
+    function _transferAsset(address asset, address destination, uint256 amount) internal {
         if (asset == address(0)) {
             (bool success, ) = destination.call{value: amount}(''); //solhint-disable-line avoid-low-level-calls
             require(success, 'Could not transfer ETH');
