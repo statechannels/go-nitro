@@ -177,6 +177,13 @@ describe('deposit_batch', () => {
           // apply incorrect amount if unexpectedHeld reasonString is set
           const value = reasonString == unexpectedHeld ? expected.add(1) : expected;
 
+          if (assetId === ERC20) {
+            await (await token.increaseAllowance(nitroAdjudicator.address, value)).wait();
+          }
+          if (assetId === BadERC20) {
+            await (await badToken.increaseAllowance(nitroAdjudicator.address, value)).wait();
+          }
+
           const {events} = await (
             await nitroAdjudicator.deposit(assetId, channelID, 0, value, {
               value: assetId === ETH ? value : 0,
