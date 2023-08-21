@@ -93,20 +93,20 @@ function sum(x: BigNumber[]): BigNumber {
 
 describe('deposit_batch', () => {
   it.each`
-    description      | assetId | expectedHelds | amounts      | heldAfters   | reasonString
-    ${description0}  | ${ETH}  | ${[0, 0, 0]}  | ${[1, 2, 3]} | ${[1, 2, 3]} | ${''}
-    ${description1}  | ${ETH}  | ${[1, 1, 1]}  | ${[2, 2, 2]} | ${[3, 3, 3]} | ${''}
-    ${description2}  | ${ETH}  | ${[0, 1, 2]}  | ${[1, 1, 1]} | ${[1, 2, 3]} | ${''}
-    ${description3}  | ${ETH}  | ${[0, 0, 0]}  | ${[1, 1, 1]} | ${[1, 1, 1]} | ${unexpectedHeld}
-    ${description4}  | ${ETH}  | ${[1, 1, 1]}  | ${[1, 1, 1]} | ${[2, 2, 2]} | ${unexpectedHeld}
-    ${description11} | ${ETH}  | ${[0, 0]}     | ${[1, 1, 1]} | ${[1, 1, 1]} | ${'Array lengths must match'}
+    description      | assetId     | expectedHelds | amounts      | heldAfters   | reasonString
+    ${description0}  | ${ETH}      | ${[0, 0, 0]}  | ${[1, 2, 3]} | ${[1, 2, 3]} | ${''}
+    ${description1}  | ${ETH}      | ${[1, 1, 1]}  | ${[2, 2, 2]} | ${[3, 3, 3]} | ${''}
+    ${description2}  | ${ETH}      | ${[0, 1, 2]}  | ${[1, 1, 1]} | ${[1, 2, 3]} | ${''}
+    ${description3}  | ${ETH}      | ${[0, 0, 0]}  | ${[1, 1, 1]} | ${[1, 1, 1]} | ${unexpectedHeld}
+    ${description4}  | ${ETH}      | ${[1, 1, 1]}  | ${[1, 1, 1]} | ${[2, 2, 2]} | ${unexpectedHeld}
+    ${description5}  | ${ERC20}    | ${[0, 0, 0]}  | ${[1, 1, 1]} | ${[1, 1, 1]} | ${''}
+    ${description6}  | ${ERC20}    | ${[1, 1, 1]}  | ${[1, 1, 1]} | ${[2, 2, 2]} | ${''}
+    ${description7}  | ${ERC20}    | ${[0, 1, 0]}  | ${[1, 1, 1]} | ${[1, 2, 1]} | ${''}
+    ${description8}  | ${ERC20}    | ${[0, 0, 0]}  | ${[1, 1, 1]} | ${[1, 1, 1]} | ${unexpectedHeld}
+    ${description9}  | ${ERC20}    | ${[1, 1, 1]}  | ${[1, 1, 1]} | ${[2, 2, 2]} | ${unexpectedHeld}
+    ${description10} | ${BadERC20} | ${[0, 0, 0]}  | ${[1, 1, 1]} | ${[1, 1, 1]} | ${''}
+    ${description11} | ${ETH}      | ${[0, 0]}     | ${[1, 1, 1]} | ${[1, 1, 1]} | ${'Array lengths must match'}
   `(
-    // ${description5} | ${ERC20} | ${[0, 0, 0]}  | ${[1, 1, 1]} | ${[1, 1, 1]} | ${''}
-    // ${description6}  | ${ERC20}    | ${[1, 1, 1]}  | ${[1, 1, 1]} | ${[2, 2, 2]} | ${''}
-    // ${description7}  | ${ERC20}    | ${[0, 1, 0]}  | ${[1, 1, 1]} | ${[1, 2, 1]} | ${''}
-    // ${description8}  | ${ERC20}    | ${[0, 0, 0]}  | ${[1, 1, 1]} | ${[1, 1, 1]} | ${unexpectedHeld}
-    // ${description9}  | ${ERC20}    | ${[1, 1, 1]}  | ${[1, 1, 1]} | ${[2, 2, 2]} | ${unexpectedHeld}
-    // ${description10} | ${BadERC20} | ${[0, 0, 0]}  | ${[1, 1, 1]} | ${[1, 1, 1]} | ${''}
     '$description',
     async ({
       description,
