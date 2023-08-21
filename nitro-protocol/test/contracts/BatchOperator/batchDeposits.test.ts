@@ -138,30 +138,14 @@ describe('deposit_batch', () => {
       const totalExpectedHeld = sum(expectedHeldsBN);
 
       if (assetId === ERC20) {
-        const balance = await token.balanceOf(signerAddress);
-        console.log('erc20 balance:', balance);
         await (
-          await token.increaseAllowance(batchOperator.address, totalValue.add(totalExpectedHeld))
+          await token.increaseAllowance(batchOperator.address, totalValue.add(totalValue))
         ).wait();
-        await (
-          await token.increaseAllowance(nitroAdjudicator.address, totalValue.add(totalExpectedHeld))
-        ).wait();
-        // Check Balance Updated
-        const allowance = BigNumber.from(
-          await token.allowance(signerAddress, batchOperator.address)
-        );
-        console.log(`Allowance: `, allowance);
       }
 
       if (assetId === BadERC20) {
         await (
-          await badToken.increaseAllowance(batchOperator.address, totalValue.add(totalExpectedHeld))
-        ).wait();
-        await (
-          await badToken.increaseAllowance(
-            nitroAdjudicator.address,
-            totalValue.add(totalExpectedHeld)
-          )
+          await badToken.increaseAllowance(batchOperator.address, totalValue.add(totalValue))
         ).wait();
       }
 
