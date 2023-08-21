@@ -91,6 +91,7 @@ async function main() {
 
   for (const batchSize of batchSizes) {
     const batch = getChannelBatch(batchSize);
+    const totalValue = 5 * batchSize;
     await executeAndRevert(async () => {
       // batch funding channels with ETH (first deposit)
       gasResults.batchFundChannelsWithETHFirst.satp['' + batchSize] = await gasUsed(
@@ -98,7 +99,7 @@ async function main() {
           batch.map(c => c.channelId),
           batch.map(() => 0),
           batch.map(() => 5),
-          {value: 5 * batchSize}
+          {value: totalValue}
         )
       );
       // batch funding channels with ETH (second deposit)
@@ -107,7 +108,7 @@ async function main() {
           batch.map(c => c.channelId),
           batch.map(() => 5),
           batch.map(() => 5),
-          {value: 5 * batchSize}
+          {value: totalValue}
         )
       );
     });
