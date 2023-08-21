@@ -112,6 +112,31 @@ async function main() {
         )
       );
     });
+    await executeAndRevert(async () => {
+      await token.increaseAllowance(batchOperator.address, 2 * totalValue);
+
+      // batch funding channels with ERC20 (first deposit)
+      gasResults.batchFundChannelsWithERCFirst.satp['' + batchSize] = await gasUsed(
+        await batchOperator.deposit_batch_erc(
+          token.address,
+          batch.map(c => c.channelId),
+          batch.map(() => 0),
+          batch.map(() => 5),
+          totalValue
+        )
+      );
+
+      // batch funding channels with ERC20 (second deposit)
+      gasResults.batchFundChannelsWithERCSecond.satp['' + batchSize] = await gasUsed(
+        await batchOperator.deposit_batch_erc(
+          token.address,
+          batch.map(c => c.channelId),
+          batch.map(() => 5),
+          batch.map(() => 5),
+          totalValue
+        )
+      );
+    });
   }
 
   // directly funding a channel with an ERC20 (first deposit)

@@ -11,6 +11,8 @@ type Path =
   | 'directlyFundAChannelWithETHSecond'
   | 'batchFundChannelsWithETHFirst'
   | 'batchFundChannelsWithETHSecond'
+  | 'batchFundChannelsWithERCFirst'
+  | 'batchFundChannelsWithERCSecond'
   | 'directlyFundAChannelWithERC20First'
   | 'directlyFundAChannelWithERC20Second'
   | 'ETHexit'
@@ -56,6 +58,26 @@ export const emptyGasResults: GasResults = {
     },
   },
   batchFundChannelsWithETHSecond: {
+    satp: {
+      '1': 0,
+      '5': 0,
+      '10': 0,
+      '20': 0,
+      '50': 0,
+      '100': 0,
+    },
+  },
+  batchFundChannelsWithERCFirst: {
+    satp: {
+      '1': 0,
+      '5': 0,
+      '10': 0,
+      '20': 0,
+      '50': 0,
+      '100': 0,
+    },
+  },
+  batchFundChannelsWithERCSecond: {
     satp: {
       '1': 0,
       '5': 0,
