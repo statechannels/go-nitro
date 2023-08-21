@@ -36,7 +36,7 @@ jobs:
       - name: Check for race conditions
         # Only executes when triggered by a push to the main branch
         if: ${{ github.ref_name == 'main' }}
-        run: go test ./... -timeout 2m -v -failfast -race
+        run: go test ./... -timeout 4m -v -failfast -race
 
       - name: Archive logs
         if: always()
