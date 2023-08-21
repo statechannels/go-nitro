@@ -135,7 +135,6 @@ describe('deposit_batch', () => {
       const amountsBN = amounts.map(x => BigNumber.from(x));
       const heldAftersBN = heldAfters.map(x => BigNumber.from(x));
       const totalValue = sum(amountsBN);
-      const totalExpectedHeld = sum(expectedHeldsBN);
 
       if (assetId === ERC20) {
         await (
