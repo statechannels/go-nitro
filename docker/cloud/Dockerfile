@@ -1,4 +1,4 @@
-FROM golang:1.20-bullseye AS builder
+FROM golang:1.21-bullseye AS builder
 
 # Install Node.js v18.x
 RUN apt-get update && apt-get install -y curl
