@@ -210,16 +210,14 @@ describe('deposit_batch', () => {
       if (reasonString != '') {
         await expectRevert(() => tx, reasonString);
       } else {
-        const {events} = await (await tx).wait();
-        console.log('events', events);
+        await (await tx).wait();
 
-        const holdings: BigNumber[] = [];
         for (let i = 0; i < channelIds.length; i++) {
-          holdings.push(await nitroAdjudicator.holdings(assetId, channelIds[i]));
-          console.log(`post-holdings[${assetId}][${channelIds[i]}]`, holdings[i]);
-        }
-        for (let i = 0; i < channelIds.length; i++) {
-          expect(holdings[i]).toEqual(heldAftersBN[i]);
+          const channelId = channelIds[i];
+          const expectedHoldings = heldAftersBN[i];
+
+          const holdings = await nitroAdjudicator.holdings(assetId, channelId);
+          expect(holdings).toEqual(expectedHoldings);
         }
       }
     }
