@@ -16,6 +16,7 @@ import (
 type RequestMethod string
 
 const (
+	GetAuthTokenMethod                RequestMethod = "get_auth_token"
 	GetAddressMethod                  RequestMethod = "get_address"
 	VersionMethod                     RequestMethod = "version"
 	CreateLedgerChannelRequestMethod  RequestMethod = "create_ledger_channel"
