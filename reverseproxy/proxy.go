@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/big"
 	"net/http"
 	"net/http/httputil"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/rpc"
@@ -38,16 +38,16 @@ func createPaymentError(err error) error {
 
 // ReversePaymentProxy is an HTTP proxy that charges for HTTP requests.
 type ReversePaymentProxy struct {
-	server         *http.Server
-	nitroClient    rpc.RpcClientApi
-	costPerByte    uint64
-	reverseProxy   *httputil.ReverseProxy
-	logger         zerolog.Logger
+	server       *http.Server
+	nitroClient  rpc.RpcClientApi
+	costPerByte  uint64
+	reverseProxy *httputil.ReverseProxy
+
 	destinationUrl *url.URL
 }
 
 // NewReversePaymentProxy creates a new ReversePaymentProxy.
-func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, costPerByte uint64, logger zerolog.Logger) *ReversePaymentProxy {
+func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, costPerByte uint64) *ReversePaymentProxy {
 	server := &http.Server{Addr: proxyAddress}
 	nitroClient, err := rpc.NewHttpRpcClient(nitroEndpoint)
 	if err != nil {
@@ -60,7 +60,6 @@ func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinati
 
 	p := &ReversePaymentProxy{
 		server:         server,
-		logger:         logger,
 		nitroClient:    nitroClient,
 		costPerByte:    costPerByte,
 		destinationUrl: destinationUrl,
@@ -116,26 +115,21 @@ func (p *ReversePaymentProxy) handleDestinationResponse(r *http.Response) error 
 	}
 	cost := p.costPerByte * contentLength
 
-	p.logger.Debug().
-		Uint64("costPerByte", p.costPerByte).
-		Uint64("responseLength", contentLength).
-		Uint64("cost", cost).
-		Msg("Request cost")
+	slog.Debug("Request cost", "cost-per-byte", p.costPerByte, "response-length", contentLength, "cost", cost)
 
 	s, err := p.nitroClient.ReceiveVoucher(v)
 	if err != nil {
 		return createPaymentError(fmt.Errorf("error processing voucher %w", err))
 	}
-
-	p.logger.Debug().Msgf("Received voucher with delta %d", s.Delta.Uint64())
+	slog.Debug("Received voucher", "delta", s.Delta.Uint64())
 
 	// s.Delta is amount our balance increases by adding this voucher
 	// AKA the payment amount we received in the request for this file
 	if cost > s.Delta.Uint64() {
 		return createPaymentError(fmt.Errorf("payment of %d required, the voucher only resulted in a payment of %d", cost, s.Delta.Uint64()))
 	}
+	slog.Debug("Destination request", "url", r.Request.URL.String())
 
-	p.logger.Debug().Msgf("Destination request URL %s", r.Request.URL.String())
 	return nil
 }
 
@@ -147,16 +141,16 @@ func (p *ReversePaymentProxy) handleError(w http.ResponseWriter, r *http.Request
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	p.logger.Error().Err(err).Msgf("Error processing request")
+	slog.Error("Error processing request", "error", err)
 }
 
 // Start starts the proxy server in a goroutine.
 func (p *ReversePaymentProxy) Start() error {
 	go func() {
-		p.logger.Info().Msgf("Starting reverse payment proxy listening on %s.", p.server.Addr)
+		slog.Info("Starting reverse payment proxy", "address", p.server.Addr)
 
 		if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
-			p.logger.Err(err).Msg("ListenAndServe()")
+			slog.Error("Error while listening", "error", err)
 		}
 	}()
 
@@ -165,7 +159,8 @@ func (p *ReversePaymentProxy) Start() error {
 
 // Stop stops the proxy server and closes everything.
 func (p *ReversePaymentProxy) Stop() error {
-	p.logger.Info().Msgf("Stopping reverse payment proxy listening on %s", p.server.Addr)
+	slog.Info("Stopping reverse payment proxy", "address", p.server.Addr)
+
 	err := p.server.Shutdown(context.Background())
 	if err != nil {
 		return err

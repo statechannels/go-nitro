@@ -2,10 +2,11 @@ package main
 
 import (
 	"log"
+	"log/slog"
 	"os"
 
-	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/cmd/utils"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/reverseproxy"
 	"github.com/urfave/cli/v2"
 )
@@ -52,15 +53,14 @@ func main() {
 			proxyEndpoint := c.String(PROXY_ADDRESS)
 			nitroEndpoint := c.String(NITRO_ENDPOINT)
 
-			// For now we just log to stdout
-			logger := zerolog.New(os.Stdout).Level(zerolog.DebugLevel)
+			logging.SetupDefaultLogger(os.Stdout, slog.LevelDebug)
 
 			rProxy = reverseproxy.NewReversePaymentProxy(
 				proxyEndpoint,
 				nitroEndpoint,
 				c.String(DESTINATION_URL),
 				c.Uint64(COST_PER_BYTE),
-				logger)
+			)
 
 			return rProxy.Start()
 		},

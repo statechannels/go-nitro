@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"path"
@@ -13,8 +14,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/rs/zerolog"
-
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/rand"
 )
@@ -30,14 +29,14 @@ type serverWebSocketTransport struct {
 	requestHandlers       map[string]func([]byte) []byte
 	port                  string
 	notificationListeners safesync.Map[chan []byte]
-	logger                zerolog.Logger
+	logger                *slog.Logger
 
 	wg *sync.WaitGroup
 }
 
 // NewWebSocketTransportAsServer starts an http server that accepts websocket connections
-func NewWebSocketTransportAsServer(port string, logger zerolog.Logger) (*serverWebSocketTransport, error) {
-	wsc := &serverWebSocketTransport{port: port, notificationListeners: safesync.Map[chan []byte]{}, logger: logger}
+func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, error) {
+	wsc := &serverWebSocketTransport{port: port, notificationListeners: safesync.Map[chan []byte]{}, logger: slog.Default()}
 
 	tcpListener, err := net.Listen("tcp", ":"+wsc.port)
 	if err != nil {
@@ -155,7 +154,7 @@ func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Re
 	notificationChan := make(chan []byte)
 	key := strconv.Itoa(int(rand.Uint64()))
 	wsc.notificationListeners.Store(key, notificationChan)
-	wsc.logger.Debug().Msg("Websocket transport added a notification listener")
+	wsc.logger.Debug("Websocket transport added a notification listener")
 	defer wsc.notificationListeners.Delete(key)
 
 	closeChan := make(chan error)

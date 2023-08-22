@@ -3,15 +3,15 @@ package node_test
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"math/big"
-	"os"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
-	"github.com/rs/zerolog"
+
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/logging"
 	interRpc "github.com/statechannels/go-nitro/internal/rpc"
@@ -32,23 +32,6 @@ import (
 
 func simpleOutcome(a, b types.Address, aBalance, bBalance uint) outcome.Exit {
 	return testdata.Outcomes.Create(a, b, aBalance, bBalance, types.Address{})
-}
-
-func createLogger(logDestination *os.File, clientName *types.Address, rpcRole string) zerolog.Logger {
-	return logging.WithAddress(zerolog.New(logDestination).
-		Level(zerolog.TraceLevel).
-		With().
-		Timestamp().
-		Str("rpc", rpcRole), clientName).
-		Logger()
-}
-
-func testLogger(logDestination *os.File) zerolog.Logger {
-	return zerolog.New(logDestination).
-		Level(zerolog.TraceLevel).
-		With().
-		Timestamp().
-		Logger()
 }
 
 func TestRpcWithNats(t *testing.T) {
@@ -97,10 +80,9 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		manVoucherStr = ""
 	}
 	logFile := fmt.Sprintf("test_%d_rpc_clients_over_%s%s.log", n, connectionType, manVoucherStr)
-	logDestination := logging.NewLogWriter("../artifacts", logFile)
-	defer logDestination.Close()
-	logger := testLogger(logDestination)
-	logger.Info().Msgf("Starting test with %d clients", n)
+	logging.SetupDefaultFileLogger(logFile, slog.LevelDebug)
+
+	slog.Info("Starting test", "num-clients", n)
 
 	chain := chainservice.NewMockChain()
 	defer chain.Close()
@@ -113,7 +95,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 			PrivateKey: common.Hex2Bytes(sk),
 		}
 	}
-	logger.Info().Msgf("%d actors created", n)
+	slog.Info("Actors created", "num-actors", n)
 
 	chainServices := make([]*chainservice.MockChainService, n)
 	for i := 0; i < n; i++ {
@@ -126,7 +108,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	// Set up the intermediaries
 	if n > 2 {
 		for i := 1; i < n-1; i++ {
-			rpcClient, msg, cleanup := setupNitroNodeWithRPCClient(t, actors[i].PrivateKey, 3105+i, 4105+i, chainServices[i], logDestination, connectionType, []string{})
+			rpcClient, msg, cleanup := setupNitroNodeWithRPCClient(t, actors[i].PrivateKey, 3105+i, 4105+i, chainServices[i], connectionType, []string{})
 			clients[i] = rpcClient
 			msgServices[i] = msg
 			bootPeers = append(bootPeers, msg.MultiAddr)
@@ -136,7 +118,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 
 	// Set up the first and last client
 	for i := 0; i < n; i = i + (n - 1) {
-		rpcClient, msg, cleanup := setupNitroNodeWithRPCClient(t, actors[i].PrivateKey, 3105+i, 4105+i, chainServices[i], logDestination, connectionType, bootPeers)
+		rpcClient, msg, cleanup := setupNitroNodeWithRPCClient(t, actors[i].PrivateKey, 3105+i, 4105+i, chainServices[i], connectionType, bootPeers)
 		clients[i] = rpcClient
 		msgServices[i] = msg
 		defer cleanup()
@@ -146,9 +128,9 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		}
 	}
 
-	logger.Info().Msgf("%d Clients created", n)
+	slog.Info("Clients created", "num-clients", n)
 
-	logger.Info().Msg("Verify that each rpc client fetches the correct address")
+	slog.Info("Verify that each rpc client fetches the correct address")
 	for i := 0; i < n; i++ {
 		clientAddress, _ := clients[i].Address()
 		if !cmp.Equal(actors[i].Address(), clientAddress) {
@@ -157,7 +139,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	}
 
 	waitForPeerInfoExchange(msgServices...)
-	logger.Info().Msg("Peer exchange complete")
+	slog.Info("Peer exchange complete")
 
 	// create n-1 ledger channels
 	ledgerChannels := make([]directfund.ObjectiveResponse, n-1)
@@ -180,7 +162,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 			<-client.ObjectiveCompleteChan(ledgerChannels[i].Id) // right channel
 		}
 	}
-	logger.Info().Msg("Ledger channels created")
+	slog.Info("Ledger channels created")
 
 	// try to create duplicate ledger channel to ensure node correctly
 	// handles error without panicking
@@ -354,7 +336,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 			{99, 101, query.Complete},
 		},
 	)[alice.Address()]
-	checkNotifications(t, logger, "aliceLedger", expectedAliceLedgerNotifs, []query.LedgerChannelInfo{}, aliceLedgerNotifs, defaultTimeout)
+	checkNotifications(t, "aliceLedger", expectedAliceLedgerNotifs, []query.LedgerChannelInfo{}, aliceLedgerNotifs, defaultTimeout)
 
 	bobLedgerNotifs := bobClient.LedgerChannelUpdatesChan(bobLedger.ChannelId)
 	expectedBobLedgerNotifs := createLedgerStory(
@@ -372,7 +354,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 			createLedgerInfo(bobLedger.ChannelId, simpleOutcome(actors[n-2].Address(), bob.Address(), 99, 101), query.Closing, bob.Address()),
 		)
 	}
-	checkNotifications(t, logger, "bobLedger", expectedBobLedgerNotifs, []query.LedgerChannelInfo{}, bobLedgerNotifs, defaultTimeout)
+	checkNotifications(t, "bobLedger", expectedBobLedgerNotifs, []query.LedgerChannelInfo{}, bobLedgerNotifs, defaultTimeout)
 
 	requiredVCNotifs := createPaychStory(
 		vabCreateResponse.ChannelId, alice.Address(), bob.Address(),
@@ -394,9 +376,9 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	)
 
 	aliceVirtualNotifs := aliceClient.PaymentChannelUpdatesChan(vabCreateResponse.ChannelId)
-	checkNotifications(t, logger, "aliceVirtual", requiredVCNotifs, optionalVCNotifs, aliceVirtualNotifs, defaultTimeout)
+	checkNotifications(t, "aliceVirtual", requiredVCNotifs, optionalVCNotifs, aliceVirtualNotifs, defaultTimeout)
 	bobVirtualNotifs := bobClient.PaymentChannelUpdatesChan(vabCreateResponse.ChannelId)
-	checkNotifications(t, logger, "bobVirtual", requiredVCNotifs, optionalVCNotifs, bobVirtualNotifs, defaultTimeout)
+	checkNotifications(t, "bobVirtual", requiredVCNotifs, optionalVCNotifs, bobVirtualNotifs, defaultTimeout)
 }
 
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
@@ -406,18 +388,16 @@ func setupNitroNodeWithRPCClient(
 	msgPort int,
 	rpcPort int,
 	chain *chainservice.MockChainService,
-	logDestination *os.File,
 	connectionType transport.TransportType,
 	bootPeers []string,
 ) (rpc.RpcClientApi, *p2pms.P2PMessageService, func()) {
 	var err error
+
 	dataFolder, cleanupData := testhelpers.GenerateTempStoreFolder()
-	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, true, dataFolder, msgPort, rpcPort, connectionType, logDestination, bootPeers)
+	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, true, dataFolder, msgPort, rpcPort, connectionType, bootPeers)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	clientLogger := createLogger(logDestination, rpcServer.Address(), "client")
 
 	var clientConnection transport.Requester
 	switch connectionType {
@@ -429,7 +409,7 @@ func setupNitroNodeWithRPCClient(
 		}
 	case "ws":
 
-		clientConnection, err = ws.NewWebSocketTransportAsClient(rpcServer.Url(), clientLogger)
+		clientConnection, err = ws.NewWebSocketTransportAsClient(rpcServer.Url())
 		if err != nil {
 			panic(err)
 		}
@@ -438,18 +418,17 @@ func setupNitroNodeWithRPCClient(
 		panic(err)
 	}
 
-	rpcClient, err := rpc.NewRpcClient(clientLogger, clientConnection)
+	rpcClient, err := rpc.NewRpcClient(clientConnection)
 	if err != nil {
 		panic(err)
 	}
 
 	cleanupFn := func() {
-		logger := testLogger(logDestination)
-		logger.Info().Str("pk", string(pk)).Msg("Starting rpc close")
+		slog.Info("Starting rpc close", "pk", common.Bytes2Hex(pk))
 		rpcClient.Close()
-		logger.Info().Str("pk", string(pk)).Msg("Rpc client closed")
+		slog.Info("Rpc client closed", "pk", common.Bytes2Hex(pk))
 		rpcServer.Close()
-		logger.Info().Str("pk", string(pk)).Msg("Rpc server closed")
+		slog.Info("Rpc server closed", "pk", common.Bytes2Hex(pk))
 		cleanupData()
 	}
 	return rpcClient, messageService, cleanupFn
@@ -505,7 +484,7 @@ func marshalToJson[T channelInfo](t *testing.T, info T) string {
 // if any of these notifications are not received.
 //
 // If a notification is received that is neither in required or optional, checkNotifications will fail.
-func checkNotifications[T channelInfo](t *testing.T, logger zerolog.Logger, client string, required []T, optional []T, notifChan <-chan T, timeout time.Duration) {
+func checkNotifications[T channelInfo](t *testing.T, client string, required []T, optional []T, notifChan <-chan T, timeout time.Duration) {
 	// This is map containing both required and optional notifications.
 	// We use the json representation of the notification as the key and a boolean as the value.
 	// The boolean value is true if the notification is required and false if it is optional.
@@ -514,7 +493,7 @@ func checkNotifications[T channelInfo](t *testing.T, logger zerolog.Logger, clie
 	unexpectedNotifications := make(map[string]bool)
 	logUnexpected := func() {
 		for notif := range unexpectedNotifications {
-			logger.Info().Msgf("%s received unexpected notification: %v", client, notif)
+			slog.Info("Unexpected notification", "client", client, "notification", notif)
 		}
 	}
 
@@ -530,7 +509,7 @@ func checkNotifications[T channelInfo](t *testing.T, logger zerolog.Logger, clie
 		case info := <-notifChan:
 
 			notifJSON := marshalToJson(t, info)
-			logger.Info().Msgf("%s received %v+", client, info)
+			slog.Info("Received notification", "client", client, "notification", info)
 
 			// Check that the notification is a required or optional one.
 			_, isExpected := acceptableNotifications[notifJSON]
@@ -546,7 +525,7 @@ func checkNotifications[T channelInfo](t *testing.T, logger zerolog.Logger, clie
 			logUnexpected()
 			// Log both to the test log file and to stdout
 			failMsg := fmt.Sprintf("%s timed out waiting for notification(s): \n%v", client, incompleteRequired(acceptableNotifications))
-			logger.Error().Msgf(failMsg)
+			slog.Error(failMsg)
 			t.Fatalf(failMsg)
 		}
 	}

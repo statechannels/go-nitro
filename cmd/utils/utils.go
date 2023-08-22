@@ -8,8 +8,7 @@ import (
 	"syscall"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/rs/zerolog"
-	"github.com/statechannels/go-nitro/internal/logging"
+
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/types"
@@ -36,18 +35,6 @@ func StopCommands(cmds ...*exec.Cmd) {
 			panic(err)
 		}
 	}
-}
-
-func CreateLogger(logFileName string, clientName string) (zerolog.Logger, *os.File) {
-	logDestination := logging.NewLogWriter("./artifacts", logFileName)
-
-	return zerolog.New(logDestination).
-		Level(zerolog.TraceLevel).
-		With().
-		Timestamp().
-		Str("client", clientName).
-		Str("rpc", "client").
-		Logger(), logDestination
 }
 
 func CreateLedgerChannel(client rpc.RpcClientApi, counterPartyAddress common.Address) error {

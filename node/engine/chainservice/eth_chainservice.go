@@ -4,7 +4,7 @@ import (
 	"container/heap"
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"math/big"
 	"sync"
 	"time"
@@ -14,16 +14,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/rs/zerolog"
-	"github.com/statechannels/go-nitro/internal/logging"
+
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	Token "github.com/statechannels/go-nitro/node/engine/chainservice/erc20"
 	chainutils "github.com/statechannels/go-nitro/node/engine/chainservice/utils"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
-
-const logLevel = zerolog.DebugLevel
 
 var (
 	allocationUpdatedTopic   = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256,uint256)"))
@@ -63,7 +60,7 @@ type EthChainService struct {
 	virtualPaymentAppAddress common.Address
 	txSigner                 *bind.TransactOpts
 	out                      chan Event
-	logger                   zerolog.Logger
+	logger                   *slog.Logger
 	ctx                      context.Context
 	cancel                   context.CancelFunc
 	wg                       *sync.WaitGroup
@@ -87,7 +84,7 @@ const RESUB_INTERVAL = 15 * time.Second
 const REQUIRED_BLOCK_CONFIRMATIONS = 2
 
 // NewEthChainService is a convenient wrapper around newEthChainService, which provides a simpler API
-func NewEthChainService(chainUrl, chainAuthToken, chainPk string, naAddress, caAddress, vpaAddress common.Address, logDestination io.Writer) (*EthChainService, error) {
+func NewEthChainService(chainUrl, chainAuthToken, chainPk string, naAddress, caAddress, vpaAddress common.Address) (*EthChainService, error) {
 	if vpaAddress == caAddress {
 		return nil, fmt.Errorf("virtual payment app address and consensus app address cannot be the same: %s", vpaAddress.String())
 	}
@@ -101,18 +98,17 @@ func NewEthChainService(chainUrl, chainAuthToken, chainPk string, naAddress, caA
 		panic(err)
 	}
 
-	return newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner, logDestination)
+	return newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner)
 }
 
 // newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
 func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
-	naAddress, caAddress, vpaAddress common.Address, txSigner *bind.TransactOpts, logDestination io.Writer,
+	naAddress, caAddress, vpaAddress common.Address, txSigner *bind.TransactOpts,
 ) (*EthChainService, error) {
-	logging.ConfigureZeroLogger()
-
-	logger := zerolog.New(logDestination).Level(logLevel).With().Timestamp().Str("txSigner", txSigner.From.String()[0:8]).Caller().Logger()
 	ctx, cancelCtx := context.WithCancel(context.Background())
+
+	logger := slog.Default().With("tx-signer", txSigner)
 
 	eventQueue := EventQueue{}
 	heap.Init(&eventQueue)
@@ -143,9 +139,12 @@ func (ecs *EthChainService) listenForErrors(errChan <-chan error) {
 			ecs.wg.Done()
 			return
 		case err := <-errChan:
+
 			// Print to STDOUT in case we're using a noop logger
 			fmt.Println(err)
-			ecs.logger.Fatal().Err(err)
+
+			ecs.logger.Error("chain service error", "error", err)
+
 			// Manually panic in case we're using a logger that doesn't call exit(1)
 			panic(err)
 		}
@@ -186,7 +185,8 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 				// TODO: wait for the Approve tx to be mined before continuing
 			}
 			holdings, err := ecs.na.Holdings(&bind.CallOpts{}, tokenAddress, tx.ChannelId())
-			ecs.logger.Debug().Msgf("existing holdings: %v", holdings)
+			ecs.logger.Debug("existing holdings", "holdings", holdings)
+
 			if err != nil {
 				return err
 			}
@@ -222,7 +222,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 	for _, l := range logs {
 		switch l.Topics[0] {
 		case depositedTopic:
-			ecs.logger.Debug().Msg("Processing Deposited event")
+			ecs.logger.Debug("Processing Deposited event")
 			nad, err := ecs.na.ParseDeposited(l)
 			if err != nil {
 				return fmt.Errorf("error in ParseDeposited: %w", err)
@@ -232,7 +232,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 			ecs.out <- event
 
 		case allocationUpdatedTopic:
-			ecs.logger.Debug().Msg("Processing AllocationUpdated event")
+			ecs.logger.Debug("Processing AllocationUpdated event")
 			au, err := ecs.na.ParseAllocationUpdated(l)
 			if err != nil {
 				return fmt.Errorf("error in ParseAllocationUpdated: %w", err)
@@ -250,13 +250,13 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 			if err != nil {
 				return fmt.Errorf("error in assetAddressForIndex: %w", err)
 			}
-			ecs.logger.Debug().Msgf("assetAddress: %s", assetAddress)
+			ecs.logger.Debug("assetAddress", "assetAddress", assetAddress)
 
 			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, assetAddress, au.FinalHoldings)
 			ecs.out <- event
 
 		case concludedTopic:
-			ecs.logger.Debug().Msg("Processing Concluded event")
+			ecs.logger.Debug("Processing Concluded event")
 			ce, err := ecs.na.ParseConcluded(l)
 			if err != nil {
 				return fmt.Errorf("error in ParseConcluded: %w", err)
@@ -266,11 +266,12 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 			ecs.out <- event
 
 		case challengeRegisteredTopic:
-			ecs.logger.Info().Msg("Ignoring Challenge Registered event")
+			ecs.logger.Info("Ignoring Challenge Registered event")
 		case challengeClearedTopic:
-			ecs.logger.Info().Msg("Ignoring Challenge Cleared event")
+			ecs.logger.Info("Ignoring Challenge Cleared event")
 		default:
-			ecs.logger.Info().Str("topic", l.Topics[0].String()).Msg("Ignoring unknown chain event topic")
+			ecs.logger.Info("Ignoring unknown chain event topic", "topic", l.Topics[0].String())
+
 		}
 	}
 	return nil
@@ -299,7 +300,7 @@ out:
 				errorChan <- fmt.Errorf("subscribeFilterLogs failed on resubscribe: %w", err)
 				break out
 			}
-			ecs.logger.Trace().Msg("resubscribed to filtered event logs")
+			ecs.logger.Debug("resubscribed to filtered event logs")
 
 		case <-time.After(RESUB_INTERVAL):
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
@@ -309,7 +310,8 @@ out:
 		case chainEvent := <-eventChan:
 			for _, topic := range topicsToWatch {
 				if chainEvent.Topics[0] == topic {
-					ecs.logger.Debug().Msgf("queueing new chainEvent from block: %d", chainEvent.BlockNumber)
+					ecs.logger.Debug("queueing new chainEvent", "block-num", chainEvent.BlockNumber)
+
 					ecs.updateEventTracker(errorChan, nil, &chainEvent)
 				}
 			}
@@ -341,11 +343,11 @@ out:
 				errorChan <- fmt.Errorf("subscribeNewHead failed on resubscribe: %w", err)
 				break out
 			}
-			ecs.logger.Debug().Msg("resubscribed to new blocks")
+			ecs.logger.Debug("resubscribed to new blocks")
 
 		case newBlock := <-newBlockChan:
 			newBlockNum := newBlock.Number.Uint64()
-			ecs.logger.Debug().Msgf("detected new block: %d", newBlockNum)
+			ecs.logger.Debug("detected new block", "block-num", newBlockNum)
 			ecs.updateEventTracker(errorChan, &newBlockNum, nil)
 		}
 	}
@@ -367,7 +369,8 @@ func (ecs *EthChainService) updateEventTracker(errorChan chan<- error, blockNumb
 	for ecs.eventTracker.events.Len() > 0 && ecs.eventTracker.latestBlockNum >= (ecs.eventTracker.events)[0].BlockNumber+REQUIRED_BLOCK_CONFIRMATIONS {
 		chainEvent := heap.Pop(&ecs.eventTracker.events).(ethTypes.Log)
 		eventsToDispatch = append(eventsToDispatch, chainEvent)
-		ecs.logger.Debug().Msgf("event popped from queue (updated queue length: %d)", ecs.eventTracker.events.Len())
+		ecs.logger.Debug("event popped from queue", "updated-queue-length", ecs.eventTracker.events.Len())
+
 	}
 	ecs.eventTracker.mu.Unlock()
 
