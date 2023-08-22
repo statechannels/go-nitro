@@ -28,6 +28,8 @@ import (
 	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
 	"github.com/statechannels/go-nitro/rpc/transport/ws"
 	"github.com/statechannels/go-nitro/types"
+
+	"github.com/statechannels/go-nitro/crypto"
 )
 
 func simpleOutcome(a, b types.Address, aBalance, bBalance uint) outcome.Exit {
@@ -424,11 +426,15 @@ func setupNitroNodeWithRPCClient(
 	}
 
 	cleanupFn := func() {
-		slog.Info("Starting rpc close", "pk", common.Bytes2Hex(pk))
+		// Setup a logger with the address of the node so we know who is closing
+		me := crypto.GetAddressFromSecretKeyBytes(pk)
+		logger := logging.LoggerWithAddress(slog.Default(), me)
+		logger.Info("Starting rpc close")
 		rpcClient.Close()
-		slog.Info("Rpc client closed", "pk", common.Bytes2Hex(pk))
+		logger.Info("Rpc client closed")
 		rpcServer.Close()
-		slog.Info("Rpc server closed", "pk", common.Bytes2Hex(pk))
+		logger.Info("Rpc server closed")
+
 		cleanupData()
 	}
 	return rpcClient, messageService, cleanupFn
