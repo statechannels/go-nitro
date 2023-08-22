@@ -599,27 +599,6 @@ func (_NitroAdjudicator *NitroAdjudicatorTransactorSession) Deposit(asset common
 	return _NitroAdjudicator.Contract.Deposit(&_NitroAdjudicator.TransactOpts, asset, channelId, expectedHeld, amount)
 }
 
-// DepositBatch is a paid mutator transaction binding the contract method 0xf7cb41ba.
-//
-// Solidity: function deposit_batch(address asset, bytes32[] channelIds, uint256[] expectedHelds, uint256[] amounts) payable returns()
-func (_NitroAdjudicator *NitroAdjudicatorTransactor) DepositBatch(opts *bind.TransactOpts, asset common.Address, channelIds [][32]byte, expectedHelds []*big.Int, amounts []*big.Int) (*types.Transaction, error) {
-	return _NitroAdjudicator.contract.Transact(opts, "deposit_batch", asset, channelIds, expectedHelds, amounts)
-}
-
-// DepositBatch is a paid mutator transaction binding the contract method 0xf7cb41ba.
-//
-// Solidity: function deposit_batch(address asset, bytes32[] channelIds, uint256[] expectedHelds, uint256[] amounts) payable returns()
-func (_NitroAdjudicator *NitroAdjudicatorSession) DepositBatch(asset common.Address, channelIds [][32]byte, expectedHelds []*big.Int, amounts []*big.Int) (*types.Transaction, error) {
-	return _NitroAdjudicator.Contract.DepositBatch(&_NitroAdjudicator.TransactOpts, asset, channelIds, expectedHelds, amounts)
-}
-
-// DepositBatch is a paid mutator transaction binding the contract method 0xf7cb41ba.
-//
-// Solidity: function deposit_batch(address asset, bytes32[] channelIds, uint256[] expectedHelds, uint256[] amounts) payable returns()
-func (_NitroAdjudicator *NitroAdjudicatorTransactorSession) DepositBatch(asset common.Address, channelIds [][32]byte, expectedHelds []*big.Int, amounts []*big.Int) (*types.Transaction, error) {
-	return _NitroAdjudicator.Contract.DepositBatch(&_NitroAdjudicator.TransactOpts, asset, channelIds, expectedHelds, amounts)
-}
-
 // Reclaim is a paid mutator transaction binding the contract method 0xd3c4e738.
 //
 // Solidity: function reclaim((bytes32,bytes32,bytes,uint256,uint256,bytes32,bytes,uint256) reclaimArgs) returns()
