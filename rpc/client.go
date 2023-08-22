@@ -237,8 +237,6 @@ func (rc *rpcClient) subscribeToNotifications(ctx context.Context, notificationC
 		case data := <-notificationChan:
 
 			method, err := getNotificationMethod(data)
-			rc.logger.Debug("Received notification", "method", method)
-
 			if err != nil {
 				panic(err)
 			}
@@ -246,6 +244,7 @@ func (rc *rpcClient) subscribeToNotifications(ctx context.Context, notificationC
 			case serde.ObjectiveCompleted:
 				rpcRequest := serde.JsonRpcSpecificRequest[protocols.ObjectiveId]{}
 				err := json.Unmarshal(data, &rpcRequest)
+				rc.logger.Debug("Received notification", "method", method, "data", rpcRequest)
 				if err != nil {
 					panic(err)
 				}
@@ -254,6 +253,7 @@ func (rc *rpcClient) subscribeToNotifications(ctx context.Context, notificationC
 			case serde.LedgerChannelUpdated:
 				rpcRequest := serde.JsonRpcSpecificRequest[query.LedgerChannelInfo]{}
 				err := json.Unmarshal(data, &rpcRequest)
+				rc.logger.Debug("Received notification", "method", method, "data", rpcRequest)
 				if err != nil {
 					panic(err)
 				}
@@ -263,6 +263,7 @@ func (rc *rpcClient) subscribeToNotifications(ctx context.Context, notificationC
 			case serde.PaymentChannelUpdated:
 				rpcRequest := serde.JsonRpcSpecificRequest[query.PaymentChannelInfo]{}
 				err := json.Unmarshal(data, &rpcRequest)
+				rc.logger.Debug("Received notification", "method", method, "data", rpcRequest)
 				if err != nil {
 					panic(err)
 				}
