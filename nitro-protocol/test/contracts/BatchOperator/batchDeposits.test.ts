@@ -1,15 +1,15 @@
-import {ethers, Contract, Wallet, BigNumber, utils, BigNumberish} from 'ethers';
 import {it} from '@jest/globals';
 import {expectRevert} from '@statechannels/devtools';
+import {BigNumber, Contract, Wallet, utils} from 'ethers';
 
 import {MAGIC_ADDRESS_INDICATING_ETH, getChannelId, getRandomNonce} from '../../../src';
 import {getTestProvider, setupContract} from '../../test-helpers';
 // artifacts
-import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
-import BadTokenArtifact from '../../../artifacts/contracts/test/BadToken.sol/BadToken.json';
 import NitroAdjudicatorArtifact from '../../../artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
+import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
 import BatchOperatorArtifact from '../../../artifacts/contracts/auxiliary/BatchOperator.sol/BatchOperator.json';
-import {Token, BadToken, BatchOperator, NitroAdjudicator} from '../../../typechain-types';
+import BadTokenArtifact from '../../../artifacts/contracts/test/BadToken.sol/BadToken.json';
+import {BadToken, BatchOperator, NitroAdjudicator, Token} from '../../../typechain-types';
 const provider = getTestProvider();
 
 const batchOperator = setupContract(
