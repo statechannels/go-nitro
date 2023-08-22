@@ -130,7 +130,7 @@ func (rc *rpcClient) Address() (common.Address, error) {
 		if err != nil {
 			return res, err
 		}
-		fmt.Println()
+
 		// Update the logger so we output the address
 		rc.nodeAddress = res
 		rc.logger = logging.LoggerWithAddress(rc.logger, rc.nodeAddress)
