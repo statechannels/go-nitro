@@ -113,7 +113,8 @@ async function main() {
       );
     });
     await executeAndRevert(async () => {
-      await token.increaseAllowance(batchOperator.address, 2 * totalValue);
+      await token.increaseAllowance(batchOperator.address, 3 * totalValue); // over-approve to avoid "refund" when approval returns to 0
+      await (await token.transfer(nitroAdjudicator.address, 1)).wait(); // The asset holder already has some tokens (for other channels)
 
       // batch funding channels with ERC20 (first deposit)
       gasResults.batchFundChannelsWithERCFirst.satp['' + batchSize] = await gasUsed(

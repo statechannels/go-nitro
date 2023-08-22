@@ -116,7 +116,7 @@ describe('Consumes the expected gas for deposits', () => {
       // begin setup
       const totalAmount = batchSize * 5;
       await (await token.transfer(nitroAdjudicator.address, 1)).wait(); // The asset holder already has some tokens (for other channels)
-      await (await token.increaseAllowance(batchOperator.address, 2 * totalAmount)).wait();
+      await (await token.increaseAllowance(batchOperator.address, 2 * totalAmount)).wait(); // over-approve to avoid "refund" when approval returns to 0
       // end setup
 
       await expect(
@@ -134,7 +134,7 @@ describe('Consumes the expected gas for deposits', () => {
       // begin setup
       const totalAmount = batchSize * 5;
       await (await token.transfer(nitroAdjudicator.address, 1)).wait(); // The asset holder already has some tokens (for other channels)
-      await (await token.increaseAllowance(batchOperator.address, totalAmount)).wait();
+      await (await token.increaseAllowance(batchOperator.address, 3 * totalAmount)).wait(); // over-approve to avoid "refund" when approval returns to 0
 
       await (
         await batchOperator.deposit_batch_erc(
