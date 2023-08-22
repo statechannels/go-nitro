@@ -103,8 +103,6 @@ func NewRpcServer(nitroNode *nitro.Node, trans transport.Responder) (*RpcServer,
 // registerHandlers registers the handlers for the rpc server
 func (rs *RpcServer) registerHandlers() (err error) {
 	handlerV1 := func(requestData []byte) []byte {
-		rs.logger.Debug("Rpc server received request", "requestData", string(requestData))
-
 		if !json.Valid(requestData) {
 			rs.logger.Error("request is not valid json")
 			errRes := serde.NewJsonRpcErrorResponse(0, serde.ParseError)
@@ -112,6 +110,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 		}
 
 		jsonrpcReq, errRes := validateJsonrpcRequest(requestData)
+		rs.logger.Debug("Rpc server received request", "request", jsonrpcReq)
 		if errRes != nil {
 			rs.logger.Error("could not validate jsonrpc request")
 
