@@ -22,8 +22,6 @@ type Channel struct {
 	latestBlockNumber uint64 // the latest block number we've seen
 
 	state.FixedPart
-	// Support []uint64 // TODO: this property will be important, and allow the Channel to store the necessary data to close out the channel on chain
-	// It could be an array of turnNums, which can be used to slice into Channel.SignedStateForTurnNum
 
 	SignedStateForTurnNum map[uint64]state.SignedState
 	// Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
@@ -49,7 +47,6 @@ func New(s state.State, myIndex uint) (*Channel, error) {
 	c.OnChainFunding = make(types.Funds)
 	c.FixedPart = s.FixedPart().Clone()
 	c.latestSupportedStateTurnNum = MaxTurnNum // largest uint64 value reserved for "no supported state"
-	// c.Support =  // TODO
 
 	// Store prefund
 	c.SignedStateForTurnNum = make(map[uint64]state.SignedState)
@@ -291,8 +288,6 @@ func (c *Channel) AddSignedState(ss state.SignedState) bool {
 	if c.SignedStateForTurnNum[s.TurnNum].HasAllSignatures() {
 		c.latestSupportedStateTurnNum = s.TurnNum
 	}
-
-	// TODO update support
 
 	return true
 }

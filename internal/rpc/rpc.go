@@ -84,8 +84,7 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		chainService,
 		ourStore,
 		logDestination,
-		&engine.PermissivePolicy{},
-		nil)
+		&engine.PermissivePolicy{})
 
 	serverLogger := logging.WithAddress(zerolog.New(logDestination).
 		Level(zerolog.TraceLevel).
