@@ -116,7 +116,7 @@ describe('Consumes the expected gas for deposits', () => {
       // begin setup
       const totalAmount = batchSize * 5;
       await (await token.transfer(nitroAdjudicator.address, 1)).wait(); // The asset holder already has some tokens (for other channels)
-      await (await token.increaseAllowance(batchOperator.address, totalAmount)).wait();
+      await (await token.increaseAllowance(batchOperator.address, 2 * totalAmount)).wait();
       // end setup
 
       await expect(
