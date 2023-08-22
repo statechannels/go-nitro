@@ -379,7 +379,7 @@ describe('Consumes the expected gas for sad-path exits', () => {
 
     await assertEthBalancesAndHoldings(
       {
-        Bob: BigNumber.from(paymentAmount), // Bob gets his paymennt
+        Bob: BigNumber.from(paymentAmount), // Bob gets his payment
         Ingrid: BigNumber.from(amountForAlice).sub(BigNumber.from(paymentAmount)), // Ingrid is adjusted down, she will be compensated in the other ledger channel
       },
       {LforV: 0, V: 0}
