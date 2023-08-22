@@ -12,12 +12,12 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
         with:
-          go-version: "1.20.0"
+          go-version: "1.21.0"
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v3.4.0
+        uses: golangci/golangci-lint-action@v3.7.0
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
-          version: v1.51.2
+          version: v1.54.2
           args: --timeout 3m0s --verbose --modules-download-mode readonly
 
       - name: Run staticcheck # see: staticcheck.io
@@ -25,7 +25,7 @@ jobs:
         with:
           version: "2023.1.2"
           install-go: false
-          min-go-version: 1.20
+          min-go-version: 1.21
 
       - name: Build
         run: go build -v ./...

@@ -1,4 +1,4 @@
-FROM golang:1.20-bullseye
+FROM golang:1.21-bullseye
 
 # Set up anvil
 RUN curl -L https://foundry.paradigm.xyz | bash
