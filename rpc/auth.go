@@ -12,6 +12,7 @@ var rpcPK = []byte("rpcPK")
 type permission string
 
 const (
+	permNone permission = "none"
 	permRead permission = "read"
 	permSign permission = "sign"
 )
