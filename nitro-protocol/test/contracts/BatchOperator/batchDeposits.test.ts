@@ -187,7 +187,7 @@ describe('deposit_batch', () => {
           ? batchOperator.deposit_batch_eth(channelIds, expectedHeldsBN, amountsBN, {
               value: totalValue,
             })
-          : batchOperator.deposit_batch_erc(
+          : batchOperator.deposit_batch_erc20(
               assetId,
               channelIds,
               expectedHeldsBN,

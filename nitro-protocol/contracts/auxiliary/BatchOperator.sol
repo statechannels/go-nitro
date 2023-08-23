@@ -42,7 +42,7 @@ contract BatchOperator {
     /**
      * @dev Deposits ERC20 tokens into the adjudicator for multiple channels.
      */
-    function deposit_batch_erc(
+    function deposit_batch_erc20(
         address asset,
         bytes32[] calldata channelIds,
         uint256[] calldata expectedHelds,

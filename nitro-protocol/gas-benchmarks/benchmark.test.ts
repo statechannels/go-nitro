@@ -119,7 +119,7 @@ describe('Consumes the expected gas for deposits', () => {
       // end setup
 
       await expect(
-        await batchOperator.deposit_batch_erc(
+        await batchOperator.deposit_batch_erc20(
           token.address,
           batch.map(c => c.channelId),
           batch.map(() => 0),
@@ -136,7 +136,7 @@ describe('Consumes the expected gas for deposits', () => {
       await (await token.increaseAllowance(batchOperator.address, 3 * totalAmount)).wait(); // over-approve to avoid "refund" when approval returns to 0
 
       await (
-        await batchOperator.deposit_batch_erc(
+        await batchOperator.deposit_batch_erc20(
           token.address,
           batch.map(c => c.channelId),
           batch.map(() => 0),

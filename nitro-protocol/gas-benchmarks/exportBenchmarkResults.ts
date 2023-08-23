@@ -118,7 +118,7 @@ async function main() {
 
       // batch funding channels with ERC20 (first deposit)
       gasResults.batchFundChannelsWithERCFirst.satp['' + batchSize] = await gasUsed(
-        await batchOperator.deposit_batch_erc(
+        await batchOperator.deposit_batch_erc20(
           token.address,
           batch.map(c => c.channelId),
           batch.map(() => 0),
@@ -129,7 +129,7 @@ async function main() {
 
       // batch funding channels with ERC20 (second deposit)
       gasResults.batchFundChannelsWithERCSecond.satp['' + batchSize] = await gasUsed(
-        await batchOperator.deposit_batch_erc(
+        await batchOperator.deposit_batch_erc20(
           token.address,
           batch.map(c => c.channelId),
           batch.map(() => 5),
