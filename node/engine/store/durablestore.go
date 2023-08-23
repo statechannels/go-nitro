@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel"
@@ -26,6 +27,7 @@ type DurableStore struct {
 	consensusChannels  *buntdb.DB
 	channelToObjective *buntdb.DB
 	vouchers           *buntdb.DB
+	blocks             *buntdb.DB
 
 	key     string // the signing key of the store's engine
 	address string // the (Ethereum) address associated to the signing key
@@ -62,6 +64,11 @@ func NewDurableStore(key []byte, folder string, config buntdb.Config) (Store, er
 		return nil, err
 	}
 	ps.vouchers, err = ps.openDB("vouchers", config)
+	if err != nil {
+		return nil, err
+	}
+
+	ps.blocks, err = ps.openDB("blocks", config)
 	if err != nil {
 		return nil, err
 	}
@@ -208,6 +215,28 @@ func (ds *DurableStore) SetObjective(obj protocols.Objective) error {
 	}
 
 	return nil
+}
+
+// GetLastBlockProcessed retrieves the last blockchain block processed by this node
+func (ds *DurableStore) GetLastBlockProcessed() (uint64, error) {
+	var result uint64
+	err := ds.blocks.View(func(tx *buntdb.Tx) error {
+		val, err := tx.Get(lastBlockProcessedKey)
+		if err != nil {
+			return err
+		}
+		result, err = strconv.ParseUint(val, 10, 64)
+		return err
+	})
+	return result, err
+}
+
+// SetLastBlockProcessed sets the last blockchain block processed by this node
+func (ds *DurableStore) SetLastBlockProcessed(blockNumber uint64) error {
+	return ds.blocks.Update(func(tx *buntdb.Tx) error {
+		_, _, err := tx.Set(lastBlockProcessedKey, strconv.FormatUint(blockNumber, 10), nil)
+		return err
+	})
 }
 
 // SetChannel sets the channel in the store.
