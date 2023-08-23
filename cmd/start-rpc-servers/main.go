@@ -13,6 +13,7 @@ import (
 
 	"github.com/statechannels/go-nitro/cmd/utils"
 	"github.com/statechannels/go-nitro/internal/chain"
+	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/types"
 	"github.com/urfave/cli/v2"
 )
@@ -105,7 +106,7 @@ func main() {
 				}
 				running = append(running, anvilCmd)
 			}
-			dataFolder, cleanup := generateTempStoreFolder()
+			dataFolder, cleanup := testhelpers.GenerateTempStoreFolder()
 			defer cleanup()
 			fmt.Printf("Using data folder %s\n", dataFolder)
 
@@ -205,25 +206,6 @@ func newColorWriter(c color, w io.Writer) colorWriter {
 		writer: w,
 		color:  c,
 	}
-}
-
-// generateTempStoreFolder generates a temporary folder for storing store data and a cleanup function to clean up the folder
-func generateTempStoreFolder() (dataFolder string, cleanup func()) {
-	var err error
-
-	dataFolder, err = os.MkdirTemp("", "nitro-store-*")
-	if err != nil {
-		panic(err)
-	}
-
-	cleanup = func() {
-		err := os.RemoveAll(dataFolder)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	return
 }
 
 // waitForRpcClient waits for an RPC to be available at the given url

@@ -2,12 +2,12 @@ package node_test
 
 import (
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	td "github.com/statechannels/go-nitro/internal/testdata"
+	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/node/engine/messageservice"
 	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
@@ -58,8 +58,8 @@ func TestComplexIntegrationScenario(t *testing.T) {
 
 // RunIntegrationTestCase runs the integration test case.
 func RunIntegrationTestCase(tc TestCase, t *testing.T) {
-	// Clean up all the test data we create at the end of the test
-	defer os.RemoveAll(STORE_TEST_DATA_FOLDER)
+	dataFolder, cleanup := testhelpers.GenerateTempStoreFolder()
+	defer cleanup()
 
 	t.Run(tc.Description, func(t *testing.T) {
 		err := tc.Validate()
@@ -76,7 +76,7 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 		intermediaries := make([]node.Node, 0)
 		bootPeers := make([]string, 0)
 		for _, intermediary := range tc.Participants[2:] {
-			clientI, msgI, multiAddr := setupIntegrationNode(tc, intermediary, infra, []string{})
+			clientI, msgI, multiAddr := setupIntegrationNode(tc, intermediary, infra, []string{}, dataFolder)
 
 			intermediaries = append(intermediaries, clientI)
 			msgServices = append(msgServices, msgI)
@@ -90,11 +90,11 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 		}()
 		t.Log("Intermediary node(s) setup complete")
 
-		clientA, msgA, _ := setupIntegrationNode(tc, tc.Participants[0], infra, bootPeers)
+		clientA, msgA, _ := setupIntegrationNode(tc, tc.Participants[0], infra, bootPeers, dataFolder)
 		defer clientA.Close()
 		msgServices = append(msgServices, msgA)
 
-		clientB, msgB, _ := setupIntegrationNode(tc, tc.Participants[1], infra, bootPeers)
+		clientB, msgB, _ := setupIntegrationNode(tc, tc.Participants[1], infra, bootPeers, dataFolder)
 		defer clientB.Close()
 		msgServices = append(msgServices, msgB)
 
