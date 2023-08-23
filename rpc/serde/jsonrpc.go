@@ -83,11 +83,16 @@ type NotificationPayload interface {
 		query.LedgerChannelInfo
 }
 
+type Params[T RequestPayload | NotificationPayload] struct {
+	AuthToken string
+	Payload   T
+}
+
 type JsonRpcSpecificRequest[T RequestPayload | NotificationPayload] struct {
-	Jsonrpc string `json:"jsonrpc"`
-	Id      uint64 `json:"id"`
-	Method  string `json:"method"`
-	Params  T      `json:"params"`
+	Jsonrpc string    `json:"jsonrpc"`
+	Id      uint64    `json:"id"`
+	Method  string    `json:"method"`
+	Params  Params[T] `json:"params"`
 }
 
 type (
@@ -116,12 +121,12 @@ type JsonRpcSuccessResponse[T ResponsePayload] struct {
 	Result  T      `json:"result"`
 }
 
-func NewJsonRpcSpecificRequest[T RequestPayload | NotificationPayload, U RequestMethod | NotificationMethod](requestId uint64, method U, objectiveRequest T) *JsonRpcSpecificRequest[T] {
+func NewJsonRpcSpecificRequest[T RequestPayload | NotificationPayload, U RequestMethod | NotificationMethod](requestId uint64, method U, objectiveRequest T, authToken string) *JsonRpcSpecificRequest[T] {
 	return &JsonRpcSpecificRequest[T]{
 		Jsonrpc: JsonRpcVersion,
 		Id:      requestId,
 		Method:  string(method),
-		Params:  objectiveRequest,
+		Params:  Params[T]{AuthToken: authToken, Payload: objectiveRequest},
 	}
 }
 

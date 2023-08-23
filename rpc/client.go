@@ -247,7 +247,7 @@ func (rc *rpcClient) subscribeToNotifications(ctx context.Context, notificationC
 				if err != nil {
 					panic(err)
 				}
-				c, _ := rc.completedObjectives.LoadOrStore(string(rpcRequest.Params), make(chan struct{}))
+				c, _ := rc.completedObjectives.LoadOrStore(string(rpcRequest.Params.Payload), make(chan struct{}))
 				close(c)
 			case serde.LedgerChannelUpdated:
 				rpcRequest := serde.JsonRpcSpecificRequest[query.LedgerChannelInfo]{}
@@ -256,8 +256,8 @@ func (rc *rpcClient) subscribeToNotifications(ctx context.Context, notificationC
 				if err != nil {
 					panic(err)
 				}
-				c, _ := rc.ledgerChannelUpdates.LoadOrStore(string(rpcRequest.Params.ID.String()), make(chan query.LedgerChannelInfo, 100))
-				c <- rpcRequest.Params
+				c, _ := rc.ledgerChannelUpdates.LoadOrStore(string(rpcRequest.Params.Payload.ID.String()), make(chan query.LedgerChannelInfo, 100))
+				c <- rpcRequest.Params.Payload
 
 			case serde.PaymentChannelUpdated:
 				rpcRequest := serde.JsonRpcSpecificRequest[query.PaymentChannelInfo]{}
@@ -266,8 +266,8 @@ func (rc *rpcClient) subscribeToNotifications(ctx context.Context, notificationC
 				if err != nil {
 					panic(err)
 				}
-				c, _ := rc.paymentChannelUpdates.LoadOrStore(string(rpcRequest.Params.ID.String()), make(chan query.PaymentChannelInfo, 100))
-				c <- rpcRequest.Params
+				c, _ := rc.paymentChannelUpdates.LoadOrStore(string(rpcRequest.Params.Payload.ID.String()), make(chan query.PaymentChannelInfo, 100))
+				c <- rpcRequest.Params.Payload
 			}
 
 		}
@@ -311,7 +311,7 @@ func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *rpcClie
 //   - Otherwise, returns the JSONRPC server's response
 func sendRequest[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, method serde.RequestMethod, reqPayload T, logger *slog.Logger, wg *sync.WaitGroup) (response[U], error) {
 	requestId := rand.Uint64()
-	message := serde.NewJsonRpcSpecificRequest(requestId, method, reqPayload)
+	message := serde.NewJsonRpcSpecificRequest(requestId, method, reqPayload, "")
 	data, err := json.Marshal(message)
 	if err != nil {
 		return response[U]{}, err
