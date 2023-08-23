@@ -18,7 +18,6 @@ import (
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	"github.com/statechannels/go-nitro/protocols"
@@ -90,8 +89,7 @@ func testAgainstEndpoint(t *testing.T, endpoint string, logFile string, pk *ecds
 		t.Fatal(err)
 	}
 
-	logDestination := logging.NewLogWriter("../artifacts", logFile)
-	cs, err := newEthChainService(client, na, naAddress, caAddress, vpaAddress, txSubmitter, logDestination)
+	cs, err := newEthChainService(client, na, naAddress, caAddress, vpaAddress, txSubmitter)
 	if err != nil {
 		t.Fatal(err)
 	}

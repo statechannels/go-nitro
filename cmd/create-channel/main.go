@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/BurntSushi/toml"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/cmd/utils"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/rpc/transport/ws"
 )
@@ -31,15 +33,15 @@ func main() {
 	if _, err := toml.DecodeFile(CONFIG_FILE, &participantOpts); err != nil {
 		panic(err)
 	}
-	logger, logFile := utils.CreateLogger(LOG_FILE, "alice")
-	defer logFile.Close()
+
+	logging.SetupDefaultFileLogger(LOG_FILE, slog.LevelDebug)
 
 	url := fmt.Sprintf(":%d/api/v1", participantOpts.RpcPort)
-	clientConnection, err := ws.NewWebSocketTransportAsClient(url, logger)
+	clientConnection, err := ws.NewWebSocketTransportAsClient(url)
 	if err != nil {
 		panic(err)
 	}
-	client, err := rpc.NewRpcClient(logger, clientConnection)
+	client, err := rpc.NewRpcClient(clientConnection)
 	if err != nil {
 		panic(err)
 	}

@@ -3,6 +3,7 @@ package node_test
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -11,10 +12,10 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/rs/zerolog"
-	"github.com/statechannels/go-nitro/internal/logging"
+
 	"github.com/statechannels/go-nitro/payments"
 
+	"github.com/statechannels/go-nitro/internal/logging"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/reverseproxy"
@@ -61,9 +62,7 @@ func setupTestFile(t *testing.T) func() {
 func TestReversePaymentProxy(t *testing.T) {
 	logFile := "reverse_payment_proxy.log"
 
-	logDestination := logging.NewLogWriter("../artifacts", logFile)
-
-	aliceClient, ireneClient, bobClient, cleanup := setupNitroClients(t, logDestination)
+	aliceClient, ireneClient, bobClient, cleanup := setupNitroClients(t, logFile)
 	defer cleanup()
 
 	paymentChannel := createChannelData(t, aliceClient, ireneClient, bobClient)
@@ -81,8 +80,7 @@ func TestReversePaymentProxy(t *testing.T) {
 		proxyAddress,
 		bobRPCUrl,
 		destinationServerUrl,
-		1,
-		zerolog.New(logDestination).Level(zerolog.DebugLevel))
+		1)
 	defer func() {
 		err := proxy.Stop()
 		if err != nil {
@@ -231,23 +229,24 @@ func getResponseInfo(t *testing.T, resp *http.Response) (body string, statusCode
 }
 
 // setupNitroClients creates three nitro clients and connects them to each other
-func setupNitroClients(t *testing.T, logDestination *os.File) (alice, irene, bob rpc.RpcClientApi, cleanup func()) {
+func setupNitroClients(t *testing.T, logFile string) (alice, irene, bob rpc.RpcClientApi, cleanup func()) {
 	chain := chainservice.NewMockChain()
-	logger := testLogger(logDestination)
+
+	logging.SetupDefaultFileLogger(logFile, slog.LevelDebug)
 
 	aliceChainService := chainservice.NewMockChainService(chain, ta.Alice.Address())
 	bobChainService := chainservice.NewMockChainService(chain, ta.Bob.Address())
 	ireneChainService := chainservice.NewMockChainService(chain, ta.Irene.Address())
-	ireneClient, msgIrene, ireneCleanup := setupNitroNodeWithRPCClient(t, ta.Irene.PrivateKey, 3106, 4106, ireneChainService, logDestination, "ws", []string{})
+	ireneClient, msgIrene, ireneCleanup := setupNitroNodeWithRPCClient(t, ta.Irene.PrivateKey, 3106, 4106, ireneChainService, "ws", []string{})
 	bootPeers := []string{msgIrene.MultiAddr}
-	aliceClient, msgAlice, aliceCleanup := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3105, 4105, aliceChainService, logDestination, "ws", bootPeers)
+	aliceClient, msgAlice, aliceCleanup := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3105, 4105, aliceChainService, "ws", bootPeers)
 
-	bobClient, msgBob, bobCleanup := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3107, 4107, bobChainService, logDestination, "ws", bootPeers)
+	bobClient, msgBob, bobCleanup := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3107, 4107, bobChainService, "ws", bootPeers)
 
-	logger.Info().Msg("Clients created")
+	slog.Info("Clients created")
 
 	waitForPeerInfoExchange(msgAlice, msgBob, msgIrene)
-	logger.Info().Msg("Peer exchange complete")
+	slog.Info("Peer exchange complete")
 
 	return aliceClient, ireneClient, bobClient, func() {
 		aliceCleanup()

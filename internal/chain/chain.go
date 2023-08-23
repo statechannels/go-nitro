@@ -34,14 +34,14 @@ func InitializeEthChainService(chainOpts ChainOpts) (*chainservice.EthChainServi
 	}
 
 	fmt.Println("Initializing chain service and connecting to " + chainOpts.ChainUrl + "...")
+
 	return chainservice.NewEthChainService(
 		chainOpts.ChainUrl,
 		chainOpts.ChainAuthToken,
 		chainOpts.ChainPk,
 		chainOpts.NaAddress,
 		chainOpts.CaAddress,
-		chainOpts.VpaAddress,
-		os.Stdout)
+		chainOpts.VpaAddress)
 }
 
 func StartAnvil() (*exec.Cmd, error) {

@@ -52,7 +52,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cs, err := NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], NoopLogger{})
+	cs, err := NewSimulatedBackendChainService(sim, bindings, ethAccounts[0])
 	defer closeChainService(t, cs)
 	if err != nil {
 		t.Fatal(err)

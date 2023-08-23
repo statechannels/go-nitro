@@ -1,9 +1,10 @@
 package nats
 
 import (
+	"log/slog"
+
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
-	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -37,7 +38,8 @@ func (c *natsTransport) Close() error {
 	for _, sub := range c.natsSubscriptions {
 		err := c.unsubscribeFromTopic(sub, 3)
 		if err != nil {
-			log.Error().Err(err).Msgf("failed to unsubscribe from a topic: %s", sub.Subject)
+			slog.Error("failed to unsubscribe from a topic", "topic", sub.Subject, "error", err)
+
 			return err
 		}
 	}

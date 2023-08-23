@@ -5,11 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
+	"log/slog"
 	"math/big"
 	"sync"
 
-	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/internal/logging"
@@ -72,10 +71,8 @@ type Engine struct {
 
 	store       store.Store // A Store for persisting and restoring important data
 	policymaker PolicyMaker // A PolicyMaker decides whether to approve or reject objectives
-
-	logger zerolog.Logger
-
-	vm *payments.VoucherManager
+	logger      *slog.Logger
+	vm          *payments.VoucherManager
 
 	wg     *sync.WaitGroup
 	cancel context.CancelFunc
@@ -127,9 +124,9 @@ type CompletedObjectiveEvent struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker PolicyMaker, eventHandler func(EngineEvent)) Engine {
+func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, policymaker PolicyMaker, eventHandler func(EngineEvent)) Engine {
 	e := Engine{}
-
+	e.logger = logging.LoggerWithAddress(slog.Default(), *store.GetAddress())
 	e.store = store
 
 	e.fromLedger = make(chan consensus_channel.Proposal, 100)
@@ -145,14 +142,11 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 
 	e.eventHandler = eventHandler
 
-	logging.ConfigureZeroLogger()
-	e.logger = logging.WithAddress(zerolog.New(logDestination).With().Timestamp(), e.store.GetAddress()).Caller().Logger()
-
 	e.policymaker = policymaker
 
 	e.vm = vm
 
-	e.logger.Print("Constructed Engine")
+	e.logger.Info("Constructed Engine")
 
 	e.wg = &sync.WaitGroup{}
 
@@ -206,7 +200,7 @@ func (e *Engine) run(ctx context.Context) {
 		if !res.IsEmpty() {
 
 			for _, obj := range res.CompletedObjectives {
-				e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
+				e.logger.Info("Objective is complete & returned to API", logging.WithObjectiveIdAttribute(obj.Id()))
 			}
 			e.eventHandler(res)
 		}
@@ -225,7 +219,7 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 		return EngineEvent{}, err
 	}
 	if obj.GetStatus() == protocols.Completed {
-		e.logger.Printf("Ignoring proposal for complected objective  %s", obj.Id())
+		e.logger.Info("Ignoring proposal for complected objective", logging.WithObjectiveIdAttribute(id))
 		return EngineEvent{}, nil
 	}
 	return e.attemptProgress(obj)
@@ -249,7 +243,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		}
 
 		if objective.GetStatus() == protocols.Unapproved {
-			e.logger.Printf("Policymaker is %+v", e.policymaker)
+			e.logger.Info("Policymaker for objective", "policy-maker", e.policymaker, logging.WithObjectiveIdAttribute(objective.Id()))
 			if e.policymaker.ShouldApprove(objective) {
 				objective = objective.Approve()
 
@@ -278,11 +272,12 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		}
 
 		if objective.GetStatus() == protocols.Completed {
-			e.logger.Printf("Ignoring payload for complected objective  %s", objective.Id())
+			e.logger.Info("Ignoring payload for complected objective", logging.WithObjectiveIdAttribute(objective.Id()))
+
 			continue
 		}
 		if objective.GetStatus() == protocols.Rejected {
-			e.logger.Printf("Ignoring payload for rejected objective  %s", objective.Id())
+			e.logger.Info("Ignoring payload for rejected objective", logging.WithObjectiveIdAttribute(objective.Id()))
 			continue
 		}
 
@@ -313,7 +308,8 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			return EngineEvent{}, err
 		}
 		if o.GetStatus() == protocols.Completed {
-			e.logger.Printf("Ignoring payload for complected objective  %s", o.Id())
+			e.logger.Info("Ignoring proposal for completed objective", logging.WithObjectiveIdAttribute(id))
+
 			continue
 		}
 		objective, isProposalReceiver := o.(protocols.ProposalReceiver)
@@ -341,7 +337,8 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 			return EngineEvent{}, err
 		}
 		if objective.GetStatus() == protocols.Rejected {
-			e.logger.Printf("Ignoring payload for rejected objective  %s", objective.Id())
+			e.logger.Info("Ignoring payload for rejected objective", logging.WithObjectiveIdAttribute(objective.Id()))
+
 			continue
 		}
 
@@ -395,10 +392,8 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 //   - generates an updated objective, and
 //   - attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, error) {
-	e.logger.Printf("handling chain event: %v", chainEvent)
-
+	e.logger.Info("Handling chain event", "event", chainEvent)
 	c, ok := e.store.GetChannelById(chainEvent.ChannelID())
-
 	if !ok {
 		// TODO: Right now the chain service returns chain events for ALL channels even those we aren't involved in
 		// for now we can ignore channels we aren't involved in
@@ -436,7 +431,7 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 
 	objectiveId := or.Id(myAddress, chainId)
 	failedEngineEvent := EngineEvent{FailedObjectives: []protocols.ObjectiveId{objectiveId}}
-	e.logger.Printf("handling new objective request for %s", objectiveId)
+	e.logger.Info("handling new objective request", logging.WithObjectiveIdAttribute(objectiveId))
 	defer or.SignalObjectiveStarted()
 	switch request := or.(type) {
 
@@ -538,7 +533,8 @@ func (e *Engine) sendMessages(msgs []protocols.Message) {
 		e.logMessage(message, Outgoing)
 		err := e.msg.Send(message)
 		if err != nil {
-			e.logger.Err(err)
+			e.logger.Error(err.Error())
+			panic(err)
 		}
 	}
 	e.wg.Done()
@@ -551,7 +547,8 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	go e.sendMessages(sideEffects.MessagesToSend)
 
 	for _, tx := range sideEffects.TransactionsToSubmit {
-		e.logger.Printf("Sending chain transaction for channel %s", tx.ChannelId())
+		e.logger.Info("Sending chain transaction", "channel", tx.ChannelId().String())
+
 		err := e.chain.SendTransaction(tx)
 		if err != nil {
 			return err
@@ -592,7 +589,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	}
 	outgoing.Merge(notifEvents)
 
-	e.logger.Printf("Objective %s is %s", objective.Id(), waitingFor)
+	e.logger.Info("Objective cranked", logging.WithObjectiveIdAttribute(objective.Id()), "waiting-for", string(waitingFor))
 
 	// If our protocol is waiting for nothing then we know the objective is complete
 	// TODO: If attemptProgress is called on a completed objective CompletedObjectives would include that objective id
@@ -707,7 +704,8 @@ func (e *Engine) getOrCreateObjective(p protocols.ObjectivePayload) (protocols.O
 		if err != nil {
 			return nil, fmt.Errorf("error setting objective in store: %w", err)
 		}
-		e.logger.Printf("Created new objective from message %s", newObj.Id())
+		e.logger.Info("Created new objective from message", "id", id)
+
 		return newObj, nil
 
 	} else {
@@ -717,8 +715,7 @@ func (e *Engine) getOrCreateObjective(p protocols.ObjectivePayload) (protocols.O
 
 // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied payload.
 func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p protocols.ObjectivePayload) (protocols.Objective, error) {
-	e.logger.Printf("Constructing objective %s from message", id)
-
+	e.logger.Info("Constructing objective from message", logging.WithObjectiveIdAttribute(id))
 	switch {
 	case directfund.IsDirectFundObjective(id):
 
@@ -815,15 +812,15 @@ const (
 // logMessage logs a message to the engine's logger
 func (e *Engine) logMessage(msg protocols.Message, direction messageDirection) {
 	if direction == Incoming {
-		e.logger.Trace().EmbedObject(msg.Summarize()).Msg("Received message")
+		e.logger.Debug("Received message", "msg", msg.Summarize())
 	} else {
-		e.logger.Trace().EmbedObject(msg.Summarize()).Msg("Sending message")
+		e.logger.Debug("Sent message", "msg", msg.Summarize())
 	}
 }
 
 func (e *Engine) checkError(err error) {
 	if err != nil {
-		e.logger.Err(err).Msgf("%s, error in run loop", e.store.GetAddress())
+		e.logger.Error("error in run loop", "err", err)
 
 		for _, nonFatalError := range nonFatalErrors {
 			if errors.Is(err, nonFatalError) {
@@ -831,6 +828,6 @@ func (e *Engine) checkError(err error) {
 			}
 		}
 
-		e.logger.Panic().Msg(err.Error())
+		panic(err)
 	}
 }

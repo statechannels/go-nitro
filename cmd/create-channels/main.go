@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/BurntSushi/toml"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/cmd/utils"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/rpc/transport/ws"
@@ -34,15 +36,14 @@ func createChannels() error {
 			return err
 		}
 
-		logger, logFile := utils.CreateLogger(LOG_FILE, participant)
-		defer logFile.Close()
+		logging.SetupDefaultFileLogger(LOG_FILE, slog.LevelDebug)
 
 		url := fmt.Sprintf(":%d/api/v1", participantOpts.RpcPort)
-		clientConnection, err := ws.NewWebSocketTransportAsClient(url, logger)
+		clientConnection, err := ws.NewWebSocketTransportAsClient(url)
 		if err != nil {
 			return err
 		}
-		clients[participant], err = rpc.NewRpcClient(logger, clientConnection)
+		clients[participant], err = rpc.NewRpcClient(clientConnection)
 		if err != nil {
 			panic(err)
 		}
