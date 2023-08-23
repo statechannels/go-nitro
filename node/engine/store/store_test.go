@@ -220,6 +220,23 @@ func TestGetChannelsByParticipant(t *testing.T) {
 	}
 }
 
+func TestGetLastBlockProcessed(t *testing.T) {
+	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
+	ms := store.NewMemStore(sk)
+
+	want := uint64(15)
+	_ = ms.SetLastBlockProcessed(want)
+
+	got, err := ms.GetLastBlockProcessed()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Fatalf("fetched result different than expected %s", diff)
+	}
+}
+
 func TestBigNumberStorage(t *testing.T) {
 	pk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
