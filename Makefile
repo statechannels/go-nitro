@@ -14,7 +14,7 @@ docker/local/build:
 
 docker/local/start:
 	docker remove go-nitro-local || true
-	docker run -it -d --name go-nitro-local -p 3005:3005 -p 4005:4005 go-nitro-local
+	docker run -it -d --name go-nitro-local -p 3005:3005 -p 4005:4005 -p 5005:5006 go-nitro-local
 
 docker/network/build:
 	docker build -f docker/Dockerfile -t go-nitro .
