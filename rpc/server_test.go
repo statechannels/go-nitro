@@ -138,7 +138,7 @@ func TestRpcPayInvalidParam(t *testing.T) {
 		Jsonrpc: "2.0",
 		Id:      2,
 		Method:  "pay",
-		Params:  paymentRequest,
+		Params:  serde.Params[serde.PaymentRequest]{AuthToken: "", Payload: paymentRequest},
 	}
 
 	jsonRequest, err := json.Marshal(request)

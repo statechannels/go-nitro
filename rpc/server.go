@@ -204,7 +204,7 @@ func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServ
 		return marshalResponse(response)
 	}
 
-	payload := rpcRequest.Params
+	payload := rpcRequest.Params.Payload
 	processedResponse, err := processPayload(payload)
 	if err != nil {
 		responseErr := serde.InternalServerError // default error
@@ -312,7 +312,7 @@ func (rs *RpcServer) sendNotifications(ctx context.Context,
 func sendNotification[T serde.NotificationMethod, U serde.NotificationPayload](rs *RpcServer, method T, payload U) error {
 	rs.logger.Debug("Sending notification", "method", method, "payload", payload)
 
-	request := serde.NewJsonRpcSpecificRequest(rand.Uint64(), method, payload)
+	request := serde.NewJsonRpcSpecificRequest(rand.Uint64(), method, payload, "")
 	data, err := json.Marshal(request)
 	if err != nil {
 		return err
