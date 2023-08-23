@@ -10,36 +10,38 @@ import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
 import BatchOperatorArtifact from '../../../artifacts/contracts/auxiliary/BatchOperator.sol/BatchOperator.json';
 import BadTokenArtifact from '../../../artifacts/contracts/test/BadToken.sol/BadToken.json';
 import {BadToken, BatchOperator, NitroAdjudicator, Token} from '../../../typechain-types';
+import '../../environment.d.ts';
+
 const provider = getTestProvider();
 
 const batchOperator = setupContract(
   provider,
   BatchOperatorArtifact,
-  process.env.BATCH_OPERATOR_ADDRESS!
+  process.env.BATCH_OPERATOR_ADDRESS
 ) as unknown as BatchOperator & Contract;
 
 const nitroAdjudicator = setupContract(
   provider,
   NitroAdjudicatorArtifact,
-  process.env.NITRO_ADJUDICATOR_ADDRESS!
+  process.env.NITRO_ADJUDICATOR_ADDRESS
 ) as unknown as NitroAdjudicator & Contract;
 
 const token = setupContract(
   provider,
   TokenArtifact,
-  process.env.TEST_TOKEN_ADDRESS!
+  process.env.TEST_TOKEN_ADDRESS
 ) as unknown as Token & Contract;
 
 const badToken = setupContract(
   provider,
   BadTokenArtifact,
-  process.env.BAD_TOKEN_ADDRESS!
+  process.env.BAD_TOKEN_ADDRESS
 ) as unknown as BadToken & Contract;
 
 const ETH = MAGIC_ADDRESS_INDICATING_ETH;
 const ERC20 = token.address;
 const BadERC20 = badToken.address;
-const consensusApp = process.env.CONSENSUS_APP_ADDRESS!;
+const consensusApp = process.env.CONSENSUS_APP_ADDRESS;
 
 const signer = provider.getSigner(0);
 let signerAddress: string;
