@@ -108,7 +108,7 @@ func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 ) (*EthChainService, error) {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 
-	logger := slog.Default().With("tx-signer", txSigner)
+	logger := slog.Default().With("tx-signer", txSigner.From.String())
 
 	eventQueue := EventQueue{}
 	heap.Init(&eventQueue)
