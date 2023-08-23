@@ -220,7 +220,7 @@ func TestGetChannelsByParticipant(t *testing.T) {
 	}
 }
 
-func TestGetLastBlockProcessed(t *testing.T) {
+func TestGetLastBlockProcessedMemStore(t *testing.T) {
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 	ms := store.NewMemStore(sk)
 
@@ -228,6 +228,27 @@ func TestGetLastBlockProcessed(t *testing.T) {
 	_ = ms.SetLastBlockProcessed(want)
 
 	got, err := ms.GetLastBlockProcessed()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Fatalf("fetched result different than expected %s", diff)
+	}
+}
+
+func TestGetLastBlockProcessedDurableStore(t *testing.T) {
+	pk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
+	dataFolder := fmt.Sprintf("%s/%d%d", STORE_TEST_DATA_FOLDER, rand.Uint64(), time.Now().UnixNano())
+	durableStore, err := store.NewDurableStore(pk, dataFolder, buntdb.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := uint64(15)
+	_ = durableStore.SetLastBlockProcessed(want)
+
+	got, err := durableStore.GetLastBlockProcessed()
 	if err != nil {
 		t.Fatal(err)
 	}
