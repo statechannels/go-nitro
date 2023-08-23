@@ -147,7 +147,7 @@ describe('Consumes the expected gas for deposits', () => {
       // end setup
 
       await expect(
-        await batchOperator.deposit_batch_erc(
+        await batchOperator.deposit_batch_erc20(
           token.address,
           batch.map(c => c.channelId),
           batch.map(() => 5),
