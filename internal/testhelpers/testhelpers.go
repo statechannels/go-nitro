@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -105,4 +106,23 @@ func SignState(ss *state.SignedState, secretKey *[]byte) {
 	if err != nil {
 		panic(fmt.Errorf("SignAndAdd failed to sign the state: %w", err))
 	}
+}
+
+// GenerateTempStoreFolder generates a temporary folder for storing store data and a cleanup function to clean up the folder
+func GenerateTempStoreFolder() (dataFolder string, cleanup func()) {
+	var err error
+
+	dataFolder, err = os.MkdirTemp("", "nitro-store-*")
+	if err != nil {
+		panic(err)
+	}
+
+	cleanup = func() {
+		err := os.RemoveAll(dataFolder)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return
 }

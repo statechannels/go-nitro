@@ -1,12 +1,9 @@
 package store_test
 
 import (
-	"fmt"
 	"math"
 	"math/big"
-	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
@@ -17,6 +14,7 @@ import (
 	nc "github.com/statechannels/go-nitro/crypto"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	td "github.com/statechannels/go-nitro/internal/testdata"
+	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/node/engine/store"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -24,8 +22,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 	"github.com/tidwall/buntdb"
 )
-
-const STORE_TEST_DATA_FOLDER = "../data/store_test"
 
 func compareObjectives(a, b protocols.Objective) string {
 	return cmp.Diff(&a, &b, cmp.AllowUnexported(
@@ -261,7 +257,8 @@ func TestGetLastBlockProcessedDurableStore(t *testing.T) {
 func TestBigNumberStorage(t *testing.T) {
 	pk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
-	dataFolder := fmt.Sprintf("%s/%d%d", STORE_TEST_DATA_FOLDER, rand.Uint64(), time.Now().UnixNano())
+	dataFolder, cleanup := testhelpers.GenerateTempStoreFolder()
+	defer cleanup()
 	durableStore, err := store.NewDurableStore(pk, dataFolder, buntdb.Config{})
 	if err != nil {
 		t.Fatal(err)

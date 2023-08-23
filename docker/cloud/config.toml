@@ -1,4 +1,5 @@
 usedurablestore = true
+durablestorefolder = "/app/data"
 
 msgport = 3005
 rpcport = 4005
@@ -19,4 +20,3 @@ chainurl = "wss://wss.calibration.node.glif.io/apigw/lotus/rpc/v0"
 chainauthtoken = ""
 
 bootpeers = ""
-usemdns = false
