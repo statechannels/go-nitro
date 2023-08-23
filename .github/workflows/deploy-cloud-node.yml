@@ -29,6 +29,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i private_key.pem root@67.207.88.72 <<'ENDSSH'
             docker pull registry.digitalocean.com/magmo/go-nitro:latest
             docker stop nitro_iris || true
-            docker run -it -d --name nitro_iris -p 3005:3005 -p 4005:4005 -p 5005:5005 -e SC_PK=${{ secrets.DO_SC_PK }} -e CHAIN_PK=${{ secrets.DO_CHAIN_PK }} registry.digitalocean.com/magmo/go-nitro:latest
+            docker rm nitro_iris || true
+            docker run -it -d --name nitro_iris -p 3005:3005 -p 4005:4005 -p 5005:5005 -e SC_PK=${{ secrets.DO_SC_PK }} -e CHAIN_PK=${{ secrets.DO_CHAIN_PK }} -v /var/nitro_iris_store:/app/data registry.digitalocean.com/magmo/go-nitro:latest
           ENDSSH
           rm private_key.pem
