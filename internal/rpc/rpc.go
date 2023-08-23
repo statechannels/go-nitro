@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/rs/zerolog"
+  "github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/rpc/transport"
@@ -13,11 +13,6 @@ import (
 )
 
 func InitializeRpcServer(node *node.Node, rpcPort int, useNats bool, logDestination *os.File) (*rpc.RpcServer, error) {
-	logger := zerolog.New(logDestination).
-		With().
-		Timestamp().
-		Logger()
-
 	var transport transport.Responder
 	var err error
 
@@ -36,5 +31,6 @@ func InitializeRpcServer(node *node.Node, rpcPort int, useNats bool, logDestinat
 	if err != nil {
 		return nil, err
 	}
+  
 	return rpcServer, nil
 }

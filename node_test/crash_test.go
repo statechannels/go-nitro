@@ -1,6 +1,7 @@
 package node_test // import "github.com/statechannels/go-nitro/node_test"
 
 import (
+	"log/slog"
 	"testing"
 
 	"github.com/statechannels/go-nitro/internal/logging"
@@ -18,8 +19,7 @@ import (
 func TestCrashTolerance(t *testing.T) {
 	// Setup logging
 	logFile := "test_crash_tolerance.log"
-	logDestination := logging.NewLogWriter("../artifacts", logFile)
-
+	logging.SetupDefaultFileLogger(logFile, slog.LevelDebug)
 	// Setup chain service
 	sim, bindings, ethAccounts, err := chainservice.SetupSimulatedBackend(3)
 	defer closeSimulatedChain(t, sim)
@@ -27,12 +27,12 @@ func TestCrashTolerance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	chainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
+	chainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	chainB, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[2], logDestination)
+	chainB, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[2])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,9 +49,9 @@ func TestCrashTolerance(t *testing.T) {
 		t.Fatal(err)
 	}
 	messageserviceA := messageservice.NewTestMessageService(ta.Alice.Address(), broker, 0)
-	nodeA := node.New(messageserviceA, chainA, storeA, logDestination, &engine.PermissivePolicy{})
+	nodeA := node.New(messageserviceA, chainA, storeA, &engine.PermissivePolicy{})
 
-	nodeB, _ := setupNode(ta.Bob.PrivateKey, chainB, broker, logDestination, 0, dataFolder)
+	nodeB, _ := setupNode(ta.Bob.PrivateKey, chainB, broker, 0, dataFolder)
 	defer closeNode(t, &nodeB)
 
 	// End Client setup
@@ -64,7 +64,7 @@ func TestCrashTolerance(t *testing.T) {
 
 		closeNode(t, &nodeA)
 		anotherMessageserviceA := messageservice.NewTestMessageService(ta.Alice.Address(), broker, 0)
-		anotherChainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0], logDestination)
+		anotherChainA, err := chainservice.NewSimulatedBackendChainService(sim, bindings, ethAccounts[0])
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -75,7 +75,7 @@ func TestCrashTolerance(t *testing.T) {
 		anotherClientA := node.New(
 			anotherMessageserviceA,
 			anotherChainA,
-			anotherStoreA, logDestination, &engine.PermissivePolicy{})
+			anotherStoreA, &engine.PermissivePolicy{})
 		defer closeNode(t, &anotherClientA)
 
 		closeLedgerChannel(t, anotherClientA, nodeB, channelId)

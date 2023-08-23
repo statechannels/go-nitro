@@ -164,30 +164,17 @@ We run deeper tests of the code on your PR using a hosted [testground](https://d
 
 # Logs
 
-Go-nitro uses a configurable logger. It outputs [ndjson](http://ndjson.org/) which is optimized for machine-readability. Integration tests typically write logs from several go-nitro nodes to a single file in the `artifacts` directory.
+Go-nitro uses the [log/slog](https://pkg.go.dev/log/slog) package to output structured logging. Integration tests typically write logs from several go-nitro nodes to a single file in the `artifacts` directory.
 
 A typical log line is
 
 ```json
 {
-  "level": "debug",
-  "engine": "0x111A00",
-  "time": 1681911828835,
-  "caller": "engine.go:115",
-  "message": "Constructed Engine"
+  "time": "2023-08-23T11:23:55.727269-07:00",
+  "level": "INFO",
+  "msg": "Constructed Engine",
+  "address": "0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE"
 }
-```
-
-To make parsing logs easier for humans, install [`pino-pretty`](https://github.com/pinojs/pino-pretty) and do something like:
-
-```shell
-cat artifacts/simple_integration_run.log | pino-pretty -S -o "{engine} {To} < {From}" > output.log
-```
-
-You may then view `output.log` in VSCode. A typical log line is then:
-
-```log
-[14:37:36.517] DEBUG <engine.go:114>: 0x111A00  <  {"engine":"0x111A00","message":"Constructed Engine"}
 ```
 
 ### Start RPC servers with Docker

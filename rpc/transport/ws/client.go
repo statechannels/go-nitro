@@ -3,16 +3,16 @@ package ws
 import (
 	"bytes"
 	"io"
+	"log/slog"
 	"net/http"
 	urlUtil "net/url"
 	"sync"
 
 	"github.com/gorilla/websocket"
-	"github.com/rs/zerolog"
 )
 
 type clientWebSocketTransport struct {
-	logger           zerolog.Logger
+	logger           *slog.Logger
 	notificationChan chan []byte
 	clientWebsocket  *websocket.Conn
 	url              string
@@ -20,7 +20,7 @@ type clientWebSocketTransport struct {
 }
 
 // NewWebSocketTransportAsClient creates a websocket connection that can be used to send requests and listen for notifications
-func NewWebSocketTransportAsClient(url string, logger zerolog.Logger) (*clientWebSocketTransport, error) {
+func NewWebSocketTransportAsClient(url string) (*clientWebSocketTransport, error) {
 	subscribeUrl, err := urlUtil.JoinPath("ws://", url, "subscribe")
 	if err != nil {
 		return nil, err
@@ -30,7 +30,7 @@ func NewWebSocketTransportAsClient(url string, logger zerolog.Logger) (*clientWe
 		return nil, err
 	}
 
-	wsc := &clientWebSocketTransport{logger: logger, notificationChan: make(chan []byte, 10), clientWebsocket: conn, url: url, wg: &sync.WaitGroup{}}
+	wsc := &clientWebSocketTransport{notificationChan: make(chan []byte, 10), clientWebsocket: conn, url: url, wg: &sync.WaitGroup{}, logger: slog.Default()}
 
 	wsc.wg.Add(1)
 	go wsc.readMessages()
@@ -72,15 +72,16 @@ func (wsc *clientWebSocketTransport) Close() error {
 }
 
 func (wsc *clientWebSocketTransport) readMessages() {
-	wsc.logger.Debug().Msg("Starting to read websocket messages")
+	wsc.logger.Debug("Starting to read websocket messages")
 	for {
 		_, data, err := wsc.clientWebsocket.ReadMessage()
 		if err != nil {
-			wsc.logger.Info().Msgf("Websocket read error: %s", err.Error())
+			wsc.logger.Info("Websocket read error", "error", err)
 			wsc.wg.Done()
 			return
 		}
-		wsc.logger.Trace().Str("data", string(data)).Msg("Websocket received message")
+		wsc.logger.Debug("Websocket received message", "data", string(data))
+
 		wsc.notificationChan <- data
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/rs/zerolog"
 	nitro "github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/types"
@@ -34,11 +33,11 @@ func (*mockResponder) Notify([]byte) error {
 
 func sendRequestAndExpectError(t *testing.T, request []byte, expectedError serde.JsonRpcError) {
 	mockNode := &nitro.Node{}
-	mockLogger := &zerolog.Logger{}
+
 	mockResponder := &mockResponder{}
 	// Since we're using an empty node we want to disable notifications
 	// otherwise the server will try to send notifications to the node and fail
-	_, err := newRpcServerWithoutNotifications(mockNode, mockLogger, mockResponder)
+	_, err := newRpcServerWithoutNotifications(mockNode, mockResponder)
 	if err != nil {
 		t.Error(err)
 	}

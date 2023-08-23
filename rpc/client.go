@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
+	"log/slog"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/rs/zerolog"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/node/query"
 	"github.com/statechannels/go-nitro/payments"
@@ -83,13 +83,13 @@ type RpcClientApi interface {
 // rpcClient is the implementation
 type rpcClient struct {
 	transport             transport.Requester
-	logger                zerolog.Logger
 	completedObjectives   *safesync.Map[chan struct{}]
 	ledgerChannelUpdates  *safesync.Map[chan query.LedgerChannelInfo]
 	paymentChannelUpdates *safesync.Map[chan query.PaymentChannelInfo]
 	cancel                context.CancelFunc
 	wg                    *sync.WaitGroup
 	nodeAddress           common.Address
+	logger                *slog.Logger
 }
 
 // response includes a payload or an error.
@@ -99,9 +99,10 @@ type response[T serde.ResponsePayload] struct {
 }
 
 // NewRpcClient creates a new RpcClient
-func NewRpcClient(logger zerolog.Logger, trans transport.Requester) (RpcClientApi, error) {
+func NewRpcClient(trans transport.Requester) (RpcClientApi, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	c := &rpcClient{trans, logger, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}, common.Address{}}
+
+	c := &rpcClient{trans, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}, common.Address{}, slog.Default()}
 
 	notificationChan, err := c.transport.Subscribe()
 	if err != nil {
@@ -115,18 +116,25 @@ func NewRpcClient(logger zerolog.Logger, trans transport.Requester) (RpcClientAp
 
 // NewHttpRpcClient creates a new rpcClient using an http transport
 func NewHttpRpcClient(rpcServerUrl string) (RpcClientApi, error) {
-	logger := zerolog.New(os.Stdout)
-	transport, err := ws.NewWebSocketTransportAsClient(rpcServerUrl, logger)
+	transport, err := ws.NewWebSocketTransportAsClient(rpcServerUrl)
 	if err != nil {
 		return nil, err
 	}
-	return NewRpcClient(logger, transport)
+	return NewRpcClient(transport)
 }
 
 // Address returns the address of the the nitro node
 func (rc *rpcClient) Address() (common.Address, error) {
 	if (rc.nodeAddress == common.Address{}) {
-		return waitForRequest[serde.NoPayloadRequest, common.Address](rc, serde.GetAddressMethod, serde.NoPayloadRequest{})
+		res, err := waitForRequest[serde.NoPayloadRequest, common.Address](rc, serde.GetAddressMethod, serde.NoPayloadRequest{})
+		if err != nil {
+			return res, err
+		}
+
+		// Update the logger so we output the address
+		rc.nodeAddress = res
+		rc.logger = logging.LoggerWithAddress(rc.logger, rc.nodeAddress)
+		return res, nil
 	}
 	return rc.nodeAddress, nil
 }
@@ -220,14 +228,14 @@ func (rc *rpcClient) Close() error {
 }
 
 func (rc *rpcClient) subscribeToNotifications(ctx context.Context, notificationChan <-chan []byte) {
-	rc.logger.Trace().Msg("Subscribed to notifications")
+	rc.logger.Debug("Subscribed to notifications")
 	for {
 		select {
 		case <-ctx.Done():
 			rc.wg.Done()
 			return
 		case data := <-notificationChan:
-			rc.logger.Trace().RawJSON("data", data).Msg("Received notification")
+
 			method, err := getNotificationMethod(data)
 			if err != nil {
 				panic(err)
@@ -236,6 +244,7 @@ func (rc *rpcClient) subscribeToNotifications(ctx context.Context, notificationC
 			case serde.ObjectiveCompleted:
 				rpcRequest := serde.JsonRpcSpecificRequest[protocols.ObjectiveId]{}
 				err := json.Unmarshal(data, &rpcRequest)
+				rc.logger.Debug("Received notification", "method", method, "data", rpcRequest)
 				if err != nil {
 					panic(err)
 				}
@@ -244,6 +253,7 @@ func (rc *rpcClient) subscribeToNotifications(ctx context.Context, notificationC
 			case serde.LedgerChannelUpdated:
 				rpcRequest := serde.JsonRpcSpecificRequest[query.LedgerChannelInfo]{}
 				err := json.Unmarshal(data, &rpcRequest)
+				rc.logger.Debug("Received notification", "method", method, "data", rpcRequest)
 				if err != nil {
 					panic(err)
 				}
@@ -253,6 +263,7 @@ func (rc *rpcClient) subscribeToNotifications(ctx context.Context, notificationC
 			case serde.PaymentChannelUpdated:
 				rpcRequest := serde.JsonRpcSpecificRequest[query.PaymentChannelInfo]{}
 				err := json.Unmarshal(data, &rpcRequest)
+				rc.logger.Debug("Received notification", "method", method, "data", rpcRequest)
 				if err != nil {
 					panic(err)
 				}
@@ -299,7 +310,7 @@ func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *rpcClie
 //     [1] the request fails to send
 //     [2] the response cannot be parsed
 //   - Otherwise, returns the JSONRPC server's response
-func sendRequest[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, method serde.RequestMethod, reqPayload T, logger zerolog.Logger, wg *sync.WaitGroup) (response[U], error) {
+func sendRequest[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, method serde.RequestMethod, reqPayload T, logger *slog.Logger, wg *sync.WaitGroup) (response[U], error) {
 	requestId := rand.Uint64()
 	message := serde.NewJsonRpcSpecificRequest(requestId, method, reqPayload)
 	data, err := json.Marshal(message)
@@ -307,7 +318,8 @@ func sendRequest[T serde.RequestPayload, U serde.ResponsePayload](trans transpor
 		return response[U]{}, err
 	}
 
-	logger.Trace().Str("method", string(method)).Msg("sent message")
+	logger.Debug("sent message", "method", string(method))
+
 	responseData, err := trans.Request(data)
 	if err != nil {
 		return response[U]{}, err

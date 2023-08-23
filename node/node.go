@@ -3,14 +3,12 @@ package node // import "github.com/statechannels/go-nitro/node"
 
 import (
 	"fmt"
-	"io"
+	"log/slog"
 	"math/big"
 	"runtime/debug"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/node/engine"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
@@ -41,11 +39,10 @@ type Node struct {
 	chainId                   *big.Int
 	store                     store.Store
 	vm                        *payments.VoucherManager
-	logger                    zerolog.Logger
 }
 
 // New is the constructor for a Node. It accepts a messaging service, a chain service, and a store as injected dependencies.
-func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, logDestination io.Writer, policymaker engine.PolicyMaker) Node {
+func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, policymaker engine.PolicyMaker) Node {
 	n := Node{}
 	n.Address = store.GetAddress()
 
@@ -56,9 +53,8 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	n.chainId = chainId
 	n.store = store
 	n.vm = payments.NewVoucherManager(*store.GetAddress(), store)
-	n.logger = logging.WithAddress(zerolog.New(logDestination).With().Timestamp(), n.Address).Caller().Logger()
 
-	n.engine = engine.New(n.vm, messageService, chainservice, store, logDestination, policymaker, n.handleEngineEvent)
+	n.engine = engine.New(n.vm, messageService, chainservice, store, policymaker, n.handleEngineEvent)
 	n.completedObjectives = &safesync.Map[chan struct{}]{}
 	n.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
 
@@ -227,11 +223,12 @@ func (n *Node) CreateLedgerChannel(Counterparty types.Address, ChallengeDuration
 	// Check store to see if there is an existing channel with this counterparty
 	channelExists, err := directfund.ChannelsExistWithCounterparty(Counterparty, n.store.GetChannelsByParticipant, n.store.GetConsensusChannel)
 	if err != nil {
-		n.logger.Error().Msg(err.Error())
+		slog.Error("direct fund error", "error", err)
 		return directfund.ObjectiveResponse{}, fmt.Errorf("counterparty check failed: %w", err)
 	}
 	if channelExists {
-		n.logger.Error().Msg("directfund: channel already exists")
+		slog.Error("directfund: channel already exists", "error", directfund.ErrLedgerChannelExists)
+
 		return directfund.ObjectiveResponse{}, fmt.Errorf("counterparty %s: %w", Counterparty, directfund.ErrLedgerChannelExists)
 	}
 
@@ -300,7 +297,7 @@ func (n *Node) Close() error {
 func (n *Node) handleError(err error) {
 	if err != nil {
 
-		n.logger.Err(err).Msgf("%s, error in nitro node", n.Address)
+		slog.Error("Error in nitro node", "error", err)
 
 		<-time.After(1000 * time.Millisecond) // We wait for a bit so the previous log line has time to complete
 
