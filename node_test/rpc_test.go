@@ -18,8 +18,11 @@ import (
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/internal/testhelpers"
+	"github.com/statechannels/go-nitro/node"
+	"github.com/statechannels/go-nitro/node/engine"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
+	"github.com/statechannels/go-nitro/node/engine/store"
 	"github.com/statechannels/go-nitro/node/query"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
@@ -28,6 +31,7 @@ import (
 	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
 	"github.com/statechannels/go-nitro/rpc/transport/ws"
 	"github.com/statechannels/go-nitro/types"
+	"github.com/tidwall/buntdb"
 )
 
 func simpleOutcome(a, b types.Address, aBalance, bBalance uint) outcome.Exit {
@@ -410,9 +414,38 @@ func setupNitroNodeWithRPCClient(
 	connectionType transport.TransportType,
 	bootPeers []string,
 ) (rpc.RpcClientApi, *p2pms.P2PMessageService, func()) {
-	var err error
+	logger := zerolog.New(logDestination).
+		With().
+		Timestamp().
+		Logger()
+
 	dataFolder, cleanupData := testhelpers.GenerateTempStoreFolder()
-	rpcServer, _, messageService, err := interRpc.RunRpcServer(pk, chain, true, dataFolder, msgPort, rpcPort, connectionType, logDestination, bootPeers)
+	ourStore, err := store.NewStore(pk, logger, true, dataFolder, buntdb.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	logger.Info().Msg("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
+	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, logDestination, bootPeers)
+
+	node := node.New(
+		messageService,
+		chain,
+		ourStore,
+		logDestination,
+		&engine.PermissivePolicy{})
+
+	var useNats bool
+	switch connectionType {
+	case "nats":
+		useNats = true
+	case "ws":
+		useNats = false
+	default:
+		err = fmt.Errorf("unknown connection type %v", connectionType)
+		panic(err)
+	}
+	rpcServer, err := interRpc.InitializeRpcServer(&node, rpcPort, useNats, logDestination)
 	if err != nil {
 		t.Fatal(err)
 	}
