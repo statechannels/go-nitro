@@ -7,7 +7,7 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 string constant lengthsErr = 'Array lengths must match';
 
 /**
-@dev This contract is used to batch deposit ERC20 tokens into .
+@dev This contract is a proxy for the NitroAdjudicator, providing endpoints for batched operations.
  */
 contract BatchOperator {
     using SafeERC20 for IERC20;
