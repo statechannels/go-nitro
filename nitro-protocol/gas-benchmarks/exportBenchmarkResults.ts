@@ -20,9 +20,10 @@ import {
   Bob,
   challengeVirtualPaymentChannelWithVoucher,
   paymentAmount,
+  getChannelBatch,
 } from './fixtures';
-import {emptyGasResults} from './gas';
-import {deployContracts, nitroAdjudicator, token} from './localSetup';
+import {batchSizes, emptyGasResults} from './gas';
+import {deployContracts, nitroAdjudicator, batchOperator, token} from './localSetup';
 
 /**
  * Ensures the asset holding contract always has a nonzero token balance.
@@ -87,6 +88,57 @@ async function main() {
       await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 5, 5, {value: 5})
     );
   });
+
+  for (const batchSize of batchSizes) {
+    const batch = getChannelBatch(batchSize);
+    const totalValue = 5 * batchSize;
+    await executeAndRevert(async () => {
+      // batch funding channels with ETH (first deposit)
+      gasResults.batchFundChannelsWithETHFirst.satp['' + batchSize] = await gasUsed(
+        await batchOperator.deposit_batch_eth(
+          batch.map(c => c.channelId),
+          batch.map(() => 0),
+          batch.map(() => 5),
+          {value: totalValue}
+        )
+      );
+      // batch funding channels with ETH (second deposit)
+      gasResults.batchFundChannelsWithETHSecond.satp['' + batchSize] = await gasUsed(
+        await batchOperator.deposit_batch_eth(
+          batch.map(c => c.channelId),
+          batch.map(() => 5),
+          batch.map(() => 5),
+          {value: totalValue}
+        )
+      );
+    });
+    await executeAndRevert(async () => {
+      await token.increaseAllowance(batchOperator.address, 3 * totalValue); // over-approve to avoid gas "refund" when approval returns to 0
+      await (await token.transfer(nitroAdjudicator.address, 1)).wait(); // The asset holder already has some tokens (for other channels)
+
+      // batch funding channels with ERC20 (first deposit)
+      gasResults.batchFundChannelsWithERCFirst.satp['' + batchSize] = await gasUsed(
+        await batchOperator.deposit_batch_erc20(
+          token.address,
+          batch.map(c => c.channelId),
+          batch.map(() => 0),
+          batch.map(() => 5),
+          totalValue
+        )
+      );
+
+      // batch funding channels with ERC20 (second deposit)
+      gasResults.batchFundChannelsWithERCSecond.satp['' + batchSize] = await gasUsed(
+        await batchOperator.deposit_batch_erc20(
+          token.address,
+          batch.map(c => c.channelId),
+          batch.map(() => 5),
+          batch.map(() => 5),
+          totalValue
+        )
+      );
+    });
+  }
 
   // directly funding a channel with an ERC20 (first deposit)
   // The depositor begins with zero tokens approved for the AssetHolder

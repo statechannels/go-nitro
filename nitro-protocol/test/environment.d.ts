@@ -24,6 +24,7 @@ declare global {
       TEST_NITRO_ADJUDICATOR_ADDRESS: string;
       TEST_TOKEN_ADDRESS: string;
       BAD_TOKEN_ADDRESS: string;
+      BATCH_OPERATOR_ADDRESS: string;
     }
   }
 }

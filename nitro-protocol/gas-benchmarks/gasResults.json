@@ -10,23 +10,63 @@
   "directlyFundAChannelWithETHSecond": {
     "satp": 29731
   },
+  "batchFundChannelsWithETHFirst": {
+    "satp": {
+      "1": 60623,
+      "5": 193715,
+      "10": 360065,
+      "20": 692729,
+      "50": 1690805,
+      "100": 3354161
+    }
+  },
+  "batchFundChannelsWithETHSecond": {
+    "satp": {
+      "1": 43535,
+      "5": 108275,
+      "10": 189185,
+      "20": 350969,
+      "50": 836405,
+      "100": 1645361
+    }
+  },
+  "batchFundChannelsWithERCFirst": {
+    "satp": {
+      "1": 106004,
+      "5": 224248,
+      "10": 388666,
+      "20": 717514,
+      "50": 1704046,
+      "100": 3348238
+    }
+  },
+  "batchFundChannelsWithERCSecond": {
+    "satp": {
+      "1": 92333,
+      "5": 142887,
+      "10": 217786,
+      "20": 375754,
+      "50": 849646,
+      "100": 1639438
+    }
+  },
   "directlyFundAChannelWithERC20First": {
     "satp": {
       "approve": 46218,
-      "deposit": 70346
+      "deposit": 70334
     }
   },
   "directlyFundAChannelWithERC20Second": {
     "satp": {
       "approve": 46218,
-      "deposit": 53258
+      "deposit": 53246
     }
   },
   "ETHexit": {
     "satp": 111520
   },
   "ERC20exit": {
-    "satp": 112818
+    "satp": 112806
   },
   "ETHexitSad": {
     "satp": {
