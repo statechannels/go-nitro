@@ -10,7 +10,6 @@ import TokenArtifact from '../../../artifacts/contracts/Token.sol/Token.json';
 import BatchOperatorArtifact from '../../../artifacts/contracts/auxiliary/BatchOperator.sol/BatchOperator.json';
 import BadTokenArtifact from '../../../artifacts/contracts/test/BadToken.sol/BadToken.json';
 import {BadToken, BatchOperator, NitroAdjudicator, Token} from '../../../typechain-types';
-import '../../environment.d.ts';
 
 const provider = getTestProvider();
 
