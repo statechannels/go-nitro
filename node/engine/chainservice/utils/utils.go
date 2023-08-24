@@ -3,6 +3,7 @@ package chainutils
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -16,7 +17,7 @@ func ConnectToChain(ctx context.Context, chainUrl, chainAuthToken string, chainP
 	var err error
 
 	if chainAuthToken != "" {
-		fmt.Println("Adding bearer token authorization header to chain service")
+		slog.Info("Adding bearer token authorization header to chain service")
 		options := rpc.WithHeader("Authorization", "Bearer "+chainAuthToken)
 		rpcClient, err = rpc.DialOptions(ctx, chainUrl, options)
 	} else {
@@ -27,13 +28,13 @@ func ConnectToChain(ctx context.Context, chainUrl, chainAuthToken string, chainP
 	}
 
 	client := ethclient.NewClient(rpcClient)
-	fmt.Println("Connected to ethclient at url: " + chainUrl)
+	slog.Info("Connected to ethclient", "url", chainUrl)
 
 	foundChainId, err := client.ChainID(context.Background())
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not get chain id: %w", err)
 	}
-	fmt.Printf("Found chain id: %v\n", foundChainId)
+	slog.Info("Found chain id", "chainId", foundChainId)
 
 	key, err := ethcrypto.ToECDSA(chainPK)
 	if err != nil {

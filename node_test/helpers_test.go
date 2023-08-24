@@ -2,9 +2,8 @@ package node_test
 
 import (
 	"fmt"
-	"io"
+	"log/slog"
 	"math/big"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -29,16 +28,15 @@ import (
 )
 
 // setupNode is a helper function that constructs a nitro node and returns the new node and its store.
-func setupNode(pk []byte, chain chainservice.ChainService, msgBroker messageservice.Broker, logDestination io.Writer, meanMessageDelay time.Duration) (node.Node, store.Store) {
+func setupNode(pk []byte, chain chainservice.ChainService, msgBroker messageservice.Broker, meanMessageDelay time.Duration, dataFolder string) (node.Node, store.Store) {
 	myAddress := crypto.GetAddressFromSecretKeyBytes(pk)
-	// TODO: Clean up test data folder?
-	dataFolder := fmt.Sprintf("%s/%s/%d", DURABLE_STORE_FOLDER, myAddress.String(), rand.Uint64())
+
 	messageservice := messageservice.NewTestMessageService(myAddress, msgBroker, meanMessageDelay)
 	storeA, err := store.NewDurableStore(pk, dataFolder, buntdb.Config{})
 	if err != nil {
 		panic(err)
 	}
-	return node.New(messageservice, chain, storeA, logDestination, &engine.PermissivePolicy{}), storeA
+	return node.New(messageservice, chain, storeA, &engine.PermissivePolicy{}), storeA
 }
 
 func closeNode(t *testing.T, node *node.Node) {
@@ -50,10 +48,9 @@ func closeNode(t *testing.T, node *node.Node) {
 
 // waitForPeerInfoExchange waits for all the P2PMessageServices to receive peer info from each other
 func waitForPeerInfoExchange(services ...*p2pms.P2PMessageService) {
-	for sNum, s := range services {
+	for _, s := range services {
 		for i := 0; i < len(services)-1; i++ {
-			peerInfo := <-s.PeerInfoReceived()
-			fmt.Printf("Service num: %d, peer num: %d, peerInfo: %v\n", sNum, i, peerInfo)
+			<-s.PeerInfoReceived()
 		}
 		<-s.InitComplete()
 	}
@@ -65,7 +62,7 @@ func closeSimulatedChain(t *testing.T, chain chainservice.SimulatedChain) {
 	}
 }
 
-func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastructure, bootPeers []string, logWriter io.Writer) (messageservice.MessageService, string) {
+func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastructure, bootPeers []string) (messageservice.MessageService, string) {
 	switch tc.MessageService {
 	case TestMessageService:
 		return messageservice.NewTestMessageService(tp.Address(), *si.broker, tc.MessageDelay), ""
@@ -76,7 +73,6 @@ func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastru
 			int(tp.Port),
 			tp.Address(),
 			tp.PrivateKey,
-			logWriter,
 			bootPeers,
 		)
 
@@ -91,10 +87,9 @@ func setupChainService(tc TestCase, tp TestParticipant, si sharedTestInfrastruct
 	case MockChain:
 		return chainservice.NewMockChainService(si.mockChain, tp.Address())
 	case SimulatedChain:
-		logDestination := logging.NewLogWriter("../artifacts", tc.LogName+"_chain_"+string(tp.Name)+".log")
 
 		ethAccountIndex := tp.Port - testactors.START_PORT
-		cs, err := chainservice.NewSimulatedBackendChainService(si.simulatedChain, *si.bindings, si.ethAccounts[ethAccountIndex], logDestination)
+		cs, err := chainservice.NewSimulatedBackendChainService(si.simulatedChain, *si.bindings, si.ethAccounts[ethAccountIndex])
 		if err != nil {
 			panic(err)
 		}
@@ -104,12 +99,12 @@ func setupChainService(tc TestCase, tp TestParticipant, si sharedTestInfrastruct
 	}
 }
 
-func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) store.Store {
+func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure, dataFolder string) store.Store {
 	switch tp.StoreType {
 	case MemStore:
 		return store.NewMemStore(tp.Actor.PrivateKey)
 	case DurableStore:
-		dataFolder := fmt.Sprintf("%s/%s/%d%d", STORE_TEST_DATA_FOLDER, tp.Address().String(), rand.Uint64(), time.Now().UnixNano())
+
 		s, err := store.NewDurableStore(tp.PrivateKey, dataFolder, buntdb.Config{})
 		if err != nil {
 			panic(err)
@@ -120,11 +115,12 @@ func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure) st
 	}
 }
 
-func setupIntegrationNode(tc TestCase, tp TestParticipant, si sharedTestInfrastructure, bootPeers []string) (node.Node, messageservice.MessageService, string) {
-	messageService, multiAddr := setupMessageService(tc, tp, si, bootPeers, logging.NewLogWriter("../artifacts", tc.LogName+"_message_"+string(tp.Name)+".log"))
+func setupIntegrationNode(tc TestCase, tp TestParticipant, si sharedTestInfrastructure, bootPeers []string, dataFolder string) (node.Node, messageservice.MessageService, string) {
+	logging.SetupDefaultFileLogger(tc.LogName+"_message_"+string(tp.Name)+".log", slog.LevelDebug)
+	messageService, multiAddr := setupMessageService(tc, tp, si, bootPeers)
 	cs := setupChainService(tc, tp, si)
-	store := setupStore(tc, tp, si)
-	n := node.New(messageService, cs, store, logging.NewLogWriter("../artifacts", tc.LogName+"_engine_"+string(tp.Name)+".log"), &engine.PermissivePolicy{})
+	store := setupStore(tc, tp, si, dataFolder)
+	n := node.New(messageService, cs, store, &engine.PermissivePolicy{})
 	return n, messageService, multiAddr
 }
 

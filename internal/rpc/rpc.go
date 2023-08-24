@@ -2,11 +2,11 @@ package rpc
 
 import (
 	"fmt"
-	"os"
+	"log/slog"
 	"path/filepath"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/rs/zerolog"
+
 	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/internal/chain"
 	"github.com/statechannels/go-nitro/internal/logging"
@@ -40,32 +40,29 @@ func InitChainServiceAndRunRpcServer(pkString string, chainOpts chain.ChainOpts,
 	if useNats {
 		transportType = transport.Nats
 	}
-	rpcServer, node, messageService, err := RunRpcServer(pk, chainService, useDurableStore, durableStoreFolder, msgPort, rpcPort, transportType, os.Stdout, bootPeers)
+
+	rpcServer, node, messageService, err := RunRpcServer(pk, chainService, useDurableStore, durableStoreFolder, msgPort, rpcPort, transportType, bootPeers)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	fmt.Println("Nitro as a Service listening on port", rpcPort)
+	slog.Info("Nitro as a Service listening", "rpc-port", rpcPort, "msg-port", msgPort, "transport", transportType, "address", node.Address.String())
+
 	return rpcServer, node, messageService, nil
 }
 
 func RunRpcServer(pk []byte, chainService chainservice.ChainService,
-	useDurableStore bool, durableStoreFolder string, msgPort int, rpcPort int, transportType transport.TransportType, logDestination *os.File,
+	useDurableStore bool, durableStoreFolder string, msgPort int, rpcPort int, transportType transport.TransportType,
 	bootPeers []string,
 ) (*rpc.RpcServer, *node.Node, *p2pms.P2PMessageService, error) {
 	me := crypto.GetAddressFromSecretKeyBytes(pk)
-
+	logger := logging.LoggerWithAddress(slog.Default(), me)
 	var ourStore store.Store
 	var err error
 
-	logger := zerolog.New(logDestination).
-		With().
-		Timestamp().
-		Logger()
-
 	if useDurableStore {
 		dataFolder := filepath.Join(durableStoreFolder, me.String())
-		logger.Info().Msgf("Initialising durable store in %s...", dataFolder)
+		logger.Info("Initialising durable store", "dataFolder", dataFolder)
 
 		ourStore, err = store.NewDurableStore(pk, dataFolder, buntdb.Config{})
 		if err != nil {
@@ -73,37 +70,30 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		}
 
 	} else {
-		logger.Info().Msg("Initialising mem store...")
+		logger.Info("Initialising mem store...")
 		ourStore = store.NewMemStore(pk)
 	}
 
-	logger.Info().Msg("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
-	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, logDestination, bootPeers)
+	logger.Info("Initializing message service ", "port", msgPort)
+
+	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, bootPeers)
 	node := node.New(
 		messageService,
 		chainService,
 		ourStore,
-		logDestination,
 		&engine.PermissivePolicy{})
-
-	serverLogger := logging.WithAddress(zerolog.New(logDestination).
-		Level(zerolog.TraceLevel).
-		With().
-		Timestamp().
-		Str("rpc", "server"), ourStore.GetAddress()).
-		Logger()
 
 	var transport transport.Responder
 
 	switch transportType {
 	case "nats":
 
-		logger.Info().Msg("Initializing NATS RPC transport...")
+		logger.Info("Initializing NATS RPC transport...")
 		transport, err = nats.NewNatsTransportAsServer(rpcPort)
 	case "ws":
-		logger.Info().Msg("Initializing websocket RPC transport...")
+		logger.Info("Initializing websocket RPC transport...")
 
-		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort), serverLogger)
+		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
 	default:
 		err = fmt.Errorf("unknown transport type %s", transportType)
 	}
@@ -112,7 +102,7 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		return nil, nil, nil, err
 	}
 
-	rpcServer, err := rpc.NewRpcServer(&node, &serverLogger, transport)
+	rpcServer, err := rpc.NewRpcServer(&node, transport)
 	if err != nil {
 		return nil, nil, nil, err
 	}

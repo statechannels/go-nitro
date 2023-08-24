@@ -1,40 +1,19 @@
 package logging
 
 import (
+	"io"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
-	"strconv"
-	"sync"
 
-	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
-var once sync.Once
-
-func ConfigureZeroLogger() {
-	once.Do(configureZeroLogger)
-}
-
-func configureZeroLogger() {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
-	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
-		short := file
-		for i := len(file) - 1; i > 0; i-- {
-			if file[i] == '/' {
-				short = file[i+1:]
-				break
-			}
-		}
-		file = short
-		return file + ":" + strconv.Itoa(line)
-	}
-}
-
-// NewLogWriter returns a writer for the given logDir and logFile
+// newLogWriter returns a writer for the given logDir and logFile
 // If the log file already exists it will be removed and a fresh file will be created
-func NewLogWriter(logDir, logFile string) *os.File {
+func newLogWriter(logDir, logFile string) *os.File {
 	err := os.MkdirAll(logDir, os.ModePerm)
 	if err != nil {
 		log.Fatal(err)
@@ -51,7 +30,38 @@ func NewLogWriter(logDir, logFile string) *os.File {
 	return logDestination
 }
 
-// WithAddress adds a formatted address field to a logger
-func WithAddress(c zerolog.Context, address *types.Address) zerolog.Context {
-	return c.Str("address", address.String()[0:8])
+const (
+	LOG_DIR = "../artifacts"
+
+	CHANNEL_ID_LOG_KEY   = "channel-id"
+	OBJECTIVE_ID_LOG_KEY = "objective-id"
+	ADDRESS_LOG_KEY      = "address"
+)
+
+// WithChannelIdAttribute returns a logging attribute for the given channel id
+func WithChannelIdAttribute(c types.Destination) slog.Attr {
+	return slog.String(CHANNEL_ID_LOG_KEY, c.String())
+}
+
+// WithObjectiveIdAttribute returns a logging attribute for the given objective id
+func WithObjectiveIdAttribute(o protocols.ObjectiveId) slog.Attr {
+	return slog.String(OBJECTIVE_ID_LOG_KEY, string(o))
+}
+
+// LoggerWithAddress returns a logger with the address attribute set to the given address
+func LoggerWithAddress(logger *slog.Logger, a types.Address) *slog.Logger {
+	return logger.With(slog.String(ADDRESS_LOG_KEY, a.String()))
+}
+
+// SetupDefaultFileLogger sets up a default logger that writes to the specified file
+// The file will be created in the artifacts directory
+func SetupDefaultFileLogger(filename string, level slog.Level) {
+	logFile := newLogWriter(LOG_DIR, filename)
+	SetupDefaultLogger(logFile, level)
+}
+
+// SetupDefaultLogger sets up a default logger that writes to the specified writer
+func SetupDefaultLogger(w io.Writer, level slog.Level) {
+	h := slog.NewJSONHandler(w, &slog.HandlerOptions{Level: level})
+	slog.SetDefault(slog.New(h))
 }

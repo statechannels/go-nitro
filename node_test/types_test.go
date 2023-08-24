@@ -12,12 +12,11 @@ import (
 )
 
 const (
-	MAX_PARTICIPANTS       = 4
-	STORE_TEST_DATA_FOLDER = "../data/store_test"
-	ledgerChannelDeposit   = 5_000_000
-	defaultTimeout         = 10 * time.Second
-	virtualChannelDeposit  = 5000
-	DURABLE_STORE_FOLDER   = "../data/node_test"
+	MAX_PARTICIPANTS      = 4
+	ledgerChannelDeposit  = 5_000_000
+	defaultTimeout        = 10 * time.Second
+	virtualChannelDeposit = 5000
+	DURABLE_STORE_FOLDER  = "../data/node_test"
 )
 
 type StoreType string

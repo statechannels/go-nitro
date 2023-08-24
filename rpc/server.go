@@ -3,10 +3,11 @@ package rpc
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"math/big"
 	"sync"
 
-	"github.com/rs/zerolog"
+	"github.com/statechannels/go-nitro/internal/logging"
 	nitro "github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/node/query"
 	"github.com/statechannels/go-nitro/payments"
@@ -25,7 +26,7 @@ import (
 type RpcServer struct {
 	transport transport.Responder
 	node      *nitro.Node
-	logger    *zerolog.Logger
+	logger    *slog.Logger
 	cancel    context.CancelFunc
 	wg        *sync.WaitGroup
 }
@@ -50,8 +51,18 @@ func (rs *RpcServer) Close() error {
 }
 
 // newRpcServerWithoutNotifications creates a new rpc server without notifications enabled
-func newRpcServerWithoutNotifications(nitroNode *nitro.Node, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
-	rs := &RpcServer{trans, nitroNode, logger, func() {}, &sync.WaitGroup{}}
+func newRpcServerWithoutNotifications(nitroNode *nitro.Node, trans transport.Responder) (*RpcServer, error) {
+	logger := slog.Default()
+	if hasNitroAddress := (nitroNode.Address != nil) && (nitroNode.Address != &types.Address{}); hasNitroAddress {
+		logger = logging.LoggerWithAddress(slog.Default(), *nitroNode.Address)
+	}
+	rs := &RpcServer{
+		transport: trans,
+		node:      nitroNode,
+		cancel:    func() {},
+		wg:        &sync.WaitGroup{},
+		logger:    logger,
+	}
 
 	err := rs.registerHandlers()
 	if err != nil {
@@ -61,9 +72,15 @@ func newRpcServerWithoutNotifications(nitroNode *nitro.Node, logger *zerolog.Log
 	return rs, nil
 }
 
-func NewRpcServer(nitroNode *nitro.Node, logger *zerolog.Logger, trans transport.Responder) (*RpcServer, error) {
+func NewRpcServer(nitroNode *nitro.Node, trans transport.Responder) (*RpcServer, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	rs := &RpcServer{trans, nitroNode, logger, cancel, &sync.WaitGroup{}}
+	rs := &RpcServer{
+		transport: trans,
+		node:      nitroNode,
+		cancel:    cancel,
+		wg:        &sync.WaitGroup{},
+		logger:    logging.LoggerWithAddress(slog.Default(), *nitroNode.Address),
+	}
 
 	rs.wg.Add(1)
 
@@ -86,17 +103,17 @@ func NewRpcServer(nitroNode *nitro.Node, logger *zerolog.Logger, trans transport
 // registerHandlers registers the handlers for the rpc server
 func (rs *RpcServer) registerHandlers() (err error) {
 	handlerV1 := func(requestData []byte) []byte {
-		rs.logger.Trace().RawJSON("requestData", requestData).Msg("Rpc server received request")
-
 		if !json.Valid(requestData) {
-			rs.logger.Error().Msg("request is not valid json")
+			rs.logger.Error("request is not valid json")
 			errRes := serde.NewJsonRpcErrorResponse(0, serde.ParseError)
-			return marshalResponse(errRes, rs.logger)
+			return marshalResponse(errRes)
 		}
 
-		jsonrpcReq, errRes := validateJsonrpcRequest(requestData, rs.logger)
+		jsonrpcReq, errRes := validateJsonrpcRequest(requestData)
+		rs.logger.Debug("Rpc server received request", "request", jsonrpcReq)
 		if errRes != nil {
-			rs.logger.Error().Msg("could not validate jsonrpc request")
+			rs.logger.Error("could not validate jsonrpc request")
+
 			return errRes
 		}
 
@@ -165,7 +182,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 			})
 		default:
 			errRes := serde.NewJsonRpcErrorResponse(jsonrpcReq.Id, serde.MethodNotFoundError)
-			return marshalResponse(errRes, rs.logger)
+			return marshalResponse(errRes)
 		}
 	}
 
@@ -180,7 +197,7 @@ func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServ
 	err := json.Unmarshal(requestData, &rpcRequest)
 	if err != nil {
 		response := serde.NewJsonRpcErrorResponse(rpcRequest.Id, serde.ParamsUnmarshalError)
-		return marshalResponse(response, rs.logger)
+		return marshalResponse(response)
 	}
 
 	payload := rpcRequest.Params
@@ -194,29 +211,29 @@ func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServ
 		}
 
 		response := serde.NewJsonRpcErrorResponse(rpcRequest.Id, responseErr)
-		return marshalResponse(response, rs.logger)
+		return marshalResponse(response)
 	}
 
 	response := serde.NewJsonRpcResponse(rpcRequest.Id, processedResponse)
-	return marshalResponse(response, rs.logger)
+	return marshalResponse(response)
 }
 
 // Marshal and return response data
-func marshalResponse(response any, log *zerolog.Logger) []byte {
+func marshalResponse(response any) []byte {
 	responseData, err := json.Marshal(response)
 	if err != nil {
-		log.Panic().Err(err).Msg("Could not marshal response")
+		slog.Error("Could not marshal response", "error", err)
 	}
 	return responseData
 }
 
-func validateJsonrpcRequest(requestData []byte, logger *zerolog.Logger) (serde.JsonRpcGeneralRequest, []byte) {
+func validateJsonrpcRequest(requestData []byte) (serde.JsonRpcGeneralRequest, []byte) {
 	var request map[string]interface{}
 	vr := serde.JsonRpcGeneralRequest{}
 	err := json.Unmarshal(requestData, &request)
 	if err != nil {
 		errRes := serde.NewJsonRpcErrorResponse(0, serde.RequestUnmarshalError)
-		return serde.JsonRpcGeneralRequest{}, marshalResponse(errRes, logger)
+		return serde.JsonRpcGeneralRequest{}, marshalResponse(errRes)
 	}
 
 	// jsonrpc spec says id can be a string, number.
@@ -226,20 +243,20 @@ func validateJsonrpcRequest(requestData []byte, logger *zerolog.Logger) (serde.J
 	fRequestId, ok := requestId.(float64)
 	if !ok || fRequestId != float64(uint64(fRequestId)) {
 		errRes := serde.NewJsonRpcErrorResponse(0, serde.InvalidRequestError)
-		return serde.JsonRpcGeneralRequest{}, marshalResponse(errRes, logger)
+		return serde.JsonRpcGeneralRequest{}, marshalResponse(errRes)
 	}
 	vr.Id = uint64(fRequestId)
 
 	sJsonrpc, ok := request["jsonrpc"].(string)
 	if !ok || sJsonrpc != "2.0" {
 		errRes := serde.NewJsonRpcErrorResponse(vr.Id, serde.InvalidRequestError)
-		return serde.JsonRpcGeneralRequest{}, marshalResponse(errRes, logger)
+		return serde.JsonRpcGeneralRequest{}, marshalResponse(errRes)
 	}
 
 	sMethod, ok := request["method"].(string)
 	if !ok {
 		errRes := serde.NewJsonRpcErrorResponse(vr.Id, serde.InvalidRequestError)
-		return serde.JsonRpcGeneralRequest{}, marshalResponse(errRes, logger)
+		return serde.JsonRpcGeneralRequest{}, marshalResponse(errRes)
 	}
 	vr.Method = sMethod
 
@@ -259,7 +276,7 @@ func (rs *RpcServer) sendNotifications(ctx context.Context,
 
 		case completedObjective, ok := <-completedObjChan:
 			if !ok {
-				rs.logger.Warn().Msg("CompletedObjectives channel closed, exiting sendNotifications")
+				rs.logger.Warn("CompletedObjectives channel closed, exiting sendNotifications")
 				return
 			}
 			err := sendNotification(rs, serde.ObjectiveCompleted, completedObjective)
@@ -268,7 +285,7 @@ func (rs *RpcServer) sendNotifications(ctx context.Context,
 			}
 		case ledgerInfo, ok := <-ledgerUpdatesChan:
 			if !ok {
-				rs.logger.Warn().Msg("LedgerUpdates channel closed, exiting sendNotifications")
+				rs.logger.Warn("LedgerUpdates channel closed, exiting sendNotifications")
 				return
 			}
 			err := sendNotification(rs, serde.LedgerChannelUpdated, ledgerInfo)
@@ -277,7 +294,7 @@ func (rs *RpcServer) sendNotifications(ctx context.Context,
 			}
 		case paymentInfo, ok := <-paymentUpdatesChan:
 			if !ok {
-				rs.logger.Warn().Msg("PaymentUpdates channel closed, exiting sendNotifications")
+				rs.logger.Warn("PaymentUpdates channel closed, exiting sendNotifications")
 				return
 			}
 			err := sendNotification(rs, serde.PaymentChannelUpdated, paymentInfo)
@@ -289,7 +306,8 @@ func (rs *RpcServer) sendNotifications(ctx context.Context,
 }
 
 func sendNotification[T serde.NotificationMethod, U serde.NotificationPayload](rs *RpcServer, method T, payload U) error {
-	rs.logger.Trace().Interface("payload", payload).Msg("Sending notification")
+	rs.logger.Debug("Sending notification", "method", method, "payload", payload)
+
 	request := serde.NewJsonRpcSpecificRequest(rand.Uint64(), method, payload)
 	data, err := json.Marshal(request)
 	if err != nil {

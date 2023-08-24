@@ -43,7 +43,7 @@ async function waitUntilNodeReady(url: string): Promise<void> {
   }
 }
 
-jest.setTimeout(15_000); // give hardhat network a chance to get going
+jest.setTimeout(45_000); // give hardhat network a chance to get going
 if (existsSync(logFile)) truncateSync(logFile);
 const hardhatProcess = exec('npx hardhat node --no-deploy --port 9546', (error, stdout) => {
   promises.appendFile(logFile, stdout);

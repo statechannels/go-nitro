@@ -9,6 +9,10 @@ type Path =
   | 'deployInfrastructureContracts'
   | 'directlyFundAChannelWithETHFirst'
   | 'directlyFundAChannelWithETHSecond'
+  | 'batchFundChannelsWithETHFirst'
+  | 'batchFundChannelsWithETHSecond'
+  | 'batchFundChannelsWithERCFirst'
+  | 'batchFundChannelsWithERCSecond'
   | 'directlyFundAChannelWithERC20First'
   | 'directlyFundAChannelWithERC20Second'
   | 'ETHexit'
@@ -17,6 +21,11 @@ type Path =
   | 'ETHexitSadLedgerFunded'
   | 'ETHexitSadVirtualFunded'
   | 'ETHexitSadLedgerFunded';
+
+/**
+ * the number of channels to batch fund
+ */
+export const batchSizes = [1, 5, 10, 20, 50, 100];
 
 // The channel being benchmarked is a 2 party null app funded with 5 wei / tokens each.
 // KEY
@@ -37,6 +46,46 @@ export const emptyGasResults: GasResults = {
   directlyFundAChannelWithETHSecond: {
     // meaning the second participant in the channel
     satp: 0,
+  },
+  batchFundChannelsWithETHFirst: {
+    satp: {
+      '1': 0,
+      '5': 0,
+      '10': 0,
+      '20': 0,
+      '50': 0,
+      '100': 0,
+    },
+  },
+  batchFundChannelsWithETHSecond: {
+    satp: {
+      '1': 0,
+      '5': 0,
+      '10': 0,
+      '20': 0,
+      '50': 0,
+      '100': 0,
+    },
+  },
+  batchFundChannelsWithERCFirst: {
+    satp: {
+      '1': 0,
+      '5': 0,
+      '10': 0,
+      '20': 0,
+      '50': 0,
+      '100': 0,
+    },
+  },
+  batchFundChannelsWithERCSecond: {
+    satp: {
+      '1': 0,
+      '5': 0,
+      '10': 0,
+      '20': 0,
+      '50': 0,
+      '100': 0,
+    },
   },
   directlyFundAChannelWithERC20First: {
     // The depositor begins with zero tokens approved for the AssetHolder
