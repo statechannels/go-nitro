@@ -21,9 +21,11 @@ import {
   challengeVirtualPaymentChannelWithVoucher,
   paymentAmount,
   getChannelBatch,
+  checkpointChannel,
 } from './fixtures';
 import {batchSizes, emptyGasResults} from './gas';
 import {deployContracts, nitroAdjudicator, batchOperator, token} from './localSetup';
+import {challengeChannelAndExpectGas, respondWithChallengeAndExpectGas} from './jestSetup';
 
 /**
  * Ensures the asset holding contract always has a nonzero token balance.
@@ -387,6 +389,36 @@ async function main() {
       gasResults.ETHexitSadVirtualFunded.satp.challengeV +
       gasResults.ETHexitSadVirtualFunded.satp.reclaimL +
       gasResults.ETHexitSadVirtualFunded.satp.transferAllAssetsL;
+  });
+
+  // Scenario: Clearing a challenge with a challenge response
+  // initially                   ⬛ -> X -> 👩
+  // challenge X                 ⬛ -> (X) -> 👩
+  // challenge X                 ⬛ -> (X) -> 👩
+  await executeAndRevert(async () => {
+    await (
+      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
+    ).wait();
+
+    await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
+
+    const {challengeTx} = await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH, true);
+    gasResults.ETHClearChallenge.satp.challengeResponseX = await gasUsed(challengeTx);
+  });
+
+  // Scenario: Clearing a challenge with a checkpoint response
+  // initially                   ⬛ -> X -> 👩
+  // challenge X                 ⬛ -> (X) -> 👩
+  // checkpoint X                ⬛ -> X -> 👩
+  await executeAndRevert(async () => {
+    await (
+      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
+    ).wait();
+
+    await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
+
+    const {checkpointTx} = await checkpointChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
+    gasResults.ETHClearChallenge.satp.checkpointX = await gasUsed(checkpointTx);
   });
 
   writeFileSync(__dirname + '/gasResults.json', JSON.stringify(gasResults, null, 2));

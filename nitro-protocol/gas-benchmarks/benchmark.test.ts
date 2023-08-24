@@ -23,7 +23,11 @@ import {
   paymentAmount,
 } from './fixtures';
 import {batchSizes, GasResults} from './gas';
-import {challengeChannelAndExpectGas} from './jestSetup';
+import {
+  challengeChannelAndExpectGas,
+  checkpointChannelAndExpectGas,
+  respondWithChallengeAndExpectGas,
+} from './jestSetup';
 import {nitroAdjudicator, batchOperator, token} from './localSetup';
 
 /**
@@ -392,5 +396,52 @@ describe('Consumes the expected gas for sad-path exits', () => {
         (a, b) => a + b
       ) - gasRequiredTo.ETHexitSadVirtualFunded.satp.total
     ).toEqual(gasRequiredTo.ETHexitSadVirtualFunded.satp.total);
+  });
+});
+
+describe('Consumes the expected gas for clearing a challenge', () => {
+  it(`when clearing the challenge using checkpoint`, async () => {
+    // begin setup
+    await (
+      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
+    ).wait();
+    // end setup
+    // initially                 ⬛ ->  X  -> 👩
+    await challengeChannelAndExpectGas(
+      X,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHexitSad.satp.challenge
+    );
+    // challenge for X raised on chain,  ⬛ -> (X) -> 👩
+
+    await checkpointChannelAndExpectGas(
+      X,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHClearChallenge.satp.checkpointX
+    );
+
+    // checkpoint on X leaves the channel in open mode on chain,  ⬛ -> X -> 👩
+  });
+
+  it(`when clearing the challenge using challenge`, async () => {
+    // begin setup
+    await (
+      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
+    ).wait();
+    // end setup
+    // initially                 ⬛ ->  X  -> 👩
+    await challengeChannelAndExpectGas(
+      X,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHexitSad.satp.challenge
+    );
+    // challenge for X raised on chain,  ⬛ -> (X) -> 👩
+
+    await respondWithChallengeAndExpectGas(
+      X,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHClearChallenge.satp.challengeResponseX
+    );
+    // challenge with X leaves the channel on-chain with a new challenge,  ⬛ -> (X) -> 👩
   });
 });
