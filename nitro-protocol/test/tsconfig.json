@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["environment.d.ts"]
+  "include": ["@types/environment.d.ts"]
 }
