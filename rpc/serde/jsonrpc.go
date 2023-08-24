@@ -184,4 +184,5 @@ var (
 	InternalServerError   = JsonRpcError{Code: -32603, Message: "Internal error"}
 	RequestUnmarshalError = JsonRpcError{Code: -32010, Message: "Could not unmarshal request object"}
 	ParamsUnmarshalError  = JsonRpcError{Code: -32009, Message: "Could not unmarshal params object"}
+	InvalidAuthTokenError = JsonRpcError{Code: -32008, Message: "Invalid auth token"}
 )
