@@ -66,6 +66,11 @@ type ConcludedEvent struct {
 	commonEvent
 }
 
+type ChallengeEvent struct {
+	commonEvent
+	// TODO fill out other fields
+}
+
 func (ce ConcludedEvent) String() string {
 	return "Channel " + ce.channelID.String() + " concluded at Block " + fmt.Sprint(ce.blockNum)
 }
