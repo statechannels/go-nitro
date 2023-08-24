@@ -131,7 +131,7 @@ func (rs *RpcServer) registerHandlers() (err error) {
 				return rs.node.ReceiveVoucher(req)
 			})
 		case serde.GetAddressMethod:
-			return processRequest(rs, permRead, requestData, func(req serde.NoPayloadRequest) (string, error) {
+			return processRequest(rs, permNone, requestData, func(req serde.NoPayloadRequest) (string, error) {
 				return rs.node.Address.Hex(), nil
 			})
 		case serde.VersionMethod:
@@ -202,6 +202,12 @@ func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServ
 	if err != nil {
 		response := serde.NewJsonRpcErrorResponse(rpcRequest.Id, serde.ParamsUnmarshalError)
 		return marshalResponse(response)
+	}
+
+	err = checkPermission(rpcRequest.Params.AuthToken, permission)
+	if err != nil {
+		response := serde.NewJsonRpcErrorResponse(rpcRequest.Id, serde.InvalidAuthTokenError)
+		return marshalResponse(response, rs.logger)
 	}
 
 	payload := rpcRequest.Params.Payload

@@ -37,6 +37,10 @@ func generateAuthToken(p []permission) (string, error) {
 
 // verifyPermission takes a JWT token, verifies that the token is valid and that the token contains the required permission
 func checkPermission(tokenString string, requiredPermission permission) error {
+	if requiredPermission == permNone {
+		return nil
+	}
+
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
 		if !ok {
