@@ -194,7 +194,7 @@ func IsVirtualDefundObjective(id protocols.ObjectiveId) bool {
 
 // finalState returns the final state for the virtual channel
 func (o *Objective) finalState() state.State {
-	return o.V.SignedStateForTurnNum[FinalTurnNum].State()
+	return o.V.OffChain.SignedStateForTurnNum[FinalTurnNum].State()
 }
 
 func (o *Objective) initialOutcome() outcome.SingleAssetExit {
@@ -313,7 +313,7 @@ func (o *Objective) otherParticipants() []types.Address {
 }
 
 func (o *Objective) hasFinalStateFromAlice() bool {
-	ss, ok := o.V.SignedStateForTurnNum[FinalTurnNum]
+	ss, ok := o.V.OffChain.SignedStateForTurnNum[FinalTurnNum]
 	return ok && ss.State().IsFinal && !isZero(ss.Signatures()[0])
 }
 

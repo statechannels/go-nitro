@@ -42,8 +42,8 @@ func (v *VirtualChannel) Clone() *VirtualChannel {
 }
 
 func (v *VirtualChannel) GetPaidAndRemaining() (*big.Int, *big.Int) {
-	remaining := v.SignedStateForTurnNum[v.latestSupportedStateTurnNum].State().Outcome[0].Allocations[0].Amount
-	paid := v.SignedStateForTurnNum[v.latestSupportedStateTurnNum].State().Outcome[0].Allocations[1].Amount
+	remaining := v.OffChain.SignedStateForTurnNum[v.OffChain.LatestSupportedStateTurnNum].State().Outcome[0].Allocations[0].Amount
+	paid := v.OffChain.SignedStateForTurnNum[v.OffChain.LatestSupportedStateTurnNum].State().Outcome[0].Allocations[1].Amount
 
 	return paid, remaining
 }

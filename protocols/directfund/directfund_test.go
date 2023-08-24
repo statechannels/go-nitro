@@ -165,8 +165,8 @@ func TestUpdate(t *testing.T) {
 		t.Error(err)
 	}
 	updated = updatedObjective.(*Objective)
-	if !updated.C.OnChainFunding.Equal(newFunding) {
-		t.Error(`Objective data not updated as expected`, updated.C.OnChainFunding, newFunding)
+	if !updated.C.OnChain.Holdings.Equal(newFunding) {
+		t.Error(`Objective data not updated as expected`, updated.C.OnChain.Holdings, newFunding)
 	}
 
 	// Update with stale funding information should be ignored
@@ -185,8 +185,8 @@ func TestUpdate(t *testing.T) {
 
 	updated = updatedObjective.(*Objective)
 
-	if updated.C.OnChainFunding.Equal(staleFunding) {
-		t.Error("OnChainFunding was updated to stale funding information", updated.C.OnChainFunding, staleFunding)
+	if updated.C.OnChain.Holdings.Equal(staleFunding) {
+		t.Error("OnChain.Holdings was updated to stale funding information", updated.C.OnChain.Holdings, staleFunding)
 	}
 }
 
@@ -269,7 +269,7 @@ func TestCrank(t *testing.T) {
 	}
 
 	// Manually make the first "deposit"
-	o.C.OnChainFunding[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
+	o.C.OnChain.Holdings[testState.Outcome[0].Asset] = testState.Outcome[0].Allocations[0].Amount
 	updated, sideEffects, waitingFor, err := o.Crank(&alice.PrivateKey)
 
 	if !updated.(*Objective).transactionSubmitted {
@@ -288,7 +288,7 @@ func TestCrank(t *testing.T) {
 
 	// Manually make the second "deposit"
 	totalAmountAllocated := testState.Outcome[0].TotalAllocated()
-	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
+	o.C.OnChain.Holdings[testState.Outcome[0].Asset] = totalAmountAllocated
 	_, sideEffects, waitingFor, err = o.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)
@@ -305,7 +305,7 @@ func TestCrank(t *testing.T) {
 	o.C.AddStateWithSignature(o.C.PostFundState(), correctSignatureByBobOnPostFund)
 
 	// This should be the final crank
-	o.C.OnChainFunding[testState.Outcome[0].Asset] = totalAmountAllocated
+	o.C.OnChain.Holdings[testState.Outcome[0].Asset] = totalAmountAllocated
 	_, _, waitingFor, err = o.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)

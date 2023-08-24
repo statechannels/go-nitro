@@ -10,13 +10,14 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/types"
 )
 
 func TestChannel(t *testing.T) {
 	compareChannels := func(a, b *Channel) string {
-		return cmp.Diff(*a, *b, cmp.AllowUnexported(*a, big.Int{}, state.SignedState{}))
+		return cmp.Diff(*a, *b, cmp.AllowUnexported(*a, big.Int{}, state.SignedState{}, OffChainData{}, OnChainData{}))
 	}
 
 	compareStates := func(a, b state.SignedState) string {
@@ -40,7 +41,7 @@ func TestChannel(t *testing.T) {
 			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
-		r.latestSupportedStateTurnNum++
+		r.OffChain.LatestSupportedStateTurnNum++
 		if reflect.DeepEqual(r, *c) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
@@ -169,13 +170,13 @@ func TestChannel(t *testing.T) {
 		}
 
 		// It should properly update the latestSupportedStateNum
-		if myC.latestSupportedStateTurnNum != s.TurnNum {
-			t.Fatalf("Expected latestSupportedStateTurnNum of %d but got %d", s.TurnNum, myC.latestSupportedStateTurnNum)
+		if myC.OffChain.LatestSupportedStateTurnNum != s.TurnNum {
+			t.Fatalf("Expected latestSupportedStateTurnNum of %d but got %d", s.TurnNum, myC.OffChain.LatestSupportedStateTurnNum)
 		}
 		// verify the signatures
 		expectedSigs := []state.Signature{sigA, sigB}
 		for i := range myC.Participants {
-			gotSig, err := myC.SignedStateForTurnNum[s.TurnNum].GetParticipantSignature(uint(i))
+			gotSig, err := myC.OffChain.SignedStateForTurnNum[s.TurnNum].GetParticipantSignature(uint(i))
 			if err != nil {
 				panic(err)
 			}
@@ -217,13 +218,13 @@ func TestChannel(t *testing.T) {
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
 		}
-		c.latestSupportedStateTurnNum = uint64(3)
+		c.OffChain.LatestSupportedStateTurnNum = uint64(3)
 		aliceSignatureOnCorrectState, _ := c.PostFundState().Sign(alicePrivateKey)
 		got = c.AddStateWithSignature(c.PostFundState(), aliceSignatureOnCorrectState) // note stale state
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be false, but it was true`)
 		}
-		c.latestSupportedStateTurnNum = MaxTurnNum // Reset so there is no longer a supported state
+		c.OffChain.LatestSupportedStateTurnNum = MaxTurnNum // Reset so there is no longer a supported state
 
 		// Now test cases which update the Channel and return true
 		want = true
@@ -245,7 +246,7 @@ func TestChannel(t *testing.T) {
 			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
 		}
 
-		got2 := c.SignedStateForTurnNum[1]
+		got2 := c.OffChain.SignedStateForTurnNum[1]
 		if got2.State().Outcome == nil || !got2.HasSignatureForParticipant(0) {
 			t.Error(`state not added correctly`)
 		}
@@ -257,10 +258,10 @@ func TestChannel(t *testing.T) {
 		if got != want {
 			t.Error(`expected c.AddSignedState() to be true, but it was false`)
 		}
-		got3 := c.latestSupportedStateTurnNum
+		got3 := c.OffChain.LatestSupportedStateTurnNum
 		want3 := uint64(1)
 		if got3 != want3 {
-			t.Fatalf(`expected c.latestSupportedStateTurnNum to be %v, but got %v`, want, got)
+			t.Fatalf(`expected c.LatestSupportedStateTurnNum to be %v, but got %v`, want, got)
 		}
 		got4, err4 := c.LatestSupportedState()
 		if err4 != nil {
@@ -299,7 +300,7 @@ func TestChannel(t *testing.T) {
 
 func TestVirtualChannel(t *testing.T) {
 	compareChannels := func(a, b *VirtualChannel) string {
-		return cmp.Diff(*a, *b, cmp.AllowUnexported(*a, big.Int{}, state.SignedState{}, Channel{}))
+		return cmp.Diff(*a, *b, cmp.AllowUnexported(*a, big.Int{}, state.SignedState{}, Channel{}, OnChainData{}, OffChainData{}))
 	}
 
 	s := state.TestState.Clone()
@@ -315,7 +316,7 @@ func TestVirtualChannel(t *testing.T) {
 			t.Errorf("Clone: mismatch (-want +got):\n%s", diff)
 		}
 
-		r.latestSupportedStateTurnNum++
+		r.OffChain.LatestSupportedStateTurnNum++
 		if reflect.DeepEqual(r.Channel, c.Channel) {
 			t.Error("Clone: modifying the clone should not modify the original")
 		}
@@ -343,14 +344,22 @@ func TestSerde(t *testing.T) {
 	signedStateForTurnNum[0] = ss
 
 	someChannel := Channel{
-		Id:                          types.Destination{1},
-		MyIndex:                     1,
-		FixedPart:                   state.TestState.FixedPart(),
-		SignedStateForTurnNum:       signedStateForTurnNum,
-		latestSupportedStateTurnNum: 2,
+		Id:        types.Destination{1},
+		MyIndex:   1,
+		FixedPart: state.TestState.FixedPart(),
+		OffChain: OffChainData{
+			SignedStateForTurnNum:       signedStateForTurnNum,
+			LatestSupportedStateTurnNum: 2,
+		},
+		OnChain: OnChainData{
+			Holdings:          types.Funds{},
+			LatestBlockNumber: 7,
+			StateHash:         common.Hash{},
+			Outcome:           outcome.Exit{},
+		},
 	}
 
-	someChannelJSON := `{"Id":"0x0100000000000000000000000000000000000000000000000000000000000000","MyIndex":1,"OnChainFunding":null,"Participants":["0xf5a1bb5607c9d079e46d1b3dc33f257d937b43bd","0x760bf27cd45036a6c486802d30b5d90cffbe31fe"],"ChannelNonce":37140676580,"AppDefinition":"0x5e29e5ab8ef33f050c7cc10b5a0456d975c5f88d","ChallengeDuration":60,"SignedStateForTurnNum":{"0":{"State":{"Participants":["0xf5a1bb5607c9d079e46d1b3dc33f257d937b43bd","0x760bf27cd45036a6c486802d30b5d90cffbe31fe"],"ChannelNonce":37140676580,"AppDefinition":"0x5e29e5ab8ef33f050c7cc10b5a0456d975c5f88d","ChallengeDuration":60,"AppData":"","Outcome":[{"Asset":"0x0000000000000000000000000000000000000000","AssetMetadata":{"AssetType":0,"Metadata":""},"Allocations":[{"Destination":"0x000000000000000000000000f5a1bb5607c9d079e46d1b3dc33f257d937b43bd","Amount":5,"AllocationType":0,"Metadata":null},{"Destination":"0x000000000000000000000000ee18ff1575055691009aa246ae608132c57a422c","Amount":5,"AllocationType":0,"Metadata":null}]}],"TurnNum":5,"IsFinal":false},"Sigs":{}}},"LatestSupportedStateTurnNum":2}`
+	someChannelJSON := `{"Id":"0x0100000000000000000000000000000000000000000000000000000000000000","MyIndex":1,"Participants":["0xf5a1bb5607c9d079e46d1b3dc33f257d937b43bd","0x760bf27cd45036a6c486802d30b5d90cffbe31fe"],"ChannelNonce":37140676580,"AppDefinition":"0x5e29e5ab8ef33f050c7cc10b5a0456d975c5f88d","ChallengeDuration":60,"OnChain":{"LatestBlockNumber":7,"Holdings":{},"Outcome":[],"StateHash":"0x0000000000000000000000000000000000000000000000000000000000000000"},"OffChain":{"SignedStateForTurnNum":{"0":{"State":{"Participants":["0xf5a1bb5607c9d079e46d1b3dc33f257d937b43bd","0x760bf27cd45036a6c486802d30b5d90cffbe31fe"],"ChannelNonce":37140676580,"AppDefinition":"0x5e29e5ab8ef33f050c7cc10b5a0456d975c5f88d","ChallengeDuration":60,"AppData":"","Outcome":[{"Asset":"0x0000000000000000000000000000000000000000","AssetMetadata":{"AssetType":0,"Metadata":""},"Allocations":[{"Destination":"0x000000000000000000000000f5a1bb5607c9d079e46d1b3dc33f257d937b43bd","Amount":5,"AllocationType":0,"Metadata":null},{"Destination":"0x000000000000000000000000ee18ff1575055691009aa246ae608132c57a422c","Amount":5,"AllocationType":0,"Metadata":null}]}],"TurnNum":5,"IsFinal":false},"Sigs":{}}},"LatestSupportedStateTurnNum":2}}`
 
 	// Marshalling
 	got, err := json.Marshal(someChannel)
