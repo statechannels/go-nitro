@@ -95,11 +95,11 @@
   },
   "ETHClearChallenge": {
     "satp": {
-      "checkpointX": 73605,
-      "challengeResponseX": 99610,
-      "checkpointL": 69601,
-      "challengeResponseL": 92781,
-      "challengeResponseV": 110145
+      "checkpointX": 73562,
+      "challengeResponseX": 96482,
+      "checkpointL": 69558,
+      "challengeResponseL": 89655,
+      "challengeResponseV": 106679
     }
   }
 }
