@@ -298,7 +298,7 @@ export async function getFinalizesAtFromTransactionHash(hash: string): Promise<n
   // @ts-ignore
   const provider = hre.ethers.provider;
   const receipt = (await provider.getTransactionReceipt(hash)) as ContractReceipt;
-  return nitroAdjudicator.interface.decodeEventLog('ChallengeRegistered', receipt.logs[0].data)[2];
+  return nitroAdjudicator.interface.decodeEventLog('ChallengeRegistered', receipt.logs[0].data)[1];
 }
 
 export async function waitForChallengesToTimeOut(finalizesAtArray: number[]): Promise<void> {
