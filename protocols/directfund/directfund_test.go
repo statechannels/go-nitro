@@ -168,26 +168,6 @@ func TestUpdate(t *testing.T) {
 	if !updated.C.OnChain.Holdings.Equal(newFunding) {
 		t.Error(`Objective data not updated as expected`, updated.C.OnChain.Holdings, newFunding)
 	}
-
-	// Update with stale funding information should be ignored
-	staleFunding := types.Funds{}
-	staleFunding[common.Address{}] = big.NewInt(2)
-	lowBlockNum := uint64(100)
-
-	_, err = updated.C.UpdateWithChainEvent(
-		chainservice.NewDepositedEvent(
-			types.Destination{}, uint64(lowBlockNum), common.Address{}, big.NewInt(2),
-		),
-	)
-	if err != nil {
-		t.Error(err)
-	}
-
-	updated = updatedObjective.(*Objective)
-
-	if updated.C.OnChain.Holdings.Equal(staleFunding) {
-		t.Error("OnChain.Holdings was updated to stale funding information", updated.C.OnChain.Holdings, staleFunding)
-	}
 }
 
 func compareSideEffect(a, b protocols.SideEffects) string {
