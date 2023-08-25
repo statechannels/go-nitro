@@ -87,10 +87,11 @@ contract VirtualPaymentApp is IForceMoveApp {
         );
     }
 
-    function requireValidVoucher(
-        bytes memory appData,
-        FixedPart memory fixedPart
-    ) internal pure returns (uint256) {
+    function requireValidVoucher(bytes memory appData, FixedPart memory fixedPart)
+        internal
+        pure
+        returns (uint256)
+    {
         VoucherAmountAndSignature memory voucher = abi.decode(appData, (VoucherAmountAndSignature));
 
         address signer = NitroUtils.recoverSigner(
