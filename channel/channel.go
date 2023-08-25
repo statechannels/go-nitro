@@ -329,7 +329,13 @@ func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, erro
 		c.OnChain.Holdings[e.Asset] = e.NowHeld
 	case chainservice.ConcludedEvent:
 		break // TODO: update OnChain.StateHash and OnChain.Outcome
-	case chainservice.ChallengeEvent:
+	case chainservice.ChallengeRegistered:
+		h, err := e.StateHash(c.FixedPart)
+		if err != nil {
+			return nil, err
+		}
+		c.OnChain.StateHash = h
+		c.OnChain.Outcome = e.Outcome()
 		break // TODO: update OnChain.StateHash and OnChain.Outcome
 	default:
 		return &Channel{}, fmt.Errorf("channel %+v cannot handle event %+v", c, event)

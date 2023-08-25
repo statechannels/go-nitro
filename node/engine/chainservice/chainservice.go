@@ -6,6 +6,8 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -66,13 +68,27 @@ type ConcludedEvent struct {
 	commonEvent
 }
 
-type ChallengeEvent struct {
-	commonEvent
-	// TODO fill out other fields
-}
-
 func (ce ConcludedEvent) String() string {
 	return "Channel " + ce.channelID.String() + " concluded at Block " + fmt.Sprint(ce.blockNum)
+}
+
+type ChallengeRegistered struct {
+	commonEvent
+	candidate state.VariablePart
+}
+
+// StateHash returns the statehash which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
+func (cr ChallengeRegistered) StateHash(fp state.FixedPart) (common.Hash, error) {
+	return state.StateFromFixedAndVariablePart(fp, cr.candidate).Hash()
+}
+
+// Outcome returns the outcome which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
+func (cr ChallengeRegistered) Outcome() outcome.Exit {
+	return cr.candidate.Outcome
+}
+
+func (cr ChallengeRegistered) String() string {
+	return "CHALLENGE registered for Channel " + cr.channelID.String() + " at Block " + fmt.Sprint(cr.blockNum)
 }
 
 func NewDepositedEvent(channelId types.Destination, blockNum uint64, assetAddress common.Address, nowHeld *big.Int) DepositedEvent {
@@ -84,7 +100,6 @@ func NewAllocationUpdatedEvent(channelId types.Destination, blockNum uint64, ass
 }
 
 // todo implement other event types
-// ChallengeRegistered
 // ChallengeCleared
 
 // ChainEventHandler describes an objective that can handle chain events
