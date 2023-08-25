@@ -167,6 +167,7 @@ export const emptyGasResults: GasResults = {
       challengeResponseX: 0,
       checkpointL: 0,
       challengeResponseL: 0,
+      challengeResponseV: 0,
     },
   },
 };
