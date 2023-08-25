@@ -21,9 +21,16 @@ import {
   Alice,
   Bob,
   paymentAmount,
+  challengeChannel,
+  Ingrid,
+  respondWithChallengeVirtualPaymentApp,
 } from './fixtures';
 import {batchSizes, GasResults} from './gas';
-import {challengeChannelAndExpectGas} from './jestSetup';
+import {
+  challengeChannelAndExpectGas,
+  checkpointChannelAndExpectGas,
+  respondWithChallengeAndExpectGas,
+} from './jestSetup';
 import {nitroAdjudicator, batchOperator, token} from './localSetup';
 
 /**
@@ -392,5 +399,77 @@ describe('Consumes the expected gas for sad-path exits', () => {
         (a, b) => a + b
       ) - gasRequiredTo.ETHexitSadVirtualFunded.satp.total
     ).toEqual(gasRequiredTo.ETHexitSadVirtualFunded.satp.total);
+  });
+});
+
+describe('Consumes the expected gas for clearing a challenge', () => {
+  it(`when clearing the challenge using checkpoint for X`, async () => {
+    await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
+    // challenge for X raised on chain,  ⬛ -> (X) -> 👩
+
+    await checkpointChannelAndExpectGas(
+      X,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHClearChallenge.satp.checkpointX
+    );
+
+    // checkpoint on X leaves the channel in open mode on chain,  ⬛ -> X -> 👩
+  });
+
+  it(`when clearing the challenge using challenge for X`, async () => {
+    await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
+    // challenge for X raised on chain,  ⬛ -> (X) -> 👩
+
+    await respondWithChallengeAndExpectGas(
+      X,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHClearChallenge.satp.challengeResponseX
+    );
+    // challenge with X leaves the channel on-chain with a new challenge,  ⬛ -> (X) -> 👩
+  });
+  it(`when clearing the challenge using checkpoint for L`, async () => {
+    await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
+    // challenge for L raised on chain,  ⬛ -> (L) -> 👩
+
+    await checkpointChannelAndExpectGas(
+      LforX,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHClearChallenge.satp.checkpointL
+    );
+
+    // checkpoint on L leaves the channel in open mode on chain,  ⬛ -> L -> 👩
+  });
+
+  it(`when clearing the challenge using challenge for L`, async () => {
+    await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
+    // challenge for L raised on chain,  ⬛ -> (L) -> 👩
+
+    await respondWithChallengeAndExpectGas(
+      LforX,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHClearChallenge.satp.challengeResponseL
+    );
+    // challenge with L leaves the channel on-chain with a new challenge,  ⬛ -> (L) -> 👩
+  });
+  it(`when clearing the challenge using challenge for V`, async () => {
+    // challenge for L raised on chain,  ⬛ -> (L) -> 👩
+    await challengeVirtualPaymentChannelWithVoucher(
+      V,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      BigNumber.from(paymentAmount).toNumber(),
+      Alice,
+      Bob
+    );
+
+    const {gasUsed} = await respondWithChallengeVirtualPaymentApp(
+      V,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      BigNumber.from(paymentAmount).toNumber(),
+      Alice,
+      Bob,
+      Ingrid
+    );
+    expect(gasUsed).toEqual(gasRequiredTo.ETHClearChallenge.satp.challengeResponseV);
+    // challenge with L leaves the channel on-chain with a new challenge,  ⬛ -> (L) -> 👩
   });
 });

@@ -21,6 +21,9 @@ import {
   challengeVirtualPaymentChannelWithVoucher,
   paymentAmount,
   getChannelBatch,
+  checkpointChannel,
+  respondWithChallengeVirtualPaymentApp,
+  Ingrid,
 } from './fixtures';
 import {batchSizes, emptyGasResults} from './gas';
 import {deployContracts, nitroAdjudicator, batchOperator, token} from './localSetup';
@@ -387,6 +390,75 @@ async function main() {
       gasResults.ETHexitSadVirtualFunded.satp.challengeV +
       gasResults.ETHexitSadVirtualFunded.satp.reclaimL +
       gasResults.ETHexitSadVirtualFunded.satp.transferAllAssetsL;
+  });
+
+  // Scenario: Clearing a challenge with a challenge response
+  // initially                   ⬛ -> X -> 👩
+  // challenge X                 ⬛ -> (X) -> 👩
+  // challenge X                 ⬛ -> (X) -> 👩
+  await executeAndRevert(async () => {
+    await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
+
+    const {challengeTx} = await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH, true);
+    gasResults.ETHClearChallenge.satp.challengeResponseX = await gasUsed(challengeTx);
+  });
+
+  // Scenario: Clearing a challenge with a checkpoint response
+  // initially                   ⬛ -> X -> 👩
+  // challenge X                 ⬛ -> (X) -> 👩
+  // checkpoint X                ⬛ -> X -> 👩
+  await executeAndRevert(async () => {
+    await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
+
+    const {checkpointTx} = await checkpointChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
+    gasResults.ETHClearChallenge.satp.checkpointX = await gasUsed(checkpointTx);
+  });
+
+  // Scenario: Clearing a challenge with a challenge response
+  // initially                   ⬛ -> L -> 👩
+  // challenge L                 ⬛ -> (L) -> 👩
+  // challenge L                 ⬛ -> (L) -> 👩
+  await executeAndRevert(async () => {
+    await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
+
+    const {challengeTx} = await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH, true);
+    gasResults.ETHClearChallenge.satp.challengeResponseL = await gasUsed(challengeTx);
+  });
+
+  // Scenario: Clearing a challenge with a checkpoint response
+  // initially                   ⬛ -> L -> 👩
+  // challenge L                 ⬛ -> (L) -> 👩
+  // checkpoint L                ⬛ -> L -> 👩
+  await executeAndRevert(async () => {
+    await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
+
+    const {checkpointTx} = await checkpointChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
+    gasResults.ETHClearChallenge.satp.checkpointL = await gasUsed(checkpointTx);
+  });
+  // Scenario: Clearing a challenge with a challenge response
+  // initially                   ⬛ -> V -> 👩
+  // challenge V                ⬛ -> (V) -> 👩
+  // challenge V                ⬛ -> (V) -> 👩
+  await executeAndRevert(async () => {
+    // challenge V ...
+    await challengeVirtualPaymentChannelWithVoucher(
+      V,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      BigNumber.from(paymentAmount).toNumber(),
+      Alice,
+      Bob
+    );
+
+    const {gasUsed} = await respondWithChallengeVirtualPaymentApp(
+      V,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      BigNumber.from(paymentAmount).toNumber(),
+      Alice,
+      Bob,
+      Ingrid
+    );
+
+    gasResults.ETHClearChallenge.satp.challengeResponseV = gasUsed;
   });
 
   writeFileSync(__dirname + '/gasResults.json', JSON.stringify(gasResults, null, 2));

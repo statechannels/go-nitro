@@ -92,5 +92,14 @@
       "transferAllAssetsL": 113759,
       "total": 477034
     }
+  },
+  "ETHClearChallenge": {
+    "satp": {
+      "checkpointX": 73605,
+      "challengeResponseX": 99610,
+      "checkpointL": 69601,
+      "challengeResponseL": 92781,
+      "challengeResponseV": 110145
+    }
   }
 }

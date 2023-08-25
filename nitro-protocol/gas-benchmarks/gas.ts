@@ -20,7 +20,8 @@ type Path =
   | 'ETHexitSad'
   | 'ETHexitSadLedgerFunded'
   | 'ETHexitSadVirtualFunded'
-  | 'ETHexitSadLedgerFunded';
+  | 'ETHexitSadLedgerFunded'
+  | 'ETHClearChallenge';
 
 /**
  * the number of channels to batch fund
@@ -157,6 +158,16 @@ export const emptyGasResults: GasResults = {
       reclaimL: 0,
       transferAllAssetsL: 0,
       total: 0,
+    },
+  },
+  ETHClearChallenge: {
+    // Scenario: Bob has a raised a challenge on chain and Alice must respond to it
+    satp: {
+      checkpointX: 0,
+      challengeResponseX: 0,
+      checkpointL: 0,
+      challengeResponseL: 0,
+      challengeResponseV: 0,
     },
   },
 };
