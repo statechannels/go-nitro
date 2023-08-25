@@ -400,7 +400,7 @@ describe('Consumes the expected gas for sad-path exits', () => {
 });
 
 describe('Consumes the expected gas for clearing a challenge', () => {
-  it(`when clearing the challenge using checkpoint`, async () => {
+  it(`when clearing the challenge using checkpoint for X`, async () => {
     // begin setup
     await (
       await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
@@ -423,7 +423,7 @@ describe('Consumes the expected gas for clearing a challenge', () => {
     // checkpoint on X leaves the channel in open mode on chain,  ⬛ -> X -> 👩
   });
 
-  it(`when clearing the challenge using challenge`, async () => {
+  it(`when clearing the challenge using challenge for X`, async () => {
     // begin setup
     await (
       await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
@@ -443,5 +443,53 @@ describe('Consumes the expected gas for clearing a challenge', () => {
       gasRequiredTo.ETHClearChallenge.satp.challengeResponseX
     );
     // challenge with X leaves the channel on-chain with a new challenge,  ⬛ -> (X) -> 👩
+  });
+  it(`when clearing the challenge using checkpoint for L`, async () => {
+    // begin setup
+    await (
+      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforX.channelId, 0, 10, {
+        value: 10,
+      })
+    ).wait();
+    // end setup
+    // initially                 ⬛ ->  L  -> 👩
+    await challengeChannelAndExpectGas(
+      LforX,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHexitSad.satp.challenge
+    );
+    // challenge for L raised on chain,  ⬛ -> (L) -> 👩
+
+    await checkpointChannelAndExpectGas(
+      LforX,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHClearChallenge.satp.checkpointL
+    );
+
+    // checkpoint on L leaves the channel in open mode on chain,  ⬛ -> L -> 👩
+  });
+
+  it(`when clearing the challenge using challenge for L`, async () => {
+    // begin setup
+    await (
+      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforX.channelId, 0, 10, {
+        value: 10,
+      })
+    ).wait();
+    // end setup
+    // initially                 ⬛ ->  L  -> 👩
+    await challengeChannelAndExpectGas(
+      LforX,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHexitSad.satp.challenge
+    );
+    // challenge for L raised on chain,  ⬛ -> (L) -> 👩
+
+    await respondWithChallengeAndExpectGas(
+      LforX,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHClearChallenge.satp.challengeResponseL
+    );
+    // challenge with L leaves the channel on-chain with a new challenge,  ⬛ -> (L) -> 👩
   });
 });

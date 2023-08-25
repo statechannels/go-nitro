@@ -25,7 +25,6 @@ import {
 } from './fixtures';
 import {batchSizes, emptyGasResults} from './gas';
 import {deployContracts, nitroAdjudicator, batchOperator, token} from './localSetup';
-import {challengeChannelAndExpectGas, respondWithChallengeAndExpectGas} from './jestSetup';
 
 /**
  * Ensures the asset holding contract always has a nonzero token balance.
@@ -419,6 +418,40 @@ async function main() {
 
     const {checkpointTx} = await checkpointChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
     gasResults.ETHClearChallenge.satp.checkpointX = await gasUsed(checkpointTx);
+  });
+
+  // Scenario: Clearing a challenge with a challenge response
+  // initially                   ⬛ -> L -> 👩
+  // challenge L                 ⬛ -> (L) -> 👩
+  // challenge L                 ⬛ -> (L) -> 👩
+  await executeAndRevert(async () => {
+    await (
+      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforX.channelId, 0, 10, {
+        value: 10,
+      })
+    ).wait();
+
+    await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
+
+    const {challengeTx} = await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH, true);
+    gasResults.ETHClearChallenge.satp.challengeResponseL = await gasUsed(challengeTx);
+  });
+
+  // Scenario: Clearing a challenge with a checkpoint response
+  // initially                   ⬛ -> L -> 👩
+  // challenge L                 ⬛ -> (L) -> 👩
+  // checkpoint L                ⬛ -> L -> 👩
+  await executeAndRevert(async () => {
+    await (
+      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforX.channelId, 0, 10, {
+        value: 10,
+      })
+    ).wait();
+
+    await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
+
+    const {checkpointTx} = await checkpointChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
+    gasResults.ETHClearChallenge.satp.checkpointL = await gasUsed(checkpointTx);
   });
 
   writeFileSync(__dirname + '/gasResults.json', JSON.stringify(gasResults, null, 2));
