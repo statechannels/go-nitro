@@ -13,20 +13,26 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+type OnChainData struct {
+	LatestBlockNumber uint64 // the latest block number we've seen
+	Holdings          types.Funds
+	Outcome           outcome.Exit
+	StateHash         common.Hash
+}
+
+type OffChainData struct {
+	SignedStateForTurnNum       map[uint64]state.SignedState // Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
+	LatestSupportedStateTurnNum uint64                       // largest uint64 value reserved for "no supported state"
+}
+
 // Channel contains states and metadata and exposes convenience methods.
 type Channel struct {
+	state.FixedPart
 	Id      types.Destination
 	MyIndex uint
 
-	OnChainFunding    types.Funds
-	latestBlockNumber uint64 // the latest block number we've seen
-
-	state.FixedPart
-
-	SignedStateForTurnNum map[uint64]state.SignedState
-	// Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
-
-	latestSupportedStateTurnNum uint64 // largest uint64 value reserved for "no supported state"
+	OnChain  OnChainData
+	OffChain OffChainData
 }
 
 // New constructs a new Channel from the supplied state.
@@ -44,22 +50,22 @@ func New(s state.State, myIndex uint) (*Channel, error) {
 		return &c, err
 	}
 	c.MyIndex = myIndex
-	c.OnChainFunding = make(types.Funds)
+	c.OnChain.Holdings = make(types.Funds)
 	c.FixedPart = s.FixedPart().Clone()
-	c.latestSupportedStateTurnNum = MaxTurnNum // largest uint64 value reserved for "no supported state"
+	c.OffChain.LatestSupportedStateTurnNum = MaxTurnNum // largest uint64 value reserved for "no supported state"
 
 	// Store prefund
-	c.SignedStateForTurnNum = make(map[uint64]state.SignedState)
-	c.SignedStateForTurnNum[PreFundTurnNum] = state.NewSignedState(s)
+	c.OffChain.SignedStateForTurnNum = make(map[uint64]state.SignedState)
+	c.OffChain.SignedStateForTurnNum[PreFundTurnNum] = state.NewSignedState(s)
 
 	// Store postfund
 	post := s.Clone()
 	post.TurnNum = PostFundTurnNum
-	c.SignedStateForTurnNum[PostFundTurnNum] = state.NewSignedState(post)
+	c.OffChain.SignedStateForTurnNum[PostFundTurnNum] = state.NewSignedState(post)
 
 	// Set on chain holdings to zero for each asset
 	for asset := range s.Outcome.TotalAllocated() {
-		c.OnChainFunding[asset] = big.NewInt(0)
+		c.OnChain.Holdings[asset] = big.NewInt(0)
 	}
 
 	return &c, nil
@@ -68,25 +74,21 @@ func New(s state.State, myIndex uint) (*Channel, error) {
 // jsonChannel replaces Channel's private fields with public ones,
 // making it suitable for serialization
 type jsonChannel struct {
-	Id             types.Destination
-	MyIndex        uint
-	OnChainFunding types.Funds
+	Id      types.Destination
+	MyIndex uint
 	state.FixedPart
-	SignedStateForTurnNum map[uint64]state.SignedState
-
-	LatestSupportedStateTurnNum uint64
+	OnChain  OnChainData
+	OffChain OffChainData
 }
 
 // MarshalJSON returns a JSON representation of the Channel
 func (c Channel) MarshalJSON() ([]byte, error) {
 	jsonCh := jsonChannel{
-		Id:                    c.Id,
-		MyIndex:               c.MyIndex,
-		OnChainFunding:        c.OnChainFunding,
-		FixedPart:             c.FixedPart,
-		SignedStateForTurnNum: c.SignedStateForTurnNum,
-
-		LatestSupportedStateTurnNum: c.latestSupportedStateTurnNum,
+		Id:        c.Id,
+		MyIndex:   c.MyIndex,
+		OnChain:   c.OnChain,
+		OffChain:  c.OffChain,
+		FixedPart: c.FixedPart,
 	}
 	return json.Marshal(jsonCh)
 }
@@ -97,14 +99,13 @@ func (c *Channel) UnmarshalJSON(data []byte) error {
 	var jsonCh jsonChannel
 	err := json.Unmarshal(data, &jsonCh)
 	if err != nil {
-		return fmt.Errorf("error unmarshaling channel data")
+		return fmt.Errorf("error unmarshaling channel data: %w", err)
 	}
 
 	c.Id = jsonCh.Id
 	c.MyIndex = jsonCh.MyIndex
-	c.OnChainFunding = jsonCh.OnChainFunding
-	c.latestSupportedStateTurnNum = jsonCh.LatestSupportedStateTurnNum
-	c.SignedStateForTurnNum = jsonCh.SignedStateForTurnNum
+	c.OnChain = jsonCh.OnChain
+	c.OffChain = jsonCh.OffChain
 
 	c.FixedPart = jsonCh.FixedPart
 
@@ -122,40 +123,40 @@ func (c *Channel) Clone() *Channel {
 		return nil
 	}
 	d, _ := New(c.PreFundState().Clone(), c.MyIndex)
-	d.latestSupportedStateTurnNum = c.latestSupportedStateTurnNum
-	for i, ss := range c.SignedStateForTurnNum {
-		d.SignedStateForTurnNum[i] = ss.Clone()
+	d.OffChain.LatestSupportedStateTurnNum = c.OffChain.LatestSupportedStateTurnNum
+	for i, ss := range c.OffChain.SignedStateForTurnNum {
+		d.OffChain.SignedStateForTurnNum[i] = ss.Clone()
 	}
-	d.OnChainFunding = c.OnChainFunding.Clone()
-	d.latestBlockNumber = c.latestBlockNumber
+	d.OnChain.LatestBlockNumber = c.OnChain.LatestBlockNumber
 	d.FixedPart = c.FixedPart.Clone()
+	d.OnChain.Holdings = c.OnChain.Holdings
 	return d
 }
 
 // PreFundState() returns the pre fund setup state for the channel.
 func (c Channel) PreFundState() state.State {
-	return c.SignedStateForTurnNum[PreFundTurnNum].State()
+	return c.OffChain.SignedStateForTurnNum[PreFundTurnNum].State()
 }
 
 // SignedPreFundState returns the signed pre fund setup state for the channel.
 func (c Channel) SignedPreFundState() state.SignedState {
-	return c.SignedStateForTurnNum[PreFundTurnNum]
+	return c.OffChain.SignedStateForTurnNum[PreFundTurnNum]
 }
 
 // PostFundState() returns the post fund setup state for the channel.
 func (c Channel) PostFundState() state.State {
-	return c.SignedStateForTurnNum[PostFundTurnNum].State()
+	return c.OffChain.SignedStateForTurnNum[PostFundTurnNum].State()
 }
 
 // SignedPostFundState() returns the SIGNED post fund setup state for the channel.
 func (c Channel) SignedPostFundState() state.SignedState {
-	return c.SignedStateForTurnNum[PostFundTurnNum]
+	return c.OffChain.SignedStateForTurnNum[PostFundTurnNum]
 }
 
 // PreFundSignedByMe returns true if the calling client has signed the pre fund setup state, false otherwise.
 func (c Channel) PreFundSignedByMe() bool {
-	if _, ok := c.SignedStateForTurnNum[PreFundTurnNum]; ok {
-		if c.SignedStateForTurnNum[PreFundTurnNum].HasSignatureForParticipant(c.MyIndex) {
+	if _, ok := c.OffChain.SignedStateForTurnNum[PreFundTurnNum]; ok {
+		if c.OffChain.SignedStateForTurnNum[PreFundTurnNum].HasSignatureForParticipant(c.MyIndex) {
 			return true
 		}
 	}
@@ -164,8 +165,8 @@ func (c Channel) PreFundSignedByMe() bool {
 
 // PostFundSignedByMe returns true if the calling client has signed the post fund setup state, false otherwise.
 func (c Channel) PostFundSignedByMe() bool {
-	if _, ok := c.SignedStateForTurnNum[PostFundTurnNum]; ok {
-		if c.SignedStateForTurnNum[PostFundTurnNum].HasSignatureForParticipant(c.MyIndex) {
+	if _, ok := c.OffChain.SignedStateForTurnNum[PostFundTurnNum]; ok {
+		if c.OffChain.SignedStateForTurnNum[PostFundTurnNum].HasSignatureForParticipant(c.MyIndex) {
 			return true
 		}
 	}
@@ -174,17 +175,17 @@ func (c Channel) PostFundSignedByMe() bool {
 
 // PreFundComplete() returns true if I have a complete set of signatures on  the pre fund setup state, false otherwise.
 func (c Channel) PreFundComplete() bool {
-	return c.SignedStateForTurnNum[PreFundTurnNum].HasAllSignatures()
+	return c.OffChain.SignedStateForTurnNum[PreFundTurnNum].HasAllSignatures()
 }
 
 // PostFundComplete() returns true if I have a complete set of signatures on  the pre fund setup state, false otherwise.
 func (c Channel) PostFundComplete() bool {
-	return c.SignedStateForTurnNum[PostFundTurnNum].HasAllSignatures()
+	return c.OffChain.SignedStateForTurnNum[PostFundTurnNum].HasAllSignatures()
 }
 
 // FinalSignedByMe returns true if the calling client has signed a final state, false otherwise.
 func (c Channel) FinalSignedByMe() bool {
-	for _, ss := range c.SignedStateForTurnNum {
+	for _, ss := range c.OffChain.SignedStateForTurnNum {
 		if ss.HasSignatureForParticipant(c.MyIndex) && ss.State().IsFinal {
 			return true
 		}
@@ -194,39 +195,39 @@ func (c Channel) FinalSignedByMe() bool {
 
 // FinalCompleted returns true if I have a complete set of signatures on a final state, false otherwise.
 func (c Channel) FinalCompleted() bool {
-	if c.latestSupportedStateTurnNum == MaxTurnNum {
+	if c.OffChain.LatestSupportedStateTurnNum == MaxTurnNum {
 		return false
 	}
 
-	return c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State().IsFinal
+	return c.OffChain.SignedStateForTurnNum[c.OffChain.LatestSupportedStateTurnNum].State().IsFinal
 }
 
 // HasSupportedState returns true if the channel has a supported state, false otherwise.
 func (c Channel) HasSupportedState() bool {
-	return c.latestSupportedStateTurnNum != MaxTurnNum
+	return c.OffChain.LatestSupportedStateTurnNum != MaxTurnNum
 }
 
 // LatestSupportedState returns the latest supported state. A state is supported if it is signed
 // by all participants.
 func (c Channel) LatestSupportedState() (state.State, error) {
-	if c.latestSupportedStateTurnNum == MaxTurnNum {
+	if c.OffChain.LatestSupportedStateTurnNum == MaxTurnNum {
 		return state.State{}, errors.New(`no state is yet supported`)
 	}
-	return c.SignedStateForTurnNum[c.latestSupportedStateTurnNum].State(), nil
+	return c.OffChain.SignedStateForTurnNum[c.OffChain.LatestSupportedStateTurnNum].State(), nil
 }
 
 // LatestSignedState fetches the state with the largest turn number signed by at least one participant.
 func (c Channel) LatestSignedState() (state.SignedState, error) {
-	if len(c.SignedStateForTurnNum) == 0 {
+	if len(c.OffChain.SignedStateForTurnNum) == 0 {
 		return state.SignedState{}, errors.New("no states are signed")
 	}
 	latestTurn := uint64(0)
-	for k := range c.SignedStateForTurnNum {
+	for k := range c.OffChain.SignedStateForTurnNum {
 		if k > latestTurn {
 			latestTurn = k
 		}
 	}
-	return c.SignedStateForTurnNum[latestTurn], nil
+	return c.OffChain.SignedStateForTurnNum[latestTurn], nil
 }
 
 // Total() returns the total allocated of each asset allocated by the pre fund setup state of the Channel.
@@ -269,14 +270,14 @@ func (c *Channel) AddSignedState(ss state.SignedState) bool {
 		return false
 	}
 
-	if c.latestSupportedStateTurnNum != MaxTurnNum && s.TurnNum < c.latestSupportedStateTurnNum {
+	if c.OffChain.LatestSupportedStateTurnNum != MaxTurnNum && s.TurnNum < c.OffChain.LatestSupportedStateTurnNum {
 		// Stale state
 		return false
 	}
 
 	// Store the signatures. If we have no record yet, add one.
-	if signedState, ok := c.SignedStateForTurnNum[s.TurnNum]; !ok {
-		c.SignedStateForTurnNum[s.TurnNum] = ss
+	if signedState, ok := c.OffChain.SignedStateForTurnNum[s.TurnNum]; !ok {
+		c.OffChain.SignedStateForTurnNum[s.TurnNum] = ss
 	} else {
 		err := signedState.Merge(ss)
 		if err != nil {
@@ -285,8 +286,8 @@ func (c *Channel) AddSignedState(ss state.SignedState) bool {
 	}
 
 	// Update latest supported state
-	if c.SignedStateForTurnNum[s.TurnNum].HasAllSignatures() {
-		c.latestSupportedStateTurnNum = s.TurnNum
+	if c.OffChain.SignedStateForTurnNum[s.TurnNum].HasAllSignatures() {
+		c.OffChain.LatestSupportedStateTurnNum = s.TurnNum
 	}
 
 	return true
@@ -322,17 +323,20 @@ func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState,
 
 // UpdateWithChainEvent mutates the receiver if provided with a "new" chain event (with a greater block number than previously seen)
 func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, error) {
-	if event.BlockNum() < c.latestBlockNumber {
+	if event.BlockNum() < c.OnChain.LatestBlockNumber {
 		return c, nil // ignore stale information TODO: is this reorg safe?
 	}
-	c.latestBlockNumber = event.BlockNum()
+	c.OnChain.LatestBlockNumber = event.BlockNum()
 	switch e := event.(type) {
 	case chainservice.AllocationUpdatedEvent:
-		c.OnChainFunding[e.AssetAddress] = e.AssetAmount
+		c.OnChain.Holdings[e.AssetAddress] = e.AssetAmount
+		// TODO: update OnChain.StateHash and OnChain.Outcome
 	case chainservice.DepositedEvent:
-		c.OnChainFunding[e.Asset] = e.NowHeld
+		c.OnChain.Holdings[e.Asset] = e.NowHeld
 	case chainservice.ConcludedEvent:
-		break
+		break // TODO: update OnChain.StateHash and OnChain.Outcome
+	case chainservice.ChallengeEvent:
+		break // TODO: update OnChain.StateHash and OnChain.Outcome
 	default:
 		return &Channel{}, fmt.Errorf("channel %+v cannot handle event %+v", c, event)
 	}

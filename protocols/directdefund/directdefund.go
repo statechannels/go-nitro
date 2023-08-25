@@ -288,15 +288,15 @@ func CreateChannelFromConsensusChannel(cc consensus_channel.ConsensusChannel) (*
 	if err != nil {
 		return &channel.Channel{}, err
 	}
-	c.OnChainFunding = cc.OnChainFunding.Clone()
 	c.AddSignedState(cc.SupportedSignedState())
+	c.OnChain.Holdings = cc.OnChainFunding
 
 	return c, nil
 }
 
 // fullyWithdrawn returns true if the channel contains no assets on chain
 func (o *Objective) fullyWithdrawn() bool {
-	return !o.C.OnChainFunding.IsNonZero()
+	return !o.C.OnChain.Holdings.IsNonZero()
 }
 
 // clone returns a deep copy of the receiver.
