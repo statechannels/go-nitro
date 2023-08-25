@@ -395,10 +395,6 @@ async function main() {
   // challenge X                 ⬛ -> (X) -> 👩
   // challenge X                 ⬛ -> (X) -> 👩
   await executeAndRevert(async () => {
-    await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
-    ).wait();
-
     await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
 
     const {challengeTx} = await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH, true);
@@ -410,10 +406,6 @@ async function main() {
   // challenge X                 ⬛ -> (X) -> 👩
   // checkpoint X                ⬛ -> X -> 👩
   await executeAndRevert(async () => {
-    await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
-    ).wait();
-
     await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
 
     const {checkpointTx} = await checkpointChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
@@ -425,12 +417,6 @@ async function main() {
   // challenge L                 ⬛ -> (L) -> 👩
   // challenge L                 ⬛ -> (L) -> 👩
   await executeAndRevert(async () => {
-    await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforX.channelId, 0, 10, {
-        value: 10,
-      })
-    ).wait();
-
     await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
 
     const {challengeTx} = await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH, true);
@@ -442,12 +428,6 @@ async function main() {
   // challenge L                 ⬛ -> (L) -> 👩
   // checkpoint L                ⬛ -> L -> 👩
   await executeAndRevert(async () => {
-    await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforX.channelId, 0, 10, {
-        value: 10,
-      })
-    ).wait();
-
     await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
 
     const {checkpointTx} = await checkpointChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);

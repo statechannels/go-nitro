@@ -21,6 +21,7 @@ import {
   Alice,
   Bob,
   paymentAmount,
+  challengeChannel,
 } from './fixtures';
 import {batchSizes, GasResults} from './gas';
 import {
@@ -401,17 +402,7 @@ describe('Consumes the expected gas for sad-path exits', () => {
 
 describe('Consumes the expected gas for clearing a challenge', () => {
   it(`when clearing the challenge using checkpoint for X`, async () => {
-    // begin setup
-    await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
-    ).wait();
-    // end setup
-    // initially                 ⬛ ->  X  -> 👩
-    await challengeChannelAndExpectGas(
-      X,
-      MAGIC_ADDRESS_INDICATING_ETH,
-      gasRequiredTo.ETHexitSad.satp.challenge
-    );
+    await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
     // challenge for X raised on chain,  ⬛ -> (X) -> 👩
 
     await checkpointChannelAndExpectGas(
@@ -424,17 +415,7 @@ describe('Consumes the expected gas for clearing a challenge', () => {
   });
 
   it(`when clearing the challenge using challenge for X`, async () => {
-    // begin setup
-    await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
-    ).wait();
-    // end setup
-    // initially                 ⬛ ->  X  -> 👩
-    await challengeChannelAndExpectGas(
-      X,
-      MAGIC_ADDRESS_INDICATING_ETH,
-      gasRequiredTo.ETHexitSad.satp.challenge
-    );
+    await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
     // challenge for X raised on chain,  ⬛ -> (X) -> 👩
 
     await respondWithChallengeAndExpectGas(
@@ -445,19 +426,7 @@ describe('Consumes the expected gas for clearing a challenge', () => {
     // challenge with X leaves the channel on-chain with a new challenge,  ⬛ -> (X) -> 👩
   });
   it(`when clearing the challenge using checkpoint for L`, async () => {
-    // begin setup
-    await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforX.channelId, 0, 10, {
-        value: 10,
-      })
-    ).wait();
-    // end setup
-    // initially                 ⬛ ->  L  -> 👩
-    await challengeChannelAndExpectGas(
-      LforX,
-      MAGIC_ADDRESS_INDICATING_ETH,
-      gasRequiredTo.ETHexitSad.satp.challenge
-    );
+    await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
     // challenge for L raised on chain,  ⬛ -> (L) -> 👩
 
     await checkpointChannelAndExpectGas(
@@ -470,19 +439,7 @@ describe('Consumes the expected gas for clearing a challenge', () => {
   });
 
   it(`when clearing the challenge using challenge for L`, async () => {
-    // begin setup
-    await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforX.channelId, 0, 10, {
-        value: 10,
-      })
-    ).wait();
-    // end setup
-    // initially                 ⬛ ->  L  -> 👩
-    await challengeChannelAndExpectGas(
-      LforX,
-      MAGIC_ADDRESS_INDICATING_ETH,
-      gasRequiredTo.ETHexitSad.satp.challenge
-    );
+    await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
     // challenge for L raised on chain,  ⬛ -> (L) -> 👩
 
     await respondWithChallengeAndExpectGas(

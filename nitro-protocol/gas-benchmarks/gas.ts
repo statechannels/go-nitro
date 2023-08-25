@@ -165,6 +165,8 @@ export const emptyGasResults: GasResults = {
     satp: {
       checkpointX: 0,
       challengeResponseX: 0,
+      checkpointL: 0,
+      challengeResponseL: 0,
     },
   },
 };
