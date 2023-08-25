@@ -14,10 +14,9 @@ import (
 )
 
 type OnChainData struct {
-	LatestBlockNumber uint64 // the latest block number we've seen
-	Holdings          types.Funds
-	Outcome           outcome.Exit
-	StateHash         common.Hash
+	Holdings  types.Funds
+	Outcome   outcome.Exit
+	StateHash common.Hash
 }
 
 type OffChainData struct {
@@ -127,7 +126,6 @@ func (c *Channel) Clone() *Channel {
 	for i, ss := range c.OffChain.SignedStateForTurnNum {
 		d.OffChain.SignedStateForTurnNum[i] = ss.Clone()
 	}
-	d.OnChain.LatestBlockNumber = c.OnChain.LatestBlockNumber
 	d.FixedPart = c.FixedPart.Clone()
 	d.OnChain.Holdings = c.OnChain.Holdings
 	return d
@@ -323,10 +321,6 @@ func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState,
 
 // UpdateWithChainEvent mutates the receiver if provided with a "new" chain event (with a greater block number than previously seen)
 func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, error) {
-	if event.BlockNum() < c.OnChain.LatestBlockNumber {
-		return c, nil // ignore stale information TODO: is this reorg safe?
-	}
-	c.OnChain.LatestBlockNumber = event.BlockNum()
 	switch e := event.(type) {
 	case chainservice.AllocationUpdatedEvent:
 		c.OnChain.Holdings[e.AssetAddress] = e.AssetAmount
