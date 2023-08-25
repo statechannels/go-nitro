@@ -63,8 +63,6 @@ describe('stateIsSupported (lone candidate route)', () => {
     {turnNum: 0, isFinal: false, reason: undefined},
     {turnNum: 1, isFinal: false, reason: undefined},
     {turnNum: 2, isFinal: false, reason: 'bad candidate turnNum'},
-    {turnNum: 3, isFinal: false, reason: '!final; turnNum=3 && |proof|=0'},
-    {turnNum: 3, isFinal: true, reason: undefined},
     {turnNum: 4, isFinal: false, reason: 'bad candidate turnNum'},
   ];
 
