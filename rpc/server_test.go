@@ -60,11 +60,10 @@ func getAuthToken(t *testing.T) string {
 	}
 
 	mockNode := &nitro.Node{}
-	mockLogger := &zerolog.Logger{}
 	mockResponder := &mockResponder{}
 	// Since we're using an empty node we want to disable notifications
 	// otherwise the server will try to send notifications to the node and fail
-	_, err = newRpcServerWithoutNotifications(mockNode, mockLogger, mockResponder)
+	_, err = newRpcServerWithoutNotifications(mockNode, mockResponder)
 	if err != nil {
 		t.Error(err)
 	}
