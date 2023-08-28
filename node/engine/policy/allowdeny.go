@@ -6,32 +6,47 @@ import (
 )
 
 func NewDenyListPolicy(denied []types.Address) PolicyMaker {
-	deniedMap := make(map[types.Address]bool)
+	deniedMap := make(map[types.Address]struct{})
 	for _, a := range denied {
-		deniedMap[a] = false
+		deniedMap[a] = struct{}{}
 	}
-	return &listPolicy{denied: deniedMap}
+	return &listPolicy{participants: deniedMap, mode: deny}
 }
 
 func NewAllowListPolicy(allowed []types.Address) PolicyMaker {
-	allowedMap := make(map[types.Address]bool)
+	allowedMap := make(map[types.Address]struct{})
 	for _, a := range allowed {
-		allowedMap[a] = false
+		allowedMap[a] = struct{}{}
 	}
-	return &listPolicy{allowed: allowedMap}
+	return &listPolicy{participants: allowedMap, mode: allow}
 }
 
 // ShouldApprove decides to approve o if it is currently unapproved
 func (lp *listPolicy) ShouldApprove(o protocols.Objective) bool {
 	for _, p := range o.GetParticipants() {
-		if !lp.allowed[p] {
+		_, found := lp.participants[p]
+
+		// If this is an allow list then we reject any objective that has a participant not on the list
+		if lp.mode == allow && !found {
 			return false
 		}
+		// If this is a deny list then we reject any objective that has a participant on the list
+		if lp.mode == deny && found {
+			return false
+		}
+
 	}
 	return true
 }
 
+type listMode string
+
+const (
+	allow listMode = "allow"
+	deny  listMode = "deny"
+)
+
 type listPolicy struct {
-	allowed map[types.Address]bool
-	denied  map[types.Address]bool
+	participants map[types.Address]struct{}
+	mode         listMode
 }
