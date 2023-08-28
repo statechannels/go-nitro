@@ -7,7 +7,7 @@ import {SnapshotRestorer, takeSnapshot} from '@nomicfoundation/hardhat-network-h
 import axios from 'axios';
 
 import {deployContracts} from './localSetup';
-import {TestChannel, challengeChannel} from './fixtures';
+import {TestChannel, challengeChannel, checkpointChannel} from './fixtures';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -43,7 +43,7 @@ async function waitUntilNodeReady(url: string): Promise<void> {
   }
 }
 
-jest.setTimeout(15_000); // give hardhat network a chance to get going
+jest.setTimeout(45_000); // give hardhat network a chance to get going
 if (existsSync(logFile)) truncateSync(logFile);
 const hardhatProcess = exec('npx hardhat node --no-deploy --port 9546', (error, stdout) => {
   promises.appendFile(logFile, stdout);
@@ -120,6 +120,39 @@ export async function challengeChannelAndExpectGas(
   expectedGas: number
 ): Promise<{proof: ReturnType<typeof channel.counterSignedSupportProof>; finalizesAt: number}> {
   const {challengeTx, proof, finalizesAt} = await challengeChannel(channel, asset);
+
+  await expect(challengeTx).toConsumeGas(expectedGas);
+
+  return {proof, finalizesAt};
+}
+
+/**
+ * Constructs a support proof for the supplied channel, calls challenge,
+ * and asserts the expected gas
+ * @returns The proof and finalizesAt
+ */
+export async function checkpointChannelAndExpectGas(
+  channel: TestChannel,
+  asset: string,
+  expectedGas: number
+): Promise<{proof: ReturnType<typeof channel.counterSignedSupportProof>}> {
+  const {checkpointTx, proof} = await checkpointChannel(channel, asset);
+
+  await expect(checkpointTx).toConsumeGas(expectedGas);
+
+  return {proof};
+}
+/**
+ * Constructs a support proof for the supplied channel, calls challenge,
+ * and asserts the expected gas
+ * @returns The proof and finalizesAt
+ */
+export async function respondWithChallengeAndExpectGas(
+  channel: TestChannel,
+  asset: string,
+  expectedGas: number
+): Promise<{proof: ReturnType<typeof channel.counterSignedSupportProof>; finalizesAt: number}> {
+  const {challengeTx, proof, finalizesAt} = await challengeChannel(channel, asset, true);
 
   await expect(challengeTx).toConsumeGas(expectedGas);
 

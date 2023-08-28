@@ -216,7 +216,7 @@ func (dfo *Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChan
 
 	if ledger.MyIndex == uint(consensus_channel.Leader) {
 		con, err := consensus_channel.NewLeaderChannel(ledger.FixedPart, turnNum, outcome, signatures)
-		con.OnChainFunding = ledger.OnChainFunding.Clone() // Copy OnChainFunding so we don't lose this information
+		con.OnChainFunding = ledger.OnChain.Holdings.Clone() // Copy OnChain.Holdings so we don't lose this information
 		if err != nil {
 			return nil, fmt.Errorf("could not create consensus channel as leader: %w", err)
 		}
@@ -224,7 +224,7 @@ func (dfo *Objective) CreateConsensusChannel() (*consensus_channel.ConsensusChan
 
 	} else {
 		con, err := consensus_channel.NewFollowerChannel(ledger.FixedPart, turnNum, outcome, signatures)
-		con.OnChainFunding = ledger.OnChainFunding.Clone() // Copy OnChainFunding so we don't lose this information
+		con.OnChainFunding = ledger.OnChain.Holdings.Clone() // Copy OnChain.Holdings so we don't lose this information
 		if err != nil {
 			return nil, fmt.Errorf("could not create consensus channel as follower: %w", err)
 		}
@@ -364,7 +364,7 @@ func (o *Objective) Related() []protocols.Storable {
 // fundingComplete returns true if the recorded OnChainHoldings are greater than or equal to the threshold for being fully funded.
 func (o *Objective) fundingComplete() bool {
 	for asset, threshold := range o.fullyFundedThreshold {
-		chainHolding, ok := o.C.OnChainFunding[asset]
+		chainHolding, ok := o.C.OnChain.Holdings[asset]
 
 		if !ok {
 			return false
@@ -382,7 +382,7 @@ func (o *Objective) fundingComplete() bool {
 func (o *Objective) safeToDeposit() bool {
 	for asset, safetyThreshold := range o.myDepositSafetyThreshold {
 
-		chainHolding, ok := o.C.OnChainFunding[asset]
+		chainHolding, ok := o.C.OnChain.Holdings[asset]
 
 		if !ok {
 			return false // nil chainHolding for asset
@@ -398,10 +398,10 @@ func (o *Objective) safeToDeposit() bool {
 
 // amountToDeposit computes the appropriate amount to deposit given the current recorded OnChainHoldings
 func (o *Objective) amountToDeposit() types.Funds {
-	deposits := make(types.Funds, len(o.C.OnChainFunding))
+	deposits := make(types.Funds, len(o.C.OnChain.Holdings))
 
 	for asset, target := range o.myDepositTarget {
-		holding, ok := o.C.OnChainFunding[asset]
+		holding, ok := o.C.OnChain.Holdings[asset]
 		if !ok {
 			holding = big.NewInt(0)
 		}

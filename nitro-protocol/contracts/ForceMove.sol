@@ -73,11 +73,7 @@ contract ForceMove is IForceMove, StatusManager {
         // effects
         emit ChallengeRegistered(
             channelId,
-            candidateTurnNum,
             uint48(block.timestamp) + fixedPart.challengeDuration, //solhint-disable-line not-rely-on-time
-            // ^^^ This could overflow, so don't join a channel with a huge challengeDuration
-            candidate.variablePart.isFinal,
-            fixedPart,
             proof,
             candidate
         );

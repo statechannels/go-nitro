@@ -12,6 +12,7 @@ import {
   X,
   LforX,
   LforV,
+  getChannelBatch,
   assertEthBalancesAndHoldings,
   amountForAlice,
   amountForAliceAndBob,
@@ -20,10 +21,17 @@ import {
   Alice,
   Bob,
   paymentAmount,
+  challengeChannel,
+  Ingrid,
+  respondWithChallengeVirtualPaymentApp,
 } from './fixtures';
-import {GasResults} from './gas';
-import {challengeChannelAndExpectGas} from './jestSetup';
-import {nitroAdjudicator, token} from './localSetup';
+import {batchSizes, GasResults} from './gas';
+import {
+  challengeChannelAndExpectGas,
+  checkpointChannelAndExpectGas,
+  respondWithChallengeAndExpectGas,
+} from './jestSetup';
+import {nitroAdjudicator, batchOperator, token} from './localSetup';
 
 /**
  * Ensures the asset holding contract always has a nonzero token balance.
@@ -73,6 +81,89 @@ describe('Consumes the expected gas for deposits', () => {
       await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 5, 5, {value: 5})
     ).toConsumeGas(gasRequiredTo.directlyFundAChannelWithETHSecond.satp);
   });
+
+  for (const batchSize of batchSizes) {
+    const batch = getChannelBatch(batchSize);
+
+    it(`when batch funding ${batchSize} channels with ETH (first deposit)`, async () => {
+      await expect(
+        await batchOperator.deposit_batch_eth(
+          batch.map(c => c.channelId),
+          batch.map(() => 0),
+          batch.map(() => 5),
+          {value: 5 * batch.length}
+        )
+      ).toConsumeGas(gasRequiredTo.batchFundChannelsWithETHFirst.satp[batchSize]);
+    });
+
+    it(`when batch funding ${batchSize} channels with ETH (second deposit)`, async () => {
+      // begin setup
+      await (
+        await batchOperator.deposit_batch_eth(
+          batch.map(c => c.channelId),
+          batch.map(() => 0),
+          batch.map(() => 5),
+          {value: 5 * batch.length}
+        )
+      ).wait();
+      // end setup
+
+      await expect(
+        await batchOperator.deposit_batch_eth(
+          batch.map(c => c.channelId),
+          batch.map(() => 5),
+          batch.map(() => 5),
+          {value: 5 * batch.length}
+        )
+      ).toConsumeGas(gasRequiredTo.batchFundChannelsWithETHSecond.satp[batchSize]);
+    });
+
+    it(`when batch funding ${batchSize} channels with ERC20 (first deposit)`, async () => {
+      // begin setup
+      const totalAmount = batchSize * 5;
+      await (await token.transfer(nitroAdjudicator.address, 1)).wait(); // The asset holder already has some tokens (for other channels)
+      await (await token.increaseAllowance(batchOperator.address, 2 * totalAmount)).wait(); // over-approve to avoid gas "refund" when approval returns to 0
+      // end setup
+
+      await expect(
+        await batchOperator.deposit_batch_erc20(
+          token.address,
+          batch.map(c => c.channelId),
+          batch.map(() => 0),
+          batch.map(() => 5),
+          totalAmount
+        )
+      ).toConsumeGas(gasRequiredTo.batchFundChannelsWithERCFirst.satp[batchSize]);
+    });
+
+    it(`when batch funding ${batchSize} channels with ERC20 (second deposit)`, async () => {
+      // begin setup
+      const totalAmount = batchSize * 5;
+      await (await token.transfer(nitroAdjudicator.address, 1)).wait(); // The asset holder already has some tokens (for other channels)
+      await (await token.increaseAllowance(batchOperator.address, 3 * totalAmount)).wait(); // over-approve to avoid "refund" when approval returns to 0
+
+      await (
+        await batchOperator.deposit_batch_erc20(
+          token.address,
+          batch.map(c => c.channelId),
+          batch.map(() => 0),
+          batch.map(() => 5),
+          totalAmount
+        )
+      ).wait();
+      // end setup
+
+      await expect(
+        await batchOperator.deposit_batch_erc20(
+          token.address,
+          batch.map(c => c.channelId),
+          batch.map(() => 5),
+          batch.map(() => 5),
+          totalAmount
+        )
+      ).toConsumeGas(gasRequiredTo.batchFundChannelsWithERCSecond.satp[batchSize]);
+    });
+  }
 
   it(`when directly funding a channel with an ERC20 (first deposit)`, async () => {
     // begin setup
@@ -295,7 +386,7 @@ describe('Consumes the expected gas for sad-path exits', () => {
 
     await assertEthBalancesAndHoldings(
       {
-        Bob: BigNumber.from(paymentAmount), // Bob gets his paymennt
+        Bob: BigNumber.from(paymentAmount), // Bob gets his payment
         Ingrid: BigNumber.from(amountForAlice).sub(BigNumber.from(paymentAmount)), // Ingrid is adjusted down, she will be compensated in the other ledger channel
       },
       {LforV: 0, V: 0}
@@ -308,5 +399,77 @@ describe('Consumes the expected gas for sad-path exits', () => {
         (a, b) => a + b
       ) - gasRequiredTo.ETHexitSadVirtualFunded.satp.total
     ).toEqual(gasRequiredTo.ETHexitSadVirtualFunded.satp.total);
+  });
+});
+
+describe('Consumes the expected gas for clearing a challenge', () => {
+  it(`when clearing the challenge using checkpoint for X`, async () => {
+    await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
+    // challenge for X raised on chain,  ⬛ -> (X) -> 👩
+
+    await checkpointChannelAndExpectGas(
+      X,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHClearChallenge.satp.checkpointX
+    );
+
+    // checkpoint on X leaves the channel in open mode on chain,  ⬛ -> X -> 👩
+  });
+
+  it(`when clearing the challenge using challenge for X`, async () => {
+    await challengeChannel(X, MAGIC_ADDRESS_INDICATING_ETH);
+    // challenge for X raised on chain,  ⬛ -> (X) -> 👩
+
+    await respondWithChallengeAndExpectGas(
+      X,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHClearChallenge.satp.challengeResponseX
+    );
+    // challenge with X leaves the channel on-chain with a new challenge,  ⬛ -> (X) -> 👩
+  });
+  it(`when clearing the challenge using checkpoint for L`, async () => {
+    await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
+    // challenge for L raised on chain,  ⬛ -> (L) -> 👩
+
+    await checkpointChannelAndExpectGas(
+      LforX,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHClearChallenge.satp.checkpointL
+    );
+
+    // checkpoint on L leaves the channel in open mode on chain,  ⬛ -> L -> 👩
+  });
+
+  it(`when clearing the challenge using challenge for L`, async () => {
+    await challengeChannel(LforX, MAGIC_ADDRESS_INDICATING_ETH);
+    // challenge for L raised on chain,  ⬛ -> (L) -> 👩
+
+    await respondWithChallengeAndExpectGas(
+      LforX,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      gasRequiredTo.ETHClearChallenge.satp.challengeResponseL
+    );
+    // challenge with L leaves the channel on-chain with a new challenge,  ⬛ -> (L) -> 👩
+  });
+  it(`when clearing the challenge using challenge for V`, async () => {
+    // challenge for L raised on chain,  ⬛ -> (L) -> 👩
+    await challengeVirtualPaymentChannelWithVoucher(
+      V,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      BigNumber.from(paymentAmount).toNumber(),
+      Alice,
+      Bob
+    );
+
+    const {gasUsed} = await respondWithChallengeVirtualPaymentApp(
+      V,
+      MAGIC_ADDRESS_INDICATING_ETH,
+      BigNumber.from(paymentAmount).toNumber(),
+      Alice,
+      Bob,
+      Ingrid
+    );
+    expect(gasUsed).toEqual(gasRequiredTo.ETHClearChallenge.satp.challengeResponseV);
+    // challenge with L leaves the channel on-chain with a new challenge,  ⬛ -> (L) -> 👩
   });
 });

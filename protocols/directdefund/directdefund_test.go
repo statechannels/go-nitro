@@ -192,7 +192,7 @@ func TestCrankAlice(t *testing.T) {
 	}
 
 	// The third crank. Alice is expected to enter the terminal state of the defunding protocol.
-	updated.(*Objective).C.OnChainFunding = types.Funds{}
+	updated.(*Objective).C.OnChain.Holdings = types.Funds{}
 	_, se, wf, err = updated.Crank(&alice.PrivateKey)
 	if err != nil {
 		t.Error(err)

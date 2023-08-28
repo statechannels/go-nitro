@@ -218,23 +218,14 @@ describe('challenge', () => {
         // Catch ChallengeRegistered event
         const {
           channelId: eventChannelId,
-          turnNumRecord: eventTurnNumRecord,
           finalizesAt: eventFinalizesAt,
-          isFinal: eventIsFinal,
-          fixedPart: eventFixedPart,
+
           proof: eventProof,
           candidate: eventCandidate,
         } = event.args;
 
         // Check this information is enough to respond
         expect(eventChannelId).toEqual(channelId);
-        expect(eventTurnNumRecord).toEqual(largestTurnNum);
-        expect(eventFixedPart[0]).toEqual(fixedPart.participants);
-        expect((eventFixedPart[1] as BigNumber).toHexString()).toEqual(fixedPart.channelNonce);
-        expect(eventFixedPart[2]).toEqual(fixedPart.appDefinition);
-        expect(eventFixedPart[3]).toEqual(fixedPart.challengeDuration);
-
-        expect(eventIsFinal).toEqual(isFinalCount > 0);
 
         if (proof.length > 0) {
           expect(

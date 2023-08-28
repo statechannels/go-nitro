@@ -56,8 +56,10 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
         }
 
-        holdings[asset][channelId] += amount;
-        emit Deposited(channelId, asset, holdings[asset][channelId]);
+        held += amount;
+
+        holdings[asset][channelId] = held;
+        emit Deposited(channelId, asset, held);
     }
 
     /**

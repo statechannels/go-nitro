@@ -470,13 +470,13 @@ func TestCrankAsP1(t *testing.T) {
 // assertSupportedPrefund checks that all three participants have signed the prefund. It
 // is used to manually inspect the objective after Update receives counterparty signatures.
 func assertSupportedPrefund(o *Objective, t *testing.T) {
-	if !o.V.SignedStateForTurnNum[0].HasSignatureForParticipant(alice.Role) {
+	if !o.V.OffChain.SignedStateForTurnNum[0].HasSignatureForParticipant(alice.Role) {
 		t.Fatal(`Objective prefund state not signed by alice`)
 	}
-	if !o.V.SignedStateForTurnNum[0].HasSignatureForParticipant(bob.Role) {
+	if !o.V.OffChain.SignedStateForTurnNum[0].HasSignatureForParticipant(bob.Role) {
 		t.Fatal(`Objective prefund state not signed by bob`)
 	}
-	if !o.V.SignedStateForTurnNum[0].HasSignatureForParticipant(p1.Role) {
+	if !o.V.OffChain.SignedStateForTurnNum[0].HasSignatureForParticipant(p1.Role) {
 		t.Fatal(`Objective prefund state not signed by p1`)
 	}
 }

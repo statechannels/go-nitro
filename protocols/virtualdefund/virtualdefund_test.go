@@ -82,7 +82,7 @@ func testUpdateAs(my ta.Actor) func(t *testing.T) {
 		updatedObj, err := virtualDefund.Update(e)
 		testhelpers.Ok(t, err)
 		updated := updatedObj.(*Objective)
-		ss, ok := updated.V.SignedStateForTurnNum[FinalTurnNum]
+		ss, ok := updated.V.OffChain.SignedStateForTurnNum[FinalTurnNum]
 		if !ok {
 			t.Fatal(err)
 		}

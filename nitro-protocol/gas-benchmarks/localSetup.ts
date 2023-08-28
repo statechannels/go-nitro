@@ -3,15 +3,18 @@ import hre from 'hardhat';
 
 import '@nomiclabs/hardhat-ethers';
 import {NitroAdjudicator} from '../typechain-types/NitroAdjudicator';
+import {BatchOperator} from '../typechain-types/BatchOperator';
 import {Token} from '../typechain-types/Token';
 import {VirtualPaymentApp} from '../typechain-types/VirtualPaymentApp';
 import {ConsensusApp} from '../typechain-types/ConsensusApp';
 import nitroAdjudicatorArtifact from '../artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
+import batchOperatorArtifact from '../artifacts/contracts/auxiliary/BatchOperator.sol/BatchOperator.json';
 import tokenArtifact from '../artifacts/contracts/Token.sol/Token.json';
 import consensusAppArtifact from '../artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
 import virtualPaymentAppArtifact from '../artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 
 export let nitroAdjudicator: NitroAdjudicator & Contract;
+export let batchOperator: BatchOperator & Contract;
 export let token: Token & Contract;
 export let consensusApp: ConsensusApp & Contract;
 export let virtualPaymentApp: VirtualPaymentApp & Contract;
@@ -25,6 +28,11 @@ const tokenFactory = new ContractFactory(tokenArtifact.abi, tokenArtifact.byteco
 const nitroAdjudicatorFactory = new ContractFactory(
   nitroAdjudicatorArtifact.abi,
   nitroAdjudicatorArtifact.bytecode
+).connect(provider.getSigner(0));
+
+const batchOperatorFactory = new ContractFactory(
+  batchOperatorArtifact.abi,
+  batchOperatorArtifact.bytecode
 ).connect(provider.getSigner(0));
 
 const consensusAppFactory = new ContractFactory(
@@ -56,5 +64,7 @@ export async function deployContracts() {
   )) as VirtualPaymentApp & Contract; // THIS MUST BE DEPLOYED SECOND IN ORDER FOR THE ABOVE ADDRESS TO BE CORRECT
 
   nitroAdjudicator = (await nitroAdjudicatorFactory.deploy()) as NitroAdjudicator & Contract;
+  batchOperator = (await batchOperatorFactory.deploy(nitroAdjudicator.address)) as BatchOperator &
+    Contract;
   token = (await tokenFactory.deploy(provider.getSigner(0).getAddress())) as Token & Contract;
 }

@@ -164,7 +164,7 @@ We run deeper tests of the code on your PR using a hosted [testground](https://d
 
 # Logs
 
-Go-nitro uses the [log/slog](https://pkg.go.dev/log/slog) package to output structured logging. Integration tests typically write logs from several go-nitro nodes to a single file in the `artifacts` directory.
+Go-nitro uses the [log/slog](https://pkg.go.dev/log/slog) package to output structured logging. Integration tests typically write logs from several go-nitro nodes to the `artifacts` directory.
 
 A typical log line is
 
@@ -176,6 +176,12 @@ A typical log line is
   "address": "0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE"
 }
 ```
+
+You can use a tool such as `pino-pretty` to get a colorized, JSON-formatted output from the logs:
+```
+cat artifacts/complex_integration_message_alice.log | npx pino-pretty > output.log
+```
+Opening `output.log` in an editor like VSCode enables the log lines to be folded / searched. 
 
 ### Start RPC servers with Docker
 
