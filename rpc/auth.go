@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"errors"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -11,6 +12,7 @@ var rpcPK = []byte("rpcPK")
 
 type permission string
 
+const permissionKey = "perm"
 const (
 	permNone permission = "none"
 	permRead permission = "read"
@@ -31,7 +33,10 @@ var (
 func generateAuthToken(p []permission) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
-	claims["permissions"] = p
+	claims[permissionKey] = p
+	// the keys are defined by https://datatracker.ietf.org/doc/html/rfc7519
+	claims["iat"] = time.Now().Unix()
+	claims["sub"] = "client"
 	return token.SignedString(rpcPK)
 }
 
@@ -57,7 +62,7 @@ func checkPermission(tokenString string, requiredPermission permission) error {
 	}
 
 	claims := token.Claims.(jwt.MapClaims)
-	permissions, ok := claims["permissions"].([]interface{})
+	permissions, ok := claims[permissionKey].([]interface{})
 	if !ok {
 		return errInvalidPermissions
 	}
