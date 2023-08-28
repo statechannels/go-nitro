@@ -49,7 +49,7 @@ func TestCrashTolerance(t *testing.T) {
 		t.Fatal(err)
 	}
 	messageserviceA := messageservice.NewTestMessageService(ta.Alice.Address(), broker, 0)
-	nodeA := node.New(messageserviceA, chainA, storeA, []policy.PolicyMaker{&policy.PermissivePolicy{}})
+	nodeA := node.New(messageserviceA, chainA, storeA, []policy.PolicyMaker{&policy.PermissivePolicy{}, policy.NewFairOutcomePolicy(ta.Alice.Address())})
 
 	nodeB, _ := setupNode(ta.Bob.PrivateKey, chainB, broker, 0, dataFolder)
 	defer closeNode(t, &nodeB)
@@ -75,7 +75,7 @@ func TestCrashTolerance(t *testing.T) {
 		anotherClientA := node.New(
 			anotherMessageserviceA,
 			anotherChainA,
-			anotherStoreA, []policy.PolicyMaker{&policy.PermissivePolicy{}})
+			anotherStoreA, []policy.PolicyMaker{&policy.PermissivePolicy{}, policy.NewFairOutcomePolicy(ta.Alice.Address())})
 		defer closeNode(t, &anotherClientA)
 
 		closeLedgerChannel(t, anotherClientA, nodeB, channelId)
