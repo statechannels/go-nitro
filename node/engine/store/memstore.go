@@ -127,14 +127,14 @@ func (ms *MemStore) SetObjective(obj protocols.Objective) error {
 	return nil
 }
 
-// SetLastBlockSeen
-func (ms *MemStore) SetLastBlockSeen(blockNumber uint64) error {
+// SetLastBlockNumSeen
+func (ms *MemStore) SetLastBlockNumSeen(blockNumber uint64) error {
 	ms.lastBlockSeen = blockNumber
 	return nil
 }
 
-// GetLastBlockSeen
-func (ms *MemStore) GetLastBlockSeen() (uint64, error) {
+// GetLastBlockNumSeen
+func (ms *MemStore) GetLastBlockNumSeen() (uint64, error) {
 	return ms.lastBlockSeen, nil
 }
 

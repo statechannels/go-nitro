@@ -32,8 +32,8 @@ type Store interface {
 	DestroyChannel(id types.Destination) error
 	GetChannelsByAppDefinition(appDef types.Address) ([]*channel.Channel, error) // Returns any channels that includes the given app definition
 	ReleaseChannelFromOwnership(types.Destination) error                         // Release channel from being owned by any objective
-	GetLastBlockSeen() (uint64, error)
-	SetLastBlockSeen(uint64) error
+	GetLastBlockNumSeen() (uint64, error)
+	SetLastBlockNumSeen(uint64) error
 
 	ConsensusChannelStore
 	payments.VoucherStore

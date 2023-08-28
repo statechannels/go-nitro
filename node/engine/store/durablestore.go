@@ -27,7 +27,7 @@ type DurableStore struct {
 	consensusChannels  *buntdb.DB
 	channelToObjective *buntdb.DB
 	vouchers           *buntdb.DB
-	blocks             *buntdb.DB
+	lastBlockSeen      *buntdb.DB
 
 	key     string // the signing key of the store's engine
 	address string // the (Ethereum) address associated to the signing key
@@ -68,7 +68,7 @@ func NewDurableStore(key []byte, folder string, config buntdb.Config) (Store, er
 		return nil, err
 	}
 
-	ps.blocks, err = ps.openDB("blocks", config)
+	ps.lastBlockSeen, err = ps.openDB("lastBlockSeen", config)
 	if err != nil {
 		return nil, err
 	}
@@ -217,10 +217,10 @@ func (ds *DurableStore) SetObjective(obj protocols.Objective) error {
 	return nil
 }
 
-// GetLastBlockSeen retrieves the last blockchain block processed by this node
-func (ds *DurableStore) GetLastBlockSeen() (uint64, error) {
+// GetLastBlockNumSeen retrieves the last blockchain block processed by this node
+func (ds *DurableStore) GetLastBlockNumSeen() (uint64, error) {
 	var result uint64
-	err := ds.blocks.View(func(tx *buntdb.Tx) error {
+	err := ds.lastBlockSeen.View(func(tx *buntdb.Tx) error {
 		val, err := tx.Get(lastBlockSeenKey)
 		if err != nil {
 			return err
@@ -231,9 +231,9 @@ func (ds *DurableStore) GetLastBlockSeen() (uint64, error) {
 	return result, err
 }
 
-// SetLastBlockSeen sets the last blockchain block processed by this node
-func (ds *DurableStore) SetLastBlockSeen(blockNumber uint64) error {
-	return ds.blocks.Update(func(tx *buntdb.Tx) error {
+// SetLastBlockNumSeen sets the last blockchain block processed by this node
+func (ds *DurableStore) SetLastBlockNumSeen(blockNumber uint64) error {
+	return ds.lastBlockSeen.Update(func(tx *buntdb.Tx) error {
 		_, _, err := tx.Set(lastBlockSeenKey, strconv.FormatUint(blockNumber, 10), nil)
 		return err
 	})
