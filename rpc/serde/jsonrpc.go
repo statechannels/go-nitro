@@ -46,6 +46,9 @@ type NotificationOrRequest interface {
 
 const JsonRpcVersion = "2.0"
 
+type AuthRequest struct {
+	Id string
+}
 type PaymentRequest struct {
 	Amount  uint64
 	Channel types.Destination
@@ -69,6 +72,7 @@ type RequestPayload interface {
 		directdefund.ObjectiveRequest |
 		virtualfund.ObjectiveRequest |
 		virtualdefund.ObjectiveRequest |
+		AuthRequest |
 		PaymentRequest |
 		GetLedgerChannelRequest |
 		GetPaymentChannelRequest |

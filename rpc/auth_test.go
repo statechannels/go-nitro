@@ -7,7 +7,7 @@ import (
 )
 
 func TestValidAuthToken(t *testing.T) {
-	token, err := generateAuthToken(allPermissions)
+	token, err := generateAuthToken("1", allPermissions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,7 +19,7 @@ func TestValidAuthToken(t *testing.T) {
 }
 
 func TestAuthTokenMissingPermission(t *testing.T) {
-	token, err := generateAuthToken([]permission{permRead})
+	token, err := generateAuthToken("1", []permission{permRead})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func TestAuthTokenMissingPermission(t *testing.T) {
 }
 
 func TestExpiredAuthToken(t *testing.T) {
-	token, err := generateAuthToken(allPermissions)
+	token, err := generateAuthToken("1", allPermissions)
 	if err != nil {
 		t.Fatal(err)
 	}

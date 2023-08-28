@@ -119,8 +119,8 @@ func (rs *RpcServer) registerHandlers() (err error) {
 
 		switch serde.RequestMethod(jsonrpcReq.Method) {
 		case serde.GetAuthTokenMethod:
-			return processRequest(rs, permNone, requestData, func(req serde.NoPayloadRequest) (string, error) {
-				return generateAuthToken(allPermissions)
+			return processRequest(rs, permNone, requestData, func(req serde.AuthRequest) (string, error) {
+				return generateAuthToken(req.Id, allPermissions)
 			})
 		case serde.CreateVoucherRequestMethod:
 			return processRequest(rs, permSign, requestData, func(req serde.PaymentRequest) (payments.Voucher, error) {
