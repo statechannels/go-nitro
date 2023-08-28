@@ -3,9 +3,9 @@ package store // import "github.com/statechannels/go-nitro/node/engine/store"
 
 import (
 	"io"
+	"log/slog"
 	"path/filepath"
 
-	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/crypto"
@@ -49,7 +49,7 @@ type ConsensusChannelStore interface {
 	DestroyConsensusChannel(id types.Destination) error
 }
 
-func NewStore(pk []byte, logger zerolog.Logger, useDurableStore bool, durableStoreFolder string, buntDbConfig buntdb.Config) (Store, error) {
+func NewStore(pk []byte, useDurableStore bool, durableStoreFolder string, buntDbConfig buntdb.Config) (Store, error) {
 	var ourStore Store
 	var err error
 
@@ -57,13 +57,13 @@ func NewStore(pk []byte, logger zerolog.Logger, useDurableStore bool, durableSto
 		me := crypto.GetAddressFromSecretKeyBytes(pk)
 		dataFolder := filepath.Join(durableStoreFolder, me.String())
 
-		logger.Info().Msgf("Initialising durable store in %s...", dataFolder)
+		slog.Info("Initialising durable store...", "dataFolder", dataFolder)
 		ourStore, err = NewDurableStore(pk, dataFolder, buntdb.Config{})
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		logger.Info().Msg("Initialising mem store...")
+		slog.Info("Initialising mem store...")
 		ourStore = NewMemStore(pk)
 	}
 

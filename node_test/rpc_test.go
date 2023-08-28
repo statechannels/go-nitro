@@ -397,25 +397,19 @@ func setupNitroNodeWithRPCClient(
 	connectionType transport.TransportType,
 	bootPeers []string,
 ) (rpc.RpcClientApi, *p2pms.P2PMessageService, func()) {
-	logger := zerolog.New(logDestination).
-		With().
-		Timestamp().
-		Logger()
-
 	dataFolder, cleanupData := testhelpers.GenerateTempStoreFolder()
-	ourStore, err := store.NewStore(pk, logger, true, dataFolder, buntdb.Config{})
+	ourStore, err := store.NewStore(pk, true, dataFolder, buntdb.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	logger.Info().Msg("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
-	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, logDestination, bootPeers)
+	slog.Info("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
+	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, bootPeers)
 
 	node := node.New(
 		messageService,
 		chain,
 		ourStore,
-		logDestination,
 		&engine.PermissivePolicy{})
 
 	var useNats bool
@@ -428,7 +422,7 @@ func setupNitroNodeWithRPCClient(
 		err = fmt.Errorf("unknown connection type %v", connectionType)
 		panic(err)
 	}
-	rpcServer, err := interRpc.InitializeRpcServer(&node, rpcPort, useNats, logDestination)
+	rpcServer, err := interRpc.InitializeRpcServer(&node, rpcPort, useNats)
 	if err != nil {
 		t.Fatal(err)
 	}

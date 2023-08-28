@@ -2,9 +2,8 @@ package rpc
 
 import (
 	"fmt"
-	"os"
+	"log/slog"
 
-  "github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/rpc/transport"
@@ -12,25 +11,25 @@ import (
 	"github.com/statechannels/go-nitro/rpc/transport/ws"
 )
 
-func InitializeRpcServer(node *node.Node, rpcPort int, useNats bool, logDestination *os.File) (*rpc.RpcServer, error) {
+func InitializeRpcServer(node *node.Node, rpcPort int, useNats bool) (*rpc.RpcServer, error) {
 	var transport transport.Responder
 	var err error
 
 	if useNats {
-		logger.Info().Msg("Initializing NATS RPC transport...")
+		slog.Info("Initializing NATS RPC transport...")
 		transport, err = nats.NewNatsTransportAsServer(rpcPort)
 	} else {
-		logger.Info().Msg("Initializing websocket RPC transport...")
-		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort), logger)
+		slog.Info("Initializing websocket RPC transport...")
+		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	rpcServer, err := rpc.NewRpcServer(node, &logger, transport)
+	rpcServer, err := rpc.NewRpcServer(node, transport)
 	if err != nil {
 		return nil, err
 	}
-  
+
 	return rpcServer, nil
 }

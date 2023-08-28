@@ -2,10 +2,10 @@ package node
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/rs/zerolog"
 	"github.com/statechannels/go-nitro/internal/chain"
 	"github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/node/engine"
@@ -23,21 +23,16 @@ func InitializeNode(pkString string, chainOpts chain.ChainOpts,
 		panic("pk must be set")
 	}
 
-	logger := zerolog.New(logDestination).
-		With().
-		Timestamp().
-		Logger()
-
 	pk := common.Hex2Bytes(pkString)
-	ourStore, err := store.NewStore(pk, logger, useDurableStore, durableStoreFolder, buntdb.Config{})
+	ourStore, err := store.NewStore(pk, useDurableStore, durableStoreFolder, buntdb.Config{})
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	logger.Info().Msg("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
-	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, logDestination, bootPeers)
+	slog.Info("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
+	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, bootPeers)
 
-	logger.Info().Msg("Initializing chain service and connecting to " + chainOpts.ChainUrl + "...")
+	slog.Info("Initializing chain service and connecting to " + chainOpts.ChainUrl + "...")
 	ourChain, err := chain.InitializeEthChainService(chainOpts)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -47,7 +42,6 @@ func InitializeNode(pkString string, chainOpts chain.ChainOpts,
 		messageService,
 		ourChain,
 		ourStore,
-		logDestination,
 		&engine.PermissivePolicy{},
 	)
 
