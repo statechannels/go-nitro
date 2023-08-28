@@ -43,7 +43,7 @@ type Node struct {
 }
 
 // New is the constructor for a Node. It accepts a messaging service, a chain service, and a store as injected dependencies.
-func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, policymaker policy.PolicyMaker) Node {
+func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, policies []policy.PolicyMaker) Node {
 	n := Node{}
 	n.Address = store.GetAddress()
 
@@ -55,7 +55,7 @@ func New(messageService messageservice.MessageService, chainservice chainservice
 	n.store = store
 	n.vm = payments.NewVoucherManager(*store.GetAddress(), store)
 
-	n.engine = engine.New(n.vm, messageService, chainservice, store, policymaker, n.handleEngineEvent)
+	n.engine = engine.New(n.vm, messageService, chainservice, store, policies, n.handleEngineEvent)
 	n.completedObjectives = &safesync.Map[chan struct{}]{}
 	n.completedObjectivesForRPC = make(chan protocols.ObjectiveId, 100)
 
