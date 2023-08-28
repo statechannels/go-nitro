@@ -1,6 +1,7 @@
 package policy
 
 import (
+	"fmt"
 	"log/slog"
 	"math/big"
 
@@ -29,7 +30,7 @@ func (p *Policies) ShouldApprove(o protocols.Objective) bool {
 	for _, policy := range p.policies {
 
 		approves := policy.ShouldApprove(o)
-		slog.Debug("Policymaker decision", "policy-maker", policy, "approves", approves, logging.WithObjectiveIdAttribute(o.Id()))
+		slog.Debug("Policymaker decision", "policy-maker", fmt.Sprintf("%T", policy), "approves", approves, logging.WithObjectiveIdAttribute(o.Id()))
 
 		if !approves {
 			return false
