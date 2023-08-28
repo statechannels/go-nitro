@@ -34,13 +34,14 @@ var (
 var invalidIAtFormat = "invalid issued at: %w"
 
 // generateAuthToken generates a JWT token that a client uses to authenticate with the server for restricted endpoints
-func generateAuthToken(p []permission) (string, error) {
+// subject is the itentifier of the client for which the token is generated
+func generateAuthToken(subject string, p []permission) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims[permissionKey] = p
 	// the keys are defined by https://datatracker.ietf.org/doc/html/rfc7519
 	claims["iat"] = time.Now().Unix()
-	claims["sub"] = "client"
+	claims["sub"] = subject
 	return token.SignedString(rpcPK)
 }
 
