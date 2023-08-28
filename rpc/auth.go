@@ -41,7 +41,7 @@ func generateAuthToken(p []permission) (string, error) {
 }
 
 // verifyPermission takes a JWT token, verifies that the token is valid and that the token contains the required permission
-func checkPermission(tokenString string, requiredPermission permission) error {
+func checkTokenValidity(tokenString string, requiredPermission permission) error {
 	if requiredPermission == permNone {
 		return nil
 	}
