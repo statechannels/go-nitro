@@ -204,7 +204,7 @@ func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServ
 		return marshalResponse(response)
 	}
 
-	err = checkTokenValidity(rpcRequest.Params.AuthToken, permission)
+	err = checkTokenValidity(rpcRequest.Params.AuthToken, permission, nil)
 	if err != nil {
 		response := serde.NewJsonRpcErrorResponse(rpcRequest.Id, serde.InvalidAuthTokenError)
 		return marshalResponse(response, rs.logger)

@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -24,10 +25,13 @@ var allPermissions = []permission{permRead, permSign}
 var (
 	errInvalidSigningMethod = errors.New("invalid signing method")
 	errInvalidToken         = errors.New("invalid token")
+	errExpiredToken         = errors.New("token has expired")
 	errInvalidPermissions   = errors.New("token has invalid permissions")
 	errInvalidPermission    = errors.New("token has an invalid permission")
 	errMissingPermission    = errors.New("token is missing permission")
 )
+
+var invalidIAtFormat = "invalid issued at: %w"
 
 // generateAuthToken generates a JWT token that a client uses to authenticate with the server for restricted endpoints
 func generateAuthToken(p []permission) (string, error) {
@@ -41,7 +45,7 @@ func generateAuthToken(p []permission) (string, error) {
 }
 
 // verifyPermission takes a JWT token, verifies that the token is valid and that the token contains the required permission
-func checkTokenValidity(tokenString string, requiredPermission permission) error {
+func checkTokenValidity(tokenString string, requiredPermission permission, validDuration *time.Duration) error {
 	if requiredPermission == permNone {
 		return nil
 	}
@@ -62,6 +66,24 @@ func checkTokenValidity(tokenString string, requiredPermission permission) error
 	}
 
 	claims := token.Claims.(jwt.MapClaims)
+
+	// Check expiration
+	iAt, err := claims.GetIssuedAt()
+	if err != nil {
+		return fmt.Errorf(invalidIAtFormat, err)
+	}
+
+	var duration time.Duration
+	if validDuration == nil {
+		duration = time.Hour
+	} else {
+		duration = *validDuration
+	}
+	if time.Now().After(iAt.Add(duration)) {
+		return errExpiredToken
+	}
+
+	// Check permissions
 	permissions, ok := claims[permissionKey].([]interface{})
 	if !ok {
 		return errInvalidPermissions
