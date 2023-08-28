@@ -192,8 +192,6 @@ describe('transfer', () => {
         ];
 
         expect(eventsFromTx).toMatchObject(expectedEvents);
-
-        // TODO check payouts are executed properly
       }
     }
   );
