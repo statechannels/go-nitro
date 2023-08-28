@@ -11,7 +11,7 @@ func TestValidAuthToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = checkPermission(token, permSign)
+	err = checkTokenValidity(token, permSign)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,7 +23,7 @@ func TestAuthTokenMissingPermission(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = checkPermission(token, permSign)
+	err = checkTokenValidity(token, permSign)
 	if !errors.Is(err, errMissingPermission) {
 		t.Fatal("expected errMissingPermission, got", err)
 	}
