@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directfund"
@@ -50,7 +51,13 @@ var Objectives objectiveCollection = objectiveCollection{
 
 func genericDFO() directfund.Objective {
 	ts := testState.Clone()
+	return GenerateDFOFromOutcome(ts.Outcome)
+}
+
+func GenerateDFOFromOutcome(o outcome.Exit) directfund.Objective {
+	ts := testState.Clone()
 	ts.TurnNum = 0
+	ts.Outcome = o.Clone()
 	ss := state.NewSignedState(ts)
 	id := protocols.ObjectiveId(directfund.ObjectivePrefix + testState.ChannelId().String())
 	op, err := protocols.CreateObjectivePayload(id, directfund.SignedStatePayload, ss)
@@ -64,8 +71,9 @@ func genericDFO() directfund.Objective {
 	return testObj
 }
 
-func genericVFO() virtualfund.Objective {
+func GenerateVFOFromOutcome(o outcome.Exit) virtualfund.Objective {
 	ts := testVirtualState.Clone()
+	ts.Outcome = o.Clone()
 	ts.Participants[0] = testactors.Alice.Address()
 	ts.Participants[1] = testactors.Irene.Address()
 	ts.Participants[2] = testactors.Bob.Address()
@@ -74,7 +82,7 @@ func genericVFO() virtualfund.Objective {
 		[]types.Address{ts.Participants[1]},
 		ts.Participants[2],
 		ts.ChallengeDuration,
-		ts.Outcome,
+		o,
 		ts.ChannelNonce,
 		ts.AppDefinition,
 	)
@@ -90,4 +98,9 @@ func genericVFO() virtualfund.Objective {
 		panic(fmt.Errorf("error constructing genericVFO: %w", err))
 	}
 	return testVFO
+}
+
+func genericVFO() virtualfund.Objective {
+	ts := testVirtualState.Clone()
+	return GenerateVFOFromOutcome(ts.Outcome)
 }

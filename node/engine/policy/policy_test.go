@@ -33,6 +33,11 @@ func TestDenyListPolicy(t *testing.T) {
 	if policy.ShouldApprove(&vf) {
 		t.Fatal("Policy should deny objective since bad bob is a participant")
 	}
+
+	ddf := testdata.Objectives.Directfund.GenericDFO()
+	if !policy.ShouldApprove(&ddf) {
+		t.Fatal("Policy should always approve direct defund objectives")
+	}
 }
 
 func TestAllowListPolicy(t *testing.T) {
@@ -57,5 +62,38 @@ func TestAllowListPolicy(t *testing.T) {
 
 	if !policy.ShouldApprove(&vf) {
 		t.Fatal("Policy should approve objective since all participants are on the allow list")
+	}
+
+	ddf := testdata.Objectives.Directfund.GenericDFO()
+	if !policy.ShouldApprove(&ddf) {
+		t.Fatal("Policy should always approve direct defund objectives")
+	}
+}
+
+func TestFairOutcomePolicy(t *testing.T) {
+	policy := NewFairOutcomePolicy(testactors.Alice.Address())
+
+	df := testdata.Objectives.Directfund.GenericDFO()
+	if !policy.ShouldApprove(&df) {
+		t.Fatal("Policy should approve objective since the outcome is fair")
+	}
+
+	df = testdata.GenerateDFOFromOutcome(testdata.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), 1, 5, common.Address{}))
+	if policy.ShouldApprove(&df) {
+		t.Fatal("Policy should reject the outcome as unfair")
+	}
+
+	vf := testdata.GenerateVFOFromOutcome(testdata.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), 10, 0, common.Address{}))
+	if !policy.ShouldApprove(&vf) {
+		t.Fatal("Policy should approve objective since the outcome is fair")
+	}
+	vf = testdata.GenerateVFOFromOutcome(testdata.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), 5, 1, common.Address{}))
+	if policy.ShouldApprove(&vf) {
+		t.Fatal("Policy should reject objective since the outcome is unfair")
+	}
+
+	ddf := testdata.Objectives.Directfund.GenericDFO()
+	if !policy.ShouldApprove(&ddf) {
+		t.Fatal("Policy should always approve direct defund objectives")
 	}
 }
