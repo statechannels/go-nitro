@@ -36,7 +36,7 @@ func setupNode(pk []byte, chain chainservice.ChainService, msgBroker messageserv
 	if err != nil {
 		panic(err)
 	}
-	return node.New(messageservice, chain, storeA, []policy.PolicyMaker{&policy.PermissivePolicy{}, policy.NewFairOutcomePolicy(*storeA.GetAddress())}), storeA
+	return node.New(messageservice, chain, storeA, []policy.PolicyMaker{policy.NewPermissivePolicy(), policy.NewFairOutcomePolicy(*storeA.GetAddress())}), storeA
 }
 
 func closeNode(t *testing.T, node *node.Node) {
@@ -120,7 +120,7 @@ func setupIntegrationNode(tc TestCase, tp TestParticipant, si sharedTestInfrastr
 	messageService, multiAddr := setupMessageService(tc, tp, si, bootPeers)
 	cs := setupChainService(tc, tp, si)
 	store := setupStore(tc, tp, si, dataFolder)
-	n := node.New(messageService, cs, store, []policy.PolicyMaker{&policy.PermissivePolicy{}, policy.NewFairOutcomePolicy(tp.Address())})
+	n := node.New(messageService, cs, store, []policy.PolicyMaker{policy.NewPermissivePolicy(), policy.NewFairOutcomePolicy(tp.Address())})
 	return n, messageService, multiAddr
 }
 

@@ -12,16 +12,16 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-type FairOutcomePolicy struct {
+type fairOutcomePolicy struct {
 	me types.Address
 }
 
-func NewFairOutcomePolicy(me types.Address) *FairOutcomePolicy {
-	return &FairOutcomePolicy{me: me}
+func NewFairOutcomePolicy(me types.Address) PolicyMaker {
+	return &fairOutcomePolicy{me: me}
 }
 
 // ShouldApprove decides to approve o if it is currently unapproved
-func (fp *FairOutcomePolicy) ShouldApprove(o protocols.Objective) bool {
+func (fp *fairOutcomePolicy) ShouldApprove(o protocols.Objective) bool {
 	df, isDf := o.(*directfund.Objective)
 	if isDf {
 		for _, e := range df.C.PreFundState().Outcome {

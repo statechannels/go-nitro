@@ -81,7 +81,7 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		messageService,
 		chainService,
 		ourStore,
-		[]policy.PolicyMaker{&policy.PermissivePolicy{}, policy.NewFairOutcomePolicy(me)})
+		[]policy.PolicyMaker{policy.NewPermissivePolicy(), policy.NewFairOutcomePolicy(me)})
 
 	var transport transport.Responder
 
