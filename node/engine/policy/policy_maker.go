@@ -1,4 +1,4 @@
-package engine
+package policy
 
 import "github.com/statechannels/go-nitro/protocols"
 

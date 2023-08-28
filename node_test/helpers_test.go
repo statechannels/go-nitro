@@ -16,10 +16,10 @@ import (
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/node"
-	"github.com/statechannels/go-nitro/node/engine"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/node/engine/messageservice"
 	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
+	"github.com/statechannels/go-nitro/node/engine/policy"
 	"github.com/statechannels/go-nitro/node/engine/store"
 	"github.com/statechannels/go-nitro/node/query"
 	"github.com/statechannels/go-nitro/protocols"
@@ -36,7 +36,7 @@ func setupNode(pk []byte, chain chainservice.ChainService, msgBroker messageserv
 	if err != nil {
 		panic(err)
 	}
-	return node.New(messageservice, chain, storeA, &engine.PermissivePolicy{}), storeA
+	return node.New(messageservice, chain, storeA, &policy.PermissivePolicy{}), storeA
 }
 
 func closeNode(t *testing.T, node *node.Node) {
@@ -120,7 +120,7 @@ func setupIntegrationNode(tc TestCase, tp TestParticipant, si sharedTestInfrastr
 	messageService, multiAddr := setupMessageService(tc, tp, si, bootPeers)
 	cs := setupChainService(tc, tp, si)
 	store := setupStore(tc, tp, si, dataFolder)
-	n := node.New(messageService, cs, store, &engine.PermissivePolicy{})
+	n := node.New(messageService, cs, store, &policy.PermissivePolicy{})
 	return n, messageService, multiAddr
 }
 

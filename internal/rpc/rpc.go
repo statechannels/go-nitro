@@ -11,9 +11,9 @@ import (
 	"github.com/statechannels/go-nitro/internal/chain"
 	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/node"
-	"github.com/statechannels/go-nitro/node/engine"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
+	"github.com/statechannels/go-nitro/node/engine/policy"
 	"github.com/statechannels/go-nitro/node/engine/store"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/rpc/transport"
@@ -81,7 +81,7 @@ func RunRpcServer(pk []byte, chainService chainservice.ChainService,
 		messageService,
 		chainService,
 		ourStore,
-		&engine.PermissivePolicy{})
+		&policy.PermissivePolicy{})
 
 	var transport transport.Responder
 

@@ -14,6 +14,7 @@ import (
 	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/node/engine/messageservice"
+	"github.com/statechannels/go-nitro/node/engine/policy"
 	"github.com/statechannels/go-nitro/node/engine/store"
 	"github.com/statechannels/go-nitro/node/query"
 	"github.com/statechannels/go-nitro/payments"
@@ -69,8 +70,8 @@ type Engine struct {
 	msg   messageservice.MessageService
 	chain chainservice.ChainService
 
-	store       store.Store // A Store for persisting and restoring important data
-	policymaker PolicyMaker // A PolicyMaker decides whether to approve or reject objectives
+	store       store.Store        // A Store for persisting and restoring important data
+	policymaker policy.PolicyMaker // A PolicyMaker decides whether to approve or reject objectives
 	logger      *slog.Logger
 	vm          *payments.VoucherManager
 
@@ -124,7 +125,7 @@ type CompletedObjectiveEvent struct {
 type Response struct{}
 
 // NewEngine is the constructor for an Engine
-func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, policymaker PolicyMaker, eventHandler func(EngineEvent)) Engine {
+func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain chainservice.ChainService, store store.Store, policymaker policy.PolicyMaker, eventHandler func(EngineEvent)) Engine {
 	e := Engine{}
 	e.logger = logging.LoggerWithAddress(slog.Default(), *store.GetAddress())
 	e.store = store

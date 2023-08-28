@@ -13,6 +13,7 @@ import (
 	"github.com/statechannels/go-nitro/node/engine"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/node/engine/messageservice"
+	"github.com/statechannels/go-nitro/node/engine/policy"
 	"github.com/statechannels/go-nitro/node/engine/store"
 	"github.com/statechannels/go-nitro/node/notifier"
 	"github.com/statechannels/go-nitro/node/query"
@@ -42,7 +43,7 @@ type Node struct {
 }
 
 // New is the constructor for a Node. It accepts a messaging service, a chain service, and a store as injected dependencies.
-func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, policymaker engine.PolicyMaker) Node {
+func New(messageService messageservice.MessageService, chainservice chainservice.ChainService, store store.Store, policymaker policy.PolicyMaker) Node {
 	n := Node{}
 	n.Address = store.GetAddress()
 

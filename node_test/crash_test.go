@@ -8,9 +8,9 @@ import (
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/node"
-	"github.com/statechannels/go-nitro/node/engine"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/node/engine/messageservice"
+	"github.com/statechannels/go-nitro/node/engine/policy"
 	"github.com/statechannels/go-nitro/node/engine/store"
 	"github.com/statechannels/go-nitro/types"
 	"github.com/tidwall/buntdb"
@@ -49,7 +49,7 @@ func TestCrashTolerance(t *testing.T) {
 		t.Fatal(err)
 	}
 	messageserviceA := messageservice.NewTestMessageService(ta.Alice.Address(), broker, 0)
-	nodeA := node.New(messageserviceA, chainA, storeA, &engine.PermissivePolicy{})
+	nodeA := node.New(messageserviceA, chainA, storeA, &policy.PermissivePolicy{})
 
 	nodeB, _ := setupNode(ta.Bob.PrivateKey, chainB, broker, 0, dataFolder)
 	defer closeNode(t, &nodeB)
@@ -75,7 +75,7 @@ func TestCrashTolerance(t *testing.T) {
 		anotherClientA := node.New(
 			anotherMessageserviceA,
 			anotherChainA,
-			anotherStoreA, &engine.PermissivePolicy{})
+			anotherStoreA, &policy.PermissivePolicy{})
 		defer closeNode(t, &anotherClientA)
 
 		closeLedgerChannel(t, anotherClientA, nodeB, channelId)
