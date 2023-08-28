@@ -550,6 +550,10 @@ func (o *Objective) isBob() bool {
 	return o.MyRole == o.n+1
 }
 
+func (o *Objective) IsIntermediary() bool {
+	return !o.isAlice() && !o.isBob()
+}
+
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
 type GetTwoPartyConsensusLedgerFunction func(counterparty types.Address) (ledger *consensus_channel.ConsensusChannel, ok bool)

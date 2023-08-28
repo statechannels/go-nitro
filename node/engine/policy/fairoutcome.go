@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/statechannels/go-nitro/internal/logging"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/protocols/directfund"
 	"github.com/statechannels/go-nitro/protocols/virtualfund"
@@ -35,14 +36,18 @@ func (fp *FairOutcomePolicy) ShouldApprove(o protocols.Objective) bool {
 	}
 	vf, isVf := o.(*virtualfund.Objective)
 	if isVf {
-		for _, e := range vf.V.PreFundState().Outcome {
+		// The intermediary doesn't care about enforcing fairness
+		if vf.IsIntermediary() {
+			return true
+		}
 
+		for _, e := range vf.V.PreFundState().Outcome {
 			total := e.TotalAllocated()
 			for i, a := range e.Allocations {
-				if i == 0 && a.Amount.Cmp(total) != 0 {
+				if i == payments.PAYER_INDEX && isNotEqual(a.Amount, total) {
 					slog.Warn("FairOutcomePolicy: rejecting virtualfund objective, expected payer to start with full amount", "allocations", e.Allocations, logging.WithObjectiveIdAttribute(o.Id()))
 					return false
-				} else if i > 0 && a.Amount.Cmp(big.NewInt(0)) != 0 {
+				} else if i != payments.PAYER_INDEX && isNotEqual(a.Amount, big.NewInt(0)) {
 					slog.Warn("FairOutcomePolicy: rejecting virtualfund objective, expected payee to start with 0", "allocations", e.Allocations, logging.WithObjectiveIdAttribute(o.Id()))
 					return false
 				}
@@ -51,4 +56,8 @@ func (fp *FairOutcomePolicy) ShouldApprove(o protocols.Objective) bool {
 	}
 
 	return true
+}
+
+func isNotEqual(a, b *big.Int) bool {
+	return a.Cmp(b) != 0
 }
