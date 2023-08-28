@@ -70,10 +70,10 @@ type Engine struct {
 	msg   messageservice.MessageService
 	chain chainservice.ChainService
 
-	store       store.Store        // A Store for persisting and restoring important data
-	policymaker policy.PolicyMaker // A PolicyMaker decides whether to approve or reject objectives
-	logger      *slog.Logger
-	vm          *payments.VoucherManager
+	store    store.Store // A Store for persisting and restoring important data
+	policies policy.Policies
+	logger   *slog.Logger
+	vm       *payments.VoucherManager
 
 	wg     *sync.WaitGroup
 	cancel context.CancelFunc
@@ -143,7 +143,7 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 
 	e.eventHandler = eventHandler
 
-	e.policymaker = policymaker
+	e.policies = *policy.NewPolicies(policymaker)
 
 	e.vm = vm
 
@@ -244,8 +244,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		}
 
 		if objective.GetStatus() == protocols.Unapproved {
-			e.logger.Info("Policymaker for objective", "policy-maker", e.policymaker, logging.WithObjectiveIdAttribute(objective.Id()))
-			if e.policymaker.ShouldApprove(objective) {
+			if e.policies.ShouldApprove(objective) {
 				objective = objective.Approve()
 
 				ddfo, ok := objective.(*directdefund.Objective)
