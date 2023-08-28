@@ -301,6 +301,10 @@ func (o *Objective) clone() Objective {
 	return clone
 }
 
+func (o *Objective) GetParticipants() []types.Address {
+	return o.V.Participants
+}
+
 // otherParticipants returns the participants in the channel that are not the current participant.
 func (o *Objective) otherParticipants() []types.Address {
 	others := make([]types.Address, 0)

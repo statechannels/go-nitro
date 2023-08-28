@@ -91,6 +91,9 @@ type Objective interface {
 	OwnsChannel() types.Destination
 	// GetStatus returns the status of the objective.
 	GetStatus() ObjectiveStatus
+
+	// GetParticipants returns the participants of the objective.
+	GetParticipants() []types.Address
 }
 
 // ProposalReceiver is an Objective that receives proposals.

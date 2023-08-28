@@ -190,6 +190,10 @@ func (o *Objective) Related() []protocols.Storable {
 	return []protocols.Storable{o.C}
 }
 
+func (o *Objective) GetParticipants() []types.Address {
+	return o.C.Participants
+}
+
 // Update receives an ObjectiveEvent, applies all applicable event data to the DirectDefundingObjective,
 // and returns the updated objective
 func (o *Objective) Update(p protocols.ObjectivePayload) (protocols.Objective, error) {

@@ -486,6 +486,10 @@ func (o *Objective) Related() []protocols.Storable {
 	return ret
 }
 
+func (o *Objective) GetParticipants() []types.Address {
+	return o.V.Participants
+}
+
 //////////////////////////////////////////////////
 //  Private methods on the VirtualFundObjective //
 //////////////////////////////////////////////////

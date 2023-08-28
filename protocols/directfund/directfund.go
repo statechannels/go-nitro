@@ -359,6 +359,10 @@ func (o *Objective) Related() []protocols.Storable {
 	return []protocols.Storable{o.C}
 }
 
+func (o *Objective) GetParticipants() []types.Address {
+	return o.C.Participants
+}
+
 //  Private methods on the DirectFundingObjectiveState
 
 // fundingComplete returns true if the recorded OnChainHoldings are greater than or equal to the threshold for being fully funded.
