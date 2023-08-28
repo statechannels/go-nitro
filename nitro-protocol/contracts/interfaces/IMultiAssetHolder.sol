@@ -69,13 +69,20 @@ interface IMultiAssetHolder {
     function reclaim(ReclaimArgs memory reclaimArgs) external;
 
     /**
-     * @dev Indicates that a deposit has been made.
+     * @dev Indicates that an ERC20 deposit has been made.
      * @param destination The channel being deposited into.
-     * @param asset The asset being deposited. Zero address indicates the native token (e.g. ETH).
+     * @param asset The asset being deposited.
      * @param destinationHoldings The new holdings for `destination`.
      */
     event Deposited(bytes32 indexed destination, address asset, uint256 destinationHoldings);
 
+    /**
+     * @dev Indicates that an ETH deposit has been made.
+     * @param destination The channel being deposited into.
+     * @param destinationHoldings The new holdings for `destination`.
+     */
+    event DepositedEth(bytes32 indexed destination, uint256 destinationHoldings);
+    
     /**
      * @dev Indicates the assetOutcome for this channelId and assetIndex has changed due to a transfer. Includes sufficient data to compute:
      * - the new assetOutcome
