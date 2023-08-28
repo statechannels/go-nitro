@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
-	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/node/query"
 	"github.com/statechannels/go-nitro/payments"
@@ -105,7 +104,6 @@ func NewRpcClient(trans transport.Requester) (RpcClientApi, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &rpcClient{
 		transport:             trans,
-		logger:                logger,
 		completedObjectives:   &safesync.Map[chan struct{}]{},
 		ledgerChannelUpdates:  &safesync.Map[chan query.LedgerChannelInfo]{},
 		paymentChannelUpdates: &safesync.Map[chan query.PaymentChannelInfo]{},
@@ -113,7 +111,7 @@ func NewRpcClient(trans transport.Requester) (RpcClientApi, error) {
 		wg:                    &sync.WaitGroup{},
 		nodeAddress:           common.Address{},
 		authTokenReady:        &sync.WaitGroup{},
-		logger: slog.Default()
+		logger:                slog.Default(),
 	}
 
 	// Retrieve the address and set it on the rpcClient
@@ -343,8 +341,9 @@ func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *rpcClie
 //     [1] the request fails to send
 //     [2] the response cannot be parsed
 //   - Otherwise, returns the JSONRPC server's response
-func sendRequest[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, method serde.RequestMethod, reqPayload T, 
-	authToken string, logger *slog.Logger, wg *sync.WaitGroup) (response[U], error) {
+func sendRequest[T serde.RequestPayload, U serde.ResponsePayload](trans transport.Requester, method serde.RequestMethod, reqPayload T,
+	authToken string, logger *slog.Logger, wg *sync.WaitGroup,
+) (response[U], error) {
 	requestId := rand.Uint64()
 	message := serde.NewJsonRpcSpecificRequest(requestId, method, reqPayload, authToken)
 	data, err := json.Marshal(message)
