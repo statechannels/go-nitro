@@ -22,9 +22,10 @@ func NewFairOutcomePolicy(me types.Address) PolicyMaker {
 
 // ShouldApprove decides to approve o if it is currently unapproved
 func (fp *fairOutcomePolicy) ShouldApprove(o protocols.Objective) bool {
-	df, isDf := o.(*directfund.Objective)
-	if isDf {
-		for _, e := range df.C.PreFundState().Outcome {
+	switch obj := o.(type) {
+	case *directfund.Objective:
+
+		for _, e := range obj.C.PreFundState().Outcome {
 			forMe := e.TotalAllocatedFor(types.AddressToDestination(fp.me))
 			for _, a := range e.Allocations {
 				if a.Amount.Cmp(forMe) != 0 {
@@ -33,15 +34,14 @@ func (fp *fairOutcomePolicy) ShouldApprove(o protocols.Objective) bool {
 				}
 			}
 		}
-	}
-	vf, isVf := o.(*virtualfund.Objective)
-	if isVf {
+
+	case *virtualfund.Objective:
 		// The intermediary doesn't care about enforcing fairness
-		if vf.IsIntermediary() {
+		if obj.IsIntermediary() {
 			return true
 		}
 
-		for _, e := range vf.V.PreFundState().Outcome {
+		for _, e := range obj.V.PreFundState().Outcome {
 			total := e.TotalAllocated()
 			for i, a := range e.Allocations {
 				if i == payments.PAYER_INDEX && isNotEqual(a.Amount, total) {
