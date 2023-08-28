@@ -65,20 +65,22 @@ describe('Consumes the expected gas for deployments', () => {
 });
 describe('Consumes the expected gas for deposits', () => {
   it(`when directly funding a channel with ETH (first deposit)`, async () => {
-    await expect(
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 5, {value: 5})
-    ).toConsumeGas(gasRequiredTo.directlyFundAChannelWithETHFirst.satp);
+    await expect(await nitroAdjudicator.deposit_eth(X.channelId, 0, 5, {value: 5})).toConsumeGas(
+      gasRequiredTo.directlyFundAChannelWithETHFirst.satp
+    );
   });
 
   it(`when directly funding a channel with ETH (second deposit)`, async () => {
     // begin setup
-    const setupTX = nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 5, {
+    const setupTX = nitroAdjudicator.deposit_eth(X.channelId, 0, 5, {
       value: 5,
     });
     await (await setupTX).wait();
     // end setup
     await expect(
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 5, 5, {value: 5})
+      await nitroAdjudicator.deposit_eth(X.channelId, 5, 5, {
+        value: 5,
+      })
     ).toConsumeGas(gasRequiredTo.directlyFundAChannelWithETHSecond.satp);
   });
 
@@ -195,9 +197,7 @@ describe('Consumes the expected gas for deposits', () => {
 describe('Consumes the expected gas for happy-path exits', () => {
   it(`when exiting a directly funded (with ETH) channel`, async () => {
     // begin setup
-    await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
-    ).wait();
+    await (await nitroAdjudicator.deposit_eth(X.channelId, 0, 10, {value: 10})).wait();
     // end setup
     await expect(await X.concludeAndTransferAllAssetsTx(MAGIC_ADDRESS_INDICATING_ETH)).toConsumeGas(
       gasRequiredTo.ETHexit.satp
@@ -219,9 +219,7 @@ describe('Consumes the expected gas for happy-path exits', () => {
 describe('Consumes the expected gas for sad-path exits', () => {
   it(`when exiting a directly funded (with ETH) channel`, async () => {
     // begin setup
-    await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
-    ).wait();
+    await (await nitroAdjudicator.deposit_eth(X.channelId, 0, 10, {value: 10})).wait();
     // end setup
     // initially                 ⬛ ->  X  -> 👩
     const {proof, finalizesAt} = await challengeChannelAndExpectGas(
@@ -249,7 +247,7 @@ describe('Consumes the expected gas for sad-path exits', () => {
   it(`when exiting a ledger funded (with ETH) channel`, async () => {
     // begin setup
     await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforX.channelId, 0, 10, {
+      await nitroAdjudicator.deposit_eth(LforX.channelId, 0, 10, {
         value: 10,
       })
     ).wait();
@@ -299,16 +297,10 @@ describe('Consumes the expected gas for sad-path exits', () => {
   it(`when exiting a virtual funded (with ETH) channel`, async () => {
     // begin setup
     await (
-      await nitroAdjudicator.deposit(
+      await nitroAdjudicator.deposit_eth(LforV.channelId, 0, amountForAliceAndBob, {
         // This deposit represents what in reality would likely be two deposits (one from Bob, one from Ingrid)
-        MAGIC_ADDRESS_INDICATING_ETH,
-        LforV.channelId,
-        0,
-        amountForAliceAndBob,
-        {
-          value: amountForAliceAndBob,
-        }
-      )
+        value: amountForAliceAndBob,
+      })
     ).wait();
     // end setup
     // initially                   ⬛ ->  L  ->  V  -> 👨

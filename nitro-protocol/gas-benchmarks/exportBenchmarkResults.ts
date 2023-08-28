@@ -74,7 +74,7 @@ async function main() {
   // directly funding a channel with ETH (first deposit)
   await executeAndRevert(async () => {
     gasResults.directlyFundAChannelWithETHFirst.satp = await gasUsed(
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 5, {value: 5})
+      await nitroAdjudicator.deposit_eth(X.channelId, 0, 5, {value: 5})
     );
   });
 
@@ -82,13 +82,13 @@ async function main() {
   // meaning the second participant in the channel
   await executeAndRevert(async () => {
     // begin setup
-    const setupTX = nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 5, {
+    const setupTX = nitroAdjudicator.deposit_eth(X.channelId, 0, 5, {
       value: 5,
     });
     await (await setupTX).wait();
     // end setup
     gasResults.directlyFundAChannelWithETHSecond.satp = await gasUsed(
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 5, 5, {value: 5})
+      await nitroAdjudicator.deposit_eth(X.channelId, 5, 5, {value: 5})
     );
   });
 
@@ -190,9 +190,7 @@ async function main() {
   // We completely liquidate the channel (paying out both parties)
   await executeAndRevert(async () => {
     // begin setup
-    await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
-    ).wait();
+    await (await nitroAdjudicator.deposit_eth(X.channelId, 0, 10, {value: 10})).wait();
     // end setup
     gasResults.ETHexit.satp = await gasUsed(
       await X.concludeAndTransferAllAssetsTx(MAGIC_ADDRESS_INDICATING_ETH)
@@ -223,9 +221,7 @@ async function main() {
   // transferAllAssets         ⬛ --------> 👩
   await executeAndRevert(async () => {
     // begin setup
-    await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, X.channelId, 0, 10, {value: 10})
-    ).wait();
+    await (await nitroAdjudicator.deposit_eth(X.channelId, 0, 10, {value: 10})).wait();
     // end setup
     // initially                 ⬛ ->  X  -> 👩
     const {challengeTx, proof, finalizesAt} = await challengeChannel(
@@ -258,7 +254,7 @@ async function main() {
   await executeAndRevert(async () => {
     // begin setup
     await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforX.channelId, 0, 10, {
+      await nitroAdjudicator.deposit_eth(LforX.channelId, 0, 10, {
         value: 10,
       })
     ).wait();
@@ -315,7 +311,7 @@ async function main() {
   await executeAndRevert(async () => {
     // begin setup
     await (
-      await nitroAdjudicator.deposit(MAGIC_ADDRESS_INDICATING_ETH, LforV.channelId, 0, 10, {
+      await nitroAdjudicator.deposit_eth(LforV.channelId, 0, 10, {
         value: 10,
       })
     ).wait();
