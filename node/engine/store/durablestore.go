@@ -217,11 +217,11 @@ func (ds *DurableStore) SetObjective(obj protocols.Objective) error {
 	return nil
 }
 
-// GetLastBlockProcessed retrieves the last blockchain block processed by this node
-func (ds *DurableStore) GetLastBlockProcessed() (uint64, error) {
+// GetLastBlockSeen retrieves the last blockchain block processed by this node
+func (ds *DurableStore) GetLastBlockSeen() (uint64, error) {
 	var result uint64
 	err := ds.blocks.View(func(tx *buntdb.Tx) error {
-		val, err := tx.Get(lastBlockProcessedKey)
+		val, err := tx.Get(lastBlockSeenKey)
 		if err != nil {
 			return err
 		}
@@ -231,10 +231,10 @@ func (ds *DurableStore) GetLastBlockProcessed() (uint64, error) {
 	return result, err
 }
 
-// SetLastBlockProcessed sets the last blockchain block processed by this node
-func (ds *DurableStore) SetLastBlockProcessed(blockNumber uint64) error {
+// SetLastBlockSeen sets the last blockchain block processed by this node
+func (ds *DurableStore) SetLastBlockSeen(blockNumber uint64) error {
 	return ds.blocks.Update(func(tx *buntdb.Tx) error {
-		_, _, err := tx.Set(lastBlockProcessedKey, strconv.FormatUint(blockNumber, 10), nil)
+		_, _, err := tx.Set(lastBlockSeenKey, strconv.FormatUint(blockNumber, 10), nil)
 		return err
 	})
 }

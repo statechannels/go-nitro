@@ -216,14 +216,14 @@ func TestGetChannelsByParticipant(t *testing.T) {
 	}
 }
 
-func TestGetLastBlockProcessedMemStore(t *testing.T) {
+func TestGetLastBlockSeenMemStore(t *testing.T) {
 	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 	ms := store.NewMemStore(sk)
 
 	want := uint64(15)
-	_ = ms.SetLastBlockProcessed(want)
+	_ = ms.SetLastBlockSeen(want)
 
-	got, err := ms.GetLastBlockProcessed()
+	got, err := ms.GetLastBlockSeen()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +233,7 @@ func TestGetLastBlockProcessedMemStore(t *testing.T) {
 	}
 }
 
-func TestGetLastBlockProcessedDurableStore(t *testing.T) {
+func TestGetLastBlockSeenDurableStore(t *testing.T) {
 	pk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
 	dataFolder, cleanup := testhelpers.GenerateTempStoreFolder()
@@ -244,9 +244,9 @@ func TestGetLastBlockProcessedDurableStore(t *testing.T) {
 	}
 
 	want := uint64(15)
-	_ = durableStore.SetLastBlockProcessed(want)
+	_ = durableStore.SetLastBlockSeen(want)
 
-	got, err := durableStore.GetLastBlockProcessed()
+	got, err := durableStore.GetLastBlockSeen()
 	if err != nil {
 		t.Fatal(err)
 	}
