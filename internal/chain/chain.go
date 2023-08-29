@@ -19,12 +19,13 @@ import (
 )
 
 type ChainOpts struct {
-	ChainUrl       string
-	ChainAuthToken string
-	ChainPk        string
-	NaAddress      common.Address
-	VpaAddress     common.Address
-	CaAddress      common.Address
+	ChainUrl        string
+	ChainStartBlock uint64
+	ChainAuthToken  string
+	ChainPk         string
+	NaAddress       common.Address
+	VpaAddress      common.Address
+	CaAddress       common.Address
 }
 
 func StartAnvil() (*exec.Cmd, error) {
