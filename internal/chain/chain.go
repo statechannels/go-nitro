@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"time"
 
-	b "github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -71,17 +71,17 @@ type contractBackend interface {
 }
 
 // deployFunc is a function that deploys a contract and returns the contract address, backend, and transaction.
-type deployFunc[T contractBackend] func(auth *b.TransactOpts, backend b.ContractBackend) (common.Address, *ethTypes.Transaction, *T, error)
+type deployFunc[T contractBackend] func(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *ethTypes.Transaction, *T, error)
 
 // deployContract deploys a contract and waits for the transaction to be mined.
-func deployContract[T contractBackend](ctx context.Context, name string, ethClient *ethclient.Client, txSubmitter *b.TransactOpts, deploy deployFunc[T]) (types.Address, error) {
+func deployContract[T contractBackend](ctx context.Context, name string, ethClient *ethclient.Client, txSubmitter *bind.TransactOpts, deploy deployFunc[T]) (types.Address, error) {
 	a, tx, _, err := deploy(txSubmitter, ethClient)
 	if err != nil {
 		return types.Address{}, err
 	}
 
 	fmt.Printf("Waiting for %s deployment confirmation\n", name)
-	_, err = b.WaitMined(ctx, ethClient, tx)
+	_, err = bind.WaitMined(ctx, ethClient, tx)
 	if err != nil {
 		return types.Address{}, err
 	}
