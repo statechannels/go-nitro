@@ -73,3 +73,20 @@ export function getRandomNonce(seed: string): string {
   // Returns a hex string representing a 64 bit integer
   return ethers.utils.id(seed).slice(0, 18); // '0x' plus [16 hexits is 8 bytes is 64 bits]
 }
+
+/**
+ * Helper function to check if a destination is an external destination
+ * (IE, an EoA or contract address).
+ *
+ * @param destination a "well formed" 32 byte hex string. (ie, 0x + 64 chars)
+ */
+export function isExternal(destination: string): boolean {
+  if (destination.substring(0, 2) != '0x' || destination.length != 66) {
+    return false;
+  }
+  // check the leading 24 zeros. eg:
+  // 0x000000000000000000000000a5aeef8f28edd5a55554856f107d4cc054d41b23
+  console.log(`destination: ${destination}`);
+  console.log(destination.substring(2, 26));
+  return destination.substring(2, 26) == ''.padEnd(24, '0');
+}
