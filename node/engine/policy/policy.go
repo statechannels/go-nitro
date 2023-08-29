@@ -13,17 +13,16 @@ type PolicyMaker interface {
 	ShouldApprove(o protocols.Objective) bool
 }
 
-type Policies struct {
-	policies []PolicyMaker
-}
+type Policies []PolicyMaker
 
 func NewPolicies(policies ...PolicyMaker) *Policies {
-	return &Policies{policies: policies}
+	p := Policies(policies)
+	return &p
 }
 
 // ShouldApprove decides to approve o if all policies decide to approve it
 func (p *Policies) ShouldApprove(o protocols.Objective) bool {
-	for _, policy := range p.policies {
+	for _, policy := range *p {
 
 		approves := policy.ShouldApprove(o)
 		slog.Debug("Policymaker decision", "policy-maker", fmt.Sprintf("%T", policy), "approves", approves, logging.WithObjectiveIdAttribute(o.Id()))
