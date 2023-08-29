@@ -68,6 +68,9 @@ describe('transfer', () => {
       const channelId = addresses.c;
       addresses.C = randomChannelId();
       addresses.X = randomChannelId();
+      addresses.A = randomExternalDestination();
+      addresses.B = randomExternalDestination();
+
       // Transform input data (unpack addresses and BigNumberify amounts)
       heldBefore = replaceAddressesAndBigNumberify(heldBefore, addresses);
       setOutcome = replaceAddressesAndBigNumberify(setOutcome, addresses);
