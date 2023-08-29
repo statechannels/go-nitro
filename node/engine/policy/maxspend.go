@@ -9,30 +9,23 @@ import (
 )
 
 func NewLedgerChannelMaxSpendPolicy(me types.Address, maxAmount types.Funds) PolicyMaker {
-	return &maxSpendPolicy{me: me, maxAmount: maxAmount, channelType: ledger}
+	return &maxSpendPolicy{me: me, maxAmount: maxAmount, channelType: Ledger}
 }
 
 func NewPaymentChannelMaxSpendPolicy(me types.Address, maxAmount types.Funds) PolicyMaker {
-	return &maxSpendPolicy{me: me, maxAmount: maxAmount, channelType: payment}
+	return &maxSpendPolicy{me: me, maxAmount: maxAmount, channelType: Payment}
 }
-
-type channelType string
-
-const (
-	ledger  channelType = "ledger"
-	payment channelType = "payment"
-)
 
 type maxSpendPolicy struct {
 	me          types.Address
 	maxAmount   types.Funds
-	channelType channelType
+	channelType ChannelType
 }
 
 func (mp *maxSpendPolicy) ShouldApprove(o protocols.Objective) bool {
 	switch obj := o.(type) {
 	case *virtualfund.Objective:
-		if mp.channelType == payment && obj.MyRole == payments.PAYER_INDEX {
+		if mp.channelType == Payment && obj.MyRole == payments.PAYER_INDEX {
 			myAmount := obj.V.PreFundState().Outcome.TotalAllocatedFor(types.AddressToDestination(mp.me))
 
 			if !underMaxAmount(myAmount, mp.maxAmount) {
@@ -40,7 +33,7 @@ func (mp *maxSpendPolicy) ShouldApprove(o protocols.Objective) bool {
 			}
 		}
 	case *directfund.Objective:
-		if mp.channelType == ledger {
+		if mp.channelType == Ledger {
 			myAmount := obj.C.PreFundState().Outcome.TotalAllocatedFor(types.AddressToDestination(mp.me))
 			if !underMaxAmount(myAmount, mp.maxAmount) {
 				return false

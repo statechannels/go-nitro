@@ -13,7 +13,7 @@ import (
 
 func TestDenyListPolicy(t *testing.T) {
 	badBob := crypto.GetAddressFromSecretKeyBytes(common.Hex2Bytes(`92df90ad792e7987539f2bcbae9e4d3e539fd6d919eb185cc2f2beb81adb473c`))
-	policy := NewDenyListPolicy([]types.Address{badBob})
+	policy := NewDenyListPolicy([]types.Address{badBob}, Ledger)
 
 	df := testdata.Objectives.Directfund.GenericDFO()
 	if !policy.ShouldApprove(&df) {
@@ -24,6 +24,8 @@ func TestDenyListPolicy(t *testing.T) {
 	if policy.ShouldApprove(&df) {
 		t.Fatal("Policy should deny objective since bad bob is a participant")
 	}
+
+	policy = NewDenyListPolicy([]types.Address{badBob}, Payment)
 
 	vf := testdata.Objectives.Virtualfund.GenericVFO()
 	if !policy.ShouldApprove(&vf) {
@@ -42,7 +44,7 @@ func TestDenyListPolicy(t *testing.T) {
 }
 
 func TestAllowListPolicy(t *testing.T) {
-	policy := NewAllowListPolicy([]types.Address{testactors.Alice.Address(), testactors.Bob.Address()})
+	policy := NewAllowListPolicy([]types.Address{testactors.Alice.Address(), testactors.Bob.Address()}, Ledger)
 
 	df := testdata.Objectives.Directfund.GenericDFO()
 	if !policy.ShouldApprove(&df) {
@@ -54,12 +56,13 @@ func TestAllowListPolicy(t *testing.T) {
 		t.Fatal("Policy should deny objective since irene is not on the allow list")
 	}
 
+	policy = NewAllowListPolicy([]types.Address{testactors.Alice.Address(), testactors.Bob.Address()}, Payment)
+
 	vf := testdata.Objectives.Virtualfund.GenericVFO()
 	if policy.ShouldApprove(&vf) {
 		t.Fatal("Policy should approve objective since irene is not a participant")
 	}
-
-	policy = NewAllowListPolicy([]types.Address{testactors.Alice.Address(), testactors.Bob.Address(), testactors.Irene.Address()})
+	policy = NewAllowListPolicy([]types.Address{testactors.Alice.Address(), testactors.Bob.Address(), testactors.Irene.Address()}, Payment)
 
 	if !policy.ShouldApprove(&vf) {
 		t.Fatal("Policy should approve objective since all participants are on the allow list")
@@ -131,7 +134,7 @@ func TestMaxSpendPolicy(t *testing.T) {
 func TestPolicies(t *testing.T) {
 	policies := NewPolicies(
 		NewFairOutcomePolicy(testactors.Alice.Address()),
-		NewAllowListPolicy([]types.Address{testactors.Alice.Address(), testactors.Bob.Address()}),
+		NewAllowListPolicy([]types.Address{testactors.Alice.Address(), testactors.Bob.Address()}, Ledger),
 		NewLedgerChannelMaxSpendPolicy(testactors.Alice.Address(), types.Funds{types.Address{}: big.NewInt(5)}),
 		NewPaymentChannelMaxSpendPolicy(testactors.Alice.Address(), types.Funds{types.Address{}: big.NewInt(5)}),
 	)
