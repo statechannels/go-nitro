@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/internal/chain"
 	"github.com/statechannels/go-nitro/internal/logging"
+	"github.com/statechannels/go-nitro/internal/node"
 	"github.com/statechannels/go-nitro/internal/rpc"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
@@ -177,7 +178,12 @@ func main() {
 
 			logging.SetupDefaultLogger(os.Stdout, slog.LevelDebug)
 
-			rpcServer, _, _, err := rpc.InitChainServiceAndRunRpcServer(pkString, chainOpts, useDurableStore, durableStoreFolder, useNats, msgPort, rpcPort, peerSlice)
+			node, _, _, _, err := node.InitializeNode(pkString, chainOpts, useDurableStore, durableStoreFolder, msgPort, os.Stdout, peerSlice)
+			if err != nil {
+				return err
+			}
+
+			rpcServer, err := rpc.InitializeRpcServer(node, rpcPort, useNats)
 			if err != nil {
 				return err
 			}

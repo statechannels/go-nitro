@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -38,7 +39,11 @@ type DurableStore struct {
 // It will create the folder if it does not exist
 func NewDurableStore(key []byte, folder string, config buntdb.Config) (Store, error) {
 	ps := DurableStore{}
-	err := os.MkdirAll(folder, os.ModePerm)
+
+	me := crypto.GetAddressFromSecretKeyBytes(key)
+	dataFolder := filepath.Join(folder, me.String())
+
+	err := os.MkdirAll(dataFolder, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
