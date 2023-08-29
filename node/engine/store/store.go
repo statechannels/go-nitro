@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	ErrNoSuchObjective = types.ConstError("store: no such objective")
-	ErrNoSuchChannel   = types.ConstError("store: failed to find required channel data")
-	ErrLoadVouchers    = types.ConstError("store: could not load vouchers")
-	lastBlockSeenKey   = "lastBlockSeen"
+	ErrNoSuchObjective  = types.ConstError("store: no such objective")
+	ErrNoSuchChannel    = types.ConstError("store: failed to find required channel data")
+	ErrLoadVouchers     = types.ConstError("store: could not load vouchers")
+	lastBlockNumSeenKey = "lastBlockNumSeen"
 )
 
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data

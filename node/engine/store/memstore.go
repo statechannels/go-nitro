@@ -24,7 +24,7 @@ type MemStore struct {
 	consensusChannels  safesync.Map[[]byte]
 	channelToObjective safesync.Map[protocols.ObjectiveId]
 	vouchers           safesync.Map[[]byte]
-	lastBlockSeen      uint64
+	lastBlockNumSeen   uint64
 
 	key     string // the signing key of the store's engine
 	address string // the (Ethereum) address associated to the signing key
@@ -40,7 +40,7 @@ func NewMemStore(key []byte) Store {
 	ms.consensusChannels = safesync.Map[[]byte]{}
 	ms.channelToObjective = safesync.Map[protocols.ObjectiveId]{}
 	ms.vouchers = safesync.Map[[]byte]{}
-	ms.lastBlockSeen = 0
+	ms.lastBlockNumSeen = 0
 	return &ms
 }
 
@@ -129,13 +129,13 @@ func (ms *MemStore) SetObjective(obj protocols.Objective) error {
 
 // SetLastBlockNumSeen
 func (ms *MemStore) SetLastBlockNumSeen(blockNumber uint64) error {
-	ms.lastBlockSeen = blockNumber
+	ms.lastBlockNumSeen = blockNumber
 	return nil
 }
 
 // GetLastBlockNumSeen
 func (ms *MemStore) GetLastBlockNumSeen() (uint64, error) {
-	return ms.lastBlockSeen, nil
+	return ms.lastBlockNumSeen, nil
 }
 
 // SetChannel sets the channel in the store.
