@@ -45,7 +45,7 @@ func generateAuthToken(subject string, p []permission) (string, error) {
 	return token.SignedString(rpcPK)
 }
 
-// verifyPermission takes a JWT token, verifies that the token is valid and that the token contains the required permission
+// checkTokenValidity takes a JWT token, verifies that the token is valid and that the token contains the required permission
 func checkTokenValidity(tokenString string, requiredPermission permission, validDuration *time.Duration) error {
 	if requiredPermission == permNone {
 		return nil
