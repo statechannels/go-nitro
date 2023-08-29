@@ -127,3 +127,22 @@ func TestMaxSpendPolicy(t *testing.T) {
 		t.Fatal("Policy should always approve direct defund objectives")
 	}
 }
+
+func TestPolicies(t *testing.T) {
+	policies := NewPolicies(
+		NewFairOutcomePolicy(testactors.Alice.Address()),
+		NewAllowListPolicy([]types.Address{testactors.Alice.Address(), testactors.Bob.Address()}),
+		NewLedgerChannelMaxSpendPolicy(testactors.Alice.Address(), types.Funds{types.Address{}: big.NewInt(5)}),
+		NewPaymentChannelMaxSpendPolicy(testactors.Alice.Address(), types.Funds{types.Address{}: big.NewInt(5)}),
+	)
+
+	df := testdata.GenerateDFOFromOutcome(testdata.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), 5, 5, common.Address{}))
+	if !policies.ShouldApprove(&df) {
+		t.Fatal("Policies should approve objective because it is fair, alice and bob are on the allow list, and the outcome is less than the max spend")
+	}
+
+	df = testdata.GenerateDFOFromOutcome(testdata.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), 10, 5, common.Address{}))
+	if policies.ShouldApprove(&df) {
+		t.Fatal("Policies should reject objective because of the ledger max spend policy")
+	}
+}
