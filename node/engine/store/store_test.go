@@ -216,6 +216,46 @@ func TestGetChannelsByParticipant(t *testing.T) {
 	}
 }
 
+func TestGetLastBlockNumSeenMemStore(t *testing.T) {
+	sk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
+	ms := store.NewMemStore(sk)
+
+	want := uint64(15)
+	_ = ms.SetLastBlockNumSeen(want)
+
+	got, err := ms.GetLastBlockNumSeen()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Fatalf("fetched result different than expected %s", diff)
+	}
+}
+
+func TestGetLastBlockNumSeenDurableStore(t *testing.T) {
+	pk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
+
+	dataFolder, cleanup := testhelpers.GenerateTempStoreFolder()
+	defer cleanup()
+	durableStore, err := store.NewDurableStore(pk, dataFolder, buntdb.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := uint64(15)
+	_ = durableStore.SetLastBlockNumSeen(want)
+
+	got, err := durableStore.GetLastBlockNumSeen()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Fatalf("fetched result different than expected %s", diff)
+	}
+}
+
 func TestBigNumberStorage(t *testing.T) {
 	pk := common.Hex2Bytes(`2af069c584758f9ec47c4224a8becc1983f28acfbe837bd7710b70f9fc6d5e44`)
 
