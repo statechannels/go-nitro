@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/safesync"
 	"github.com/statechannels/go-nitro/node/query"
 	"github.com/statechannels/go-nitro/payments"
@@ -115,7 +116,7 @@ func NewRpcClient(trans transport.Requester) (RpcClientApi, error) {
 	}
 
 	// Retrieve the address and set it on the rpcClient
-	res, err := waitForRequest[serde.NoPayloadRequest, common.Address](c, serde.GetAddressMethod, serde.NoPayloadRequest{})
+	res, err := authenticatedWaitForRequest[serde.NoPayloadRequest, common.Address](c, serde.GetAddressMethod, serde.NoPayloadRequest{})
 	if err != nil {
 		return nil, err
 	}
