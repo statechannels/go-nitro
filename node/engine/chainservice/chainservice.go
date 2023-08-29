@@ -72,32 +72,41 @@ func (ce ConcludedEvent) String() string {
 	return "Channel " + ce.channelID.String() + " concluded at Block " + fmt.Sprint(ce.blockNum)
 }
 
-type ChallengeRegistered struct {
+type ChallengeRegisteredEvent struct {
 	commonEvent
-	candidate          state.VariablePart
-	candidateSignature state.Signature
+	candidate           state.VariablePart
+	candidateSignatures []state.Signature
 }
 
 // StateHash returns the statehash which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
-func (cr ChallengeRegistered) StateHash(fp state.FixedPart) (common.Hash, error) {
+func (cr ChallengeRegisteredEvent) StateHash(fp state.FixedPart) (common.Hash, error) {
 	return state.StateFromFixedAndVariablePart(fp, cr.candidate).Hash()
 }
 
 // Outcome returns the outcome which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
-func (cr ChallengeRegistered) Outcome() outcome.Exit {
+func (cr ChallengeRegisteredEvent) Outcome() outcome.Exit {
 	return cr.candidate.Outcome
 }
 
 // SignedState returns the signe state  which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
-func (cr ChallengeRegistered) SignedState(fp state.FixedPart) (state.SignedState, error) {
+func (cr ChallengeRegisteredEvent) SignedState(fp state.FixedPart) (state.SignedState, error) {
 	s := state.StateFromFixedAndVariablePart(fp, cr.candidate)
 	ss := state.NewSignedState(s)
-	err := ss.AddSignature(cr.candidateSignature)
-	return ss, err
+	for _, sig := range cr.candidateSignatures {
+		err := ss.AddSignature(sig)
+		if err != nil {
+			return state.SignedState{}, err
+		}
+	}
+	return ss, nil
 }
 
-func (cr ChallengeRegistered) String() string {
+func (cr ChallengeRegisteredEvent) String() string {
 	return "CHALLENGE registered for Channel " + cr.channelID.String() + " at Block " + fmt.Sprint(cr.blockNum)
+}
+
+func NewChallengeRegisteredEvent() ChallengeRegisteredEvent {
+	return ChallengeRegisteredEvent{}
 }
 
 func NewDepositedEvent(channelId types.Destination, blockNum uint64, assetAddress common.Address, nowHeld *big.Int) DepositedEvent {
