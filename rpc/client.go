@@ -104,6 +104,16 @@ func NewRpcClient(trans transport.Requester) (RpcClientApi, error) {
 
 	c := &rpcClient{trans, &safesync.Map[chan struct{}]{}, &safesync.Map[chan query.LedgerChannelInfo]{}, &safesync.Map[chan query.PaymentChannelInfo]{}, cancel, &sync.WaitGroup{}, common.Address{}, slog.Default()}
 
+	// Retrieve the address and set it on the rpcClient
+	res, err := waitForRequest[serde.NoPayloadRequest, common.Address](c, serde.GetAddressMethod, serde.NoPayloadRequest{})
+	if err != nil {
+		return nil, err
+	}
+	c.nodeAddress = res
+
+	// Update the logger so we output the address
+	c.logger = logging.LoggerWithAddress(c.logger, c.nodeAddress)
+
 	notificationChan, err := c.transport.Subscribe()
 	if err != nil {
 		return nil, err
@@ -125,17 +135,6 @@ func NewHttpRpcClient(rpcServerUrl string) (RpcClientApi, error) {
 
 // Address returns the address of the the nitro node
 func (rc *rpcClient) Address() (common.Address, error) {
-	if (rc.nodeAddress == common.Address{}) {
-		res, err := waitForRequest[serde.NoPayloadRequest, common.Address](rc, serde.GetAddressMethod, serde.NoPayloadRequest{})
-		if err != nil {
-			return res, err
-		}
-
-		// Update the logger so we output the address
-		rc.nodeAddress = res
-		rc.logger = logging.LoggerWithAddress(rc.logger, rc.nodeAddress)
-		return res, nil
-	}
 	return rc.nodeAddress, nil
 }
 
