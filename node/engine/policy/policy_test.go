@@ -1,6 +1,7 @@
 package policy
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -90,6 +91,35 @@ func TestFairOutcomePolicy(t *testing.T) {
 	vf = testdata.GenerateVFOFromOutcome(testdata.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), 5, 1, common.Address{}))
 	if policy.ShouldApprove(&vf) {
 		t.Fatal("Policy should reject objective since the outcome is unfair")
+	}
+
+	ddf := testdata.Objectives.Directfund.GenericDFO()
+	if !policy.ShouldApprove(&ddf) {
+		t.Fatal("Policy should always approve direct defund objectives")
+	}
+}
+
+func TestMaxSpendPolicy(t *testing.T) {
+	policy := NewLedgerChannelMaxSpendPolicy(testactors.Alice.Address(), types.Funds{types.Address{}: big.NewInt(5)})
+
+	df := testdata.GenerateDFOFromOutcome(testdata.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), 5, 5, common.Address{}))
+	if !policy.ShouldApprove(&df) {
+		t.Fatal("Policy should approve objective since the outcome required by the objective is less than the max spend")
+	}
+
+	df = testdata.GenerateDFOFromOutcome(testdata.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), 10, 5, common.Address{}))
+	if policy.ShouldApprove(&df) {
+		t.Fatal("Policy should reject objective since the outcome requires more than the max spend")
+	}
+
+	policy = NewPaymentChannelMaxSpendPolicy(testactors.Alice.Address(), types.Funds{types.Address{}: big.NewInt(5)})
+	vf := testdata.GenerateVFOFromOutcome(testdata.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), 5, 0, common.Address{}))
+	if !policy.ShouldApprove(&vf) {
+		t.Fatal("Policy should approve objective since the outcome required by the objective is less than the max spend")
+	}
+	vf = testdata.GenerateVFOFromOutcome(testdata.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), 10, 0, common.Address{}))
+	if policy.ShouldApprove(&vf) {
+		t.Fatal("Policy should reject objective since the outcome requires more than the max spend")
 	}
 
 	ddf := testdata.Objectives.Directfund.GenericDFO()

@@ -8,12 +8,12 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-func NewLedgerChannelMaxSpendPolicy(maxAmount types.Funds) PolicyMaker {
-	return &maxSpendPolicy{maxAmount: maxAmount, channelType: ledger}
+func NewLedgerChannelMaxSpendPolicy(me types.Address, maxAmount types.Funds) PolicyMaker {
+	return &maxSpendPolicy{me: me, maxAmount: maxAmount, channelType: ledger}
 }
 
-func NewPaymentChannelMaxSpendPolicy(maxAmount types.Funds) PolicyMaker {
-	return &maxSpendPolicy{maxAmount: maxAmount, channelType: payment}
+func NewPaymentChannelMaxSpendPolicy(me types.Address, maxAmount types.Funds) PolicyMaker {
+	return &maxSpendPolicy{me: me, maxAmount: maxAmount, channelType: payment}
 }
 
 type channelType string
