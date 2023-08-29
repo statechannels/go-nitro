@@ -62,7 +62,7 @@ describe('transfer', () => {
     ${'17. guarantee allocationType'}      | ${{c: 1}}  | ${false} | ${{A: 1}}             | ${[0]}       | ${{A: 0}}             | ${{}}           | ${{A: 1}}       | ${reason3}
   `(
     `$name: isSimple: $isSimple, heldBefore: $heldBefore, setOutcome: $setOutcome, newOutcome: $newOutcome, heldAfter: $heldAfter, payouts: $payouts`,
-    async ({heldBefore, isSimple, setOutcome, indices, newOutcome, heldAfter, reason}) => {
+    async ({heldBefore, isSimple, setOutcome, indices, newOutcome, heldAfter, payouts, reason}) => {
       // Compute channelId
       addresses.c = randomChannelId();
       const channelId = addresses.c;
@@ -73,6 +73,7 @@ describe('transfer', () => {
       setOutcome = replaceAddressesAndBigNumberify(setOutcome, addresses);
       newOutcome = replaceAddressesAndBigNumberify(newOutcome, addresses);
       heldAfter = replaceAddressesAndBigNumberify(heldAfter, addresses);
+      payouts = replaceAddressesAndBigNumberify(payouts, addresses);
 
       // Deposit into channels
 
