@@ -49,6 +49,46 @@ export function createOutcome(
     },
   ];
 }
+/**
+ * createPaymentChannelOutcome creates a basic outcome for a payment channel
+ *
+ * @param asset - The asset to fund the channel with
+ * @param alpha - The address of the first participant
+ * @param beta - The address of the second participant
+ * @param amount - The amount to allocate to the payer
+ * @returns An outcome for a virtually funded channel
+ */
+export function createPaymentChannelOutcome(
+  asset: string,
+  alpha: string,
+  beta: string,
+  amount: number
+): Outcome {
+  return [
+    {
+      Asset: asset,
+      AssetMetadata: {
+        AssetType: 0,
+        Metadata: null,
+      },
+
+      Allocations: [
+        {
+          Destination: convertAddressToBytes32(alpha),
+          Amount: amount,
+          AllocationType: 0,
+          Metadata: null,
+        },
+        {
+          Destination: convertAddressToBytes32(beta),
+          Amount: 0,
+          AllocationType: 0,
+          Metadata: null,
+        },
+      ],
+    },
+  ];
+}
 
 /**
  * Left pads a 20 byte address hex string with zeros until it is a 32 byte hex string

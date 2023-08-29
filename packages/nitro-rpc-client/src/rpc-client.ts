@@ -13,7 +13,11 @@ import {
   ReceiveVoucherResult,
 } from "./types";
 import { Transport } from "./transport";
-import { createOutcome, generateRequest } from "./utils";
+import {
+  createOutcome,
+  createPaymentChannelOutcome,
+  generateRequest,
+} from "./utils";
 import { HttpTransport } from "./transport/http";
 import { getAndValidateResult } from "./serde";
 
@@ -120,7 +124,7 @@ export class NitroRpcClient {
       CounterParty: counterParty,
       Intermediaries: intermediaries,
       ChallengeDuration: 0,
-      Outcome: createOutcome(
+      Outcome: createPaymentChannelOutcome(
         asset,
         await this.GetAddress(),
         counterParty,
