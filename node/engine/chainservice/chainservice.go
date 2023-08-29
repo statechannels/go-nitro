@@ -105,10 +105,6 @@ func (cr ChallengeRegisteredEvent) String() string {
 	return "CHALLENGE registered for Channel " + cr.channelID.String() + " at Block " + fmt.Sprint(cr.blockNum)
 }
 
-func NewChallengeRegisteredEvent() ChallengeRegisteredEvent {
-	return ChallengeRegisteredEvent{}
-}
-
 func NewDepositedEvent(channelId types.Destination, blockNum uint64, assetAddress common.Address, nowHeld *big.Int) DepositedEvent {
 	return DepositedEvent{commonEvent{channelId, blockNum}, assetAddress, nowHeld}
 }
