@@ -46,7 +46,7 @@ func generateAuthToken(subject string, p []permission) (string, error) {
 }
 
 // checkTokenValidity takes a JWT token, verifies that the token is valid and that the token contains the required permission
-func checkTokenValidity(tokenString string, requiredPermission permission, validDuration *time.Duration) error {
+func checkTokenValidity(tokenString string, requiredPermission permission, validDuration time.Duration) error {
 	if requiredPermission == permNone {
 		return nil
 	}
@@ -74,13 +74,7 @@ func checkTokenValidity(tokenString string, requiredPermission permission, valid
 		return fmt.Errorf(invalidIAtFormat, err)
 	}
 
-	var duration time.Duration
-	if validDuration == nil {
-		duration = time.Hour
-	} else {
-		duration = *validDuration
-	}
-	if time.Now().After(iAt.Add(duration)) {
+	if time.Now().After(iAt.Add(validDuration)) {
 		return errExpiredToken
 	}
 

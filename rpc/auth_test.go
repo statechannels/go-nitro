@@ -12,7 +12,7 @@ func TestValidAuthToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = checkTokenValidity(token, permSign, nil)
+	err = checkTokenValidity(token, permSign, time.Hour)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,7 +24,7 @@ func TestAuthTokenMissingPermission(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = checkTokenValidity(token, permSign, nil)
+	err = checkTokenValidity(token, permSign, time.Hour)
 	if !errors.Is(err, errMissingPermission) {
 		t.Fatal("expected errMissingPermission, got", err)
 	}
@@ -36,8 +36,7 @@ func TestExpiredAuthToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	zeroDuration := time.Duration(0)
-	err = checkTokenValidity(token, permSign, &zeroDuration)
+	err = checkTokenValidity(token, permSign, time.Duration(0))
 	if !errors.Is(err, errExpiredToken) {
 		t.Fatal("expected errExpiredToken, got", err)
 	}

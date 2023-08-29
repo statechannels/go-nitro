@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/statechannels/go-nitro/internal/logging"
 	nitro "github.com/statechannels/go-nitro/node"
@@ -204,7 +205,7 @@ func processRequest[T serde.RequestPayload, U serde.ResponsePayload](rs *RpcServ
 		return marshalResponse(response)
 	}
 
-	err = checkTokenValidity(rpcRequest.Params.AuthToken, permission, nil)
+	err = checkTokenValidity(rpcRequest.Params.AuthToken, permission, 7*24*time.Hour)
 	if err != nil {
 		response := serde.NewJsonRpcErrorResponse(rpcRequest.Id, serde.InvalidAuthTokenError)
 		return marshalResponse(response)
