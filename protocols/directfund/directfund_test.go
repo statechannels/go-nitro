@@ -83,6 +83,11 @@ func TestNew(t *testing.T) {
 	if _, err := NewObjective(request, false, testState.Participants[0], big.NewInt(TEST_CHAIN_ID), getByParticipant, getByConsensusHasChannel); err == nil {
 		t.Errorf("Expected an error when constructing with an objective when an existing channel consensus channel exists")
 	}
+
+	request.Outcome[0].Allocations[0].Amount = big.NewInt(10)
+	if _, err := NewObjective(request, false, testState.Participants[0], big.NewInt(TEST_CHAIN_ID), getByParticipant, getByConsensus); err == nil {
+		t.Errorf("Expected an error when constructing a direct fund objective with an unfair outcome")
+	}
 }
 
 func TestConstructFromPayload(t *testing.T) {

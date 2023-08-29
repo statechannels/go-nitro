@@ -49,11 +49,11 @@ func newTestData() testData {
 			Allocations: outcome.Allocations{
 				outcome.Allocation{
 					Destination: alice.Destination(),
-					Amount:      big.NewInt(6),
+					Amount:      big.NewInt(5),
 				},
 				outcome.Allocation{
 					Destination: bob.Destination(),
-					Amount:      big.NewInt(4),
+					Amount:      big.NewInt(0),
 				},
 			},
 		}},
@@ -149,6 +149,14 @@ func TestNew(t *testing.T) {
 		msg := fmt.Sprintf("Testing new as %v", a.Name)
 		t.Run(msg, testNew(a))
 	}
+	td := newTestData()
+	vPreFund := td.vPreFund
+	ledgers := td.leaderLedgers
+	vPreFund.Outcome[0].Allocations[1].Amount = big.NewInt(10)
+	_, err := constructFromState(false, vPreFund, ta.Alice.Address(), ledgers[ta.Alice.Destination()].left, ledgers[ta.Alice.Destination()].right)
+	if err == nil {
+		t.Fatal("Expected error when creating objective with non-zero payee outcome")
+	}
 }
 
 func testCloneAs(my ta.Actor) Tester {
@@ -223,6 +231,7 @@ func TestCrankAsAlice(t *testing.T) {
 		ledgers  = td.leaderLedgers
 		s, _     = constructFromState(false, vPreFund, my.Address(), ledgers[my.Destination()].left, ledgers[my.Destination()].right)
 	)
+
 	// Assert that cranking an unapproved objective returns an error
 	_, _, _, err := s.Crank(&my.PrivateKey)
 	Assert(t, err != nil, `Expected error when cranking unapproved objective, but got nil`)
@@ -264,8 +273,12 @@ func TestCrankAsAlice(t *testing.T) {
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 
-	p := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, o.ToMyRight.getExpectedGuarantee(), big.NewInt(6))
-	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(alice, p1, o.ToMyRight.getExpectedGuarantee())[0], TurnNum: 2}
+	p := consensus_channel.NewAddProposal(o.ToMyRight.Channel.Id, o.ToMyRight.getExpectedGuarantee(), big.NewInt(5))
+	sp := consensus_channel.SignedProposal{
+		Proposal:  p,
+		Signature: prepareConsensusChannelHelper(0, alice, p1, alice, 0, 5, 2, o.ToMyRight.getExpectedGuarantee()).Signatures()[0],
+		TurnNum:   2,
+	}
 	Ok(t, err)
 	assertOneProposalSent(t, effects, sp, p1)
 	Equals(t, waitingFor, WaitingForCompleteFunding)
@@ -361,8 +374,13 @@ func TestCrankAsBob(t *testing.T) {
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// If Bob had received a signed counterproposal, he should proceed to postFundSetup
-	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
-	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, bob, o.ToMyLeft.getExpectedGuarantee())[0], TurnNum: 2}
+
+	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(5))
+	sp := consensus_channel.SignedProposal{
+		Proposal:  p,
+		Signature: prepareConsensusChannelHelper(0, p1, bob, p1, 0, 5, 2, o.ToMyLeft.getExpectedGuarantee()).Signatures()[0],
+		TurnNum:   2,
+	}
 
 	oObj, err = o.ReceiveProposal(sp)
 	o = oObj.(*Objective)
@@ -431,8 +449,12 @@ func TestCrankAsP1(t *testing.T) {
 	oObj, effects, waitingFor, err = o.Crank(&my.PrivateKey)
 	o = oObj.(*Objective)
 
-	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
-	sp := consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[0], TurnNum: 2}
+	p := consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(5))
+	sp := consensus_channel.SignedProposal{
+		Proposal:  p,
+		Signature: prepareConsensusChannelHelper(0, p1, alice, p1, 5, 0, 2, o.ToMyLeft.getExpectedGuarantee()).Signatures()[0],
+		TurnNum:   2,
+	}
 	Ok(t, err)
 	assertOneProposalSent(t, effects, sp, alice)
 	Equals(t, waitingFor, WaitingForCompleteFunding)
@@ -446,7 +468,7 @@ func TestCrankAsP1(t *testing.T) {
 	Equals(t, waitingFor, WaitingForCompleteFunding)
 
 	// If P1 had received a signed counterproposal, she should proceed to postFundSetup
-	p = consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(6))
+	p = consensus_channel.NewAddProposal(o.ToMyLeft.Channel.Id, o.ToMyLeft.getExpectedGuarantee(), big.NewInt(5))
 	sp = consensus_channel.SignedProposal{Proposal: p, Signature: consensusStateSignatures(p1, alice, o.ToMyLeft.getExpectedGuarantee())[1], TurnNum: 2}
 
 	oObj, err = o.ReceiveProposal(sp)

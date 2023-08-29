@@ -13,6 +13,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -132,6 +133,21 @@ type Objective struct {
 	b0 types.Funds // Initial balance for Bob
 }
 
+// onlyPayerHasFunds checks that the outcome only has funds allocated to the payer
+func onlyPayerHasFunds(s state.State) bool {
+	for _, e := range s.Outcome {
+		total := e.TotalAllocated()
+		for i, a := range e.Allocations {
+			if i == payments.PAYER_INDEX && a.Amount.Cmp(total) != 0 {
+				return false
+			} else if i != payments.PAYER_INDEX && a.Amount.Cmp(big.NewInt(0)) != 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // NewObjective creates a new virtual funding objective from a given request.
 func NewObjective(request ObjectiveRequest, preApprove bool, myAddress types.Address, chainId *big.Int, getTwoPartyConsensusLedger GetTwoPartyConsensusLedgerFunction) (Objective, error) {
 	var rightCC *consensus_channel.ConsensusChannel
@@ -183,6 +199,10 @@ func constructFromState(
 		init.Status = protocols.Approved
 	} else {
 		init.Status = protocols.Unapproved
+	}
+
+	if !onlyPayerHasFunds(initialStateOfV) {
+		return Objective{}, errors.New("initial state of V has funds allocated to non-payer")
 	}
 
 	// Infer MyRole

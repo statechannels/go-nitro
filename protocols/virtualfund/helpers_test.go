@@ -10,16 +10,16 @@ import (
 )
 
 // prepareConsensusChannel prepares a consensus channel with a consensus outcome
-//   - allocating 6 to left participant
-//   - allocating 4 to right participant
+//   - allocating 5 to left participant
+//   - allocating 5 to right participant
 //   - including the given guarantees
 func prepareConsensusChannel(role uint, leader, follower, leftActor testactors.Actor, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {
-	return prepareConsensusChannelHelper(role, leader, follower, leftActor, 6, 4, 1, guarantees...)
+	return prepareConsensusChannelHelper(role, leader, follower, leftActor, 5, 5, 1, guarantees...)
 }
 
 // consensusStateSignatures prepares a consensus channel with a consensus outcome and returns the signatures on the consensus state
 func consensusStateSignatures(leader, follower testactors.Actor, guarantees ...consensus_channel.Guarantee) [2]state.Signature {
-	return prepareConsensusChannelHelper(0, leader, follower, leader, 0, 0, 2, guarantees...).Signatures()
+	return prepareConsensusChannelHelper(0, leader, follower, leader, 0, 5, 2, guarantees...).Signatures()
 }
 
 func prepareConsensusChannelHelper(role uint, leader, follower, leftActor testactors.Actor, leftBalance, rightBalance, turnNum int, guarantees ...consensus_channel.Guarantee) *consensus_channel.ConsensusChannel {

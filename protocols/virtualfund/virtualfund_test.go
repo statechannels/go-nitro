@@ -31,11 +31,11 @@ func TestMarshalJSON(t *testing.T) {
 			Allocations: outcome.Allocations{
 				outcome.Allocation{
 					Destination: alice.Destination(),
-					Amount:      big.NewInt(5),
+					Amount:      big.NewInt(10),
 				},
 				outcome.Allocation{
 					Destination: bob.Destination(),
-					Amount:      big.NewInt(5),
+					Amount:      big.NewInt(0),
 				},
 			},
 		}},

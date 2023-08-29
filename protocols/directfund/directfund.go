@@ -110,6 +110,19 @@ func ChannelsExistWithCounterparty(counterparty types.Address, getChannels GetCh
 	return ok, nil
 }
 
+// hasEqualOutcome returns true if the outcome allocates an equal amount to each participant
+func hasEqualOutcome(s state.State, me types.Address) bool {
+	for _, e := range s.Outcome {
+		forMe := e.TotalAllocatedFor(types.AddressToDestination(me))
+		for _, a := range e.Allocations {
+			if a.Amount.Cmp(forMe) != 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // ConstructFromPayload initiates a Objective with data calculated from
 // the supplied initialState and client address
 func ConstructFromPayload(
@@ -124,6 +137,7 @@ func ConstructFromPayload(
 		return Objective{}, fmt.Errorf("could not get signed state payload: %w", err)
 	}
 	initialState := initialSignedState.State()
+
 	err = initialState.FixedPart().Validate()
 	if err != nil {
 		return Objective{}, err
@@ -135,6 +149,9 @@ func ConstructFromPayload(
 		return Objective{}, errors.New("attempted to initiate new direct-funding objective with IsFinal == true")
 	}
 
+	if !hasEqualOutcome(initialState, myAddress) {
+		return Objective{}, errors.New("attempted to initiate new direct-funding objective with non-equal outcome")
+	}
 	init := Objective{}
 
 	if preApprove {
