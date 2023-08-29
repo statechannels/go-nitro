@@ -178,7 +178,7 @@ func main() {
 
 			logging.SetupDefaultLogger(os.Stdout, slog.LevelDebug)
 
-			node, _, _, _, err := node.InitializeNode(pkString, chainOpts, useDurableStore, durableStoreFolder, msgPort, os.Stdout, peerSlice)
+			node, _, _, _, err := node.InitializeNode(pkString, chainOpts, useDurableStore, durableStoreFolder, msgPort, peerSlice)
 			if err != nil {
 				return err
 			}

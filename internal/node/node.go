@@ -3,7 +3,6 @@ package node
 import (
 	"fmt"
 	"log/slog"
-	"os"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/internal/chain"
@@ -17,7 +16,7 @@ import (
 )
 
 func InitializeNode(pkString string, chainOpts chain.ChainOpts,
-	useDurableStore bool, durableStoreFolder string, msgPort int, logDestination *os.File, bootPeers []string,
+	useDurableStore bool, durableStoreFolder string, msgPort int, bootPeers []string,
 ) (*node.Node, *store.Store, *p2pms.P2PMessageService, *chainservice.EthChainService, error) {
 	if pkString == "" {
 		panic("pk must be set")
