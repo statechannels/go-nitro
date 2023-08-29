@@ -15,10 +15,12 @@ import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicato
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 import {channelDataToStatus} from '../../../src';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../../../src/transactions';
-import {replaceAddressesAndBigNumberify} from '../../../src/helpers';
+import {replaceAddressesAndBigNumberify, isExternal} from '../../../src/helpers';
+
+const testProvider = getTestProvider();
 
 const testNitroAdjudicator = setupContract(
-  getTestProvider(),
+  testProvider,
   TESTNitroAdjudicatorArtifact,
   process.env.TEST_NITRO_ADJUDICATOR_ADDRESS
 ) as unknown as TESTNitroAdjudicator & Contract;
@@ -196,6 +198,23 @@ describe('transfer', () => {
         ];
 
         expect(eventsFromTx).toMatchObject(expectedEvents);
+
+        // Check payouts
+        for (const destination of Object.keys(payouts)) {
+          if (isExternal(destination)) {
+            const asAddress = '0x' + destination.substring(26);
+            const balance = await testProvider.getBalance(asAddress);
+            console.log(`checking balance of ${destination}: ${balance.toString()}`);
+            expect(balance).toEqual(payouts[destination]);
+          } else {
+            const holdings = await testNitroAdjudicator.holdings(
+              MAGIC_ADDRESS_INDICATING_ETH,
+              destination
+            );
+            console.log(`checking holdings of ${destination}: ${holdings.toString()}`);
+            expect(holdings).toEqual(payouts[destination]);
+          }
+        }
       }
     }
   );
