@@ -32,7 +32,7 @@ func InitializeNode(pkString string, chainOpts chain.ChainOpts,
 	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, bootPeers)
 
 	slog.Info("Initializing chain service and connecting to " + chainOpts.ChainUrl + "...")
-	ourChain, err := chain.InitializeEthChainService(chainOpts)
+	ourChain, err := chainservice.NewEthChainService(chainOpts)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

@@ -15,6 +15,7 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 
+	"github.com/statechannels/go-nitro/internal/chain"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	Token "github.com/statechannels/go-nitro/node/engine/chainservice/erc20"
 	chainutils "github.com/statechannels/go-nitro/node/engine/chainservice/utils"
@@ -84,21 +85,30 @@ const RESUB_INTERVAL = 15 * time.Second
 const REQUIRED_BLOCK_CONFIRMATIONS = 2
 
 // NewEthChainService is a convenient wrapper around newEthChainService, which provides a simpler API
-func NewEthChainService(chainUrl, chainAuthToken, chainPk string, naAddress, caAddress, vpaAddress common.Address) (*EthChainService, error) {
-	if vpaAddress == caAddress {
-		return nil, fmt.Errorf("virtual payment app address and consensus app address cannot be the same: %s", vpaAddress.String())
+func NewEthChainService(chainOpts chain.ChainOpts) (*EthChainService, error) {
+	if chainOpts.ChainPk == "" {
+		return nil, fmt.Errorf("chainpk must be set")
 	}
-	ethClient, txSigner, err := chainutils.ConnectToChain(context.Background(), chainUrl, chainAuthToken, common.Hex2Bytes(chainPk))
+	if chainOpts.VpaAddress == chainOpts.CaAddress {
+		return nil, fmt.Errorf("virtual payment app address and consensus app address cannot be the same: %s", chainOpts.VpaAddress.String())
+	}
+
+	ethClient, txSigner, err := chainutils.ConnectToChain(
+		context.Background(),
+		chainOpts.ChainUrl,
+		chainOpts.ChainAuthToken,
+		common.Hex2Bytes(chainOpts.ChainPk),
+	)
 	if err != nil {
 		panic(err)
 	}
 
-	na, err := NitroAdjudicator.NewNitroAdjudicator(naAddress, ethClient)
+	na, err := NitroAdjudicator.NewNitroAdjudicator(chainOpts.NaAddress, ethClient)
 	if err != nil {
 		panic(err)
 	}
 
-	return newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner)
+	return newEthChainService(ethClient, na, chainOpts.NaAddress, chainOpts.CaAddress, chainOpts.VpaAddress, txSigner)
 }
 
 // newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator

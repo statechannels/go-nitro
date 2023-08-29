@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	ConsensusApp "github.com/statechannels/go-nitro/node/engine/chainservice/consensusapp"
 	chainutils "github.com/statechannels/go-nitro/node/engine/chainservice/utils"
@@ -26,22 +25,6 @@ type ChainOpts struct {
 	NaAddress      common.Address
 	VpaAddress     common.Address
 	CaAddress      common.Address
-}
-
-func InitializeEthChainService(chainOpts ChainOpts) (*chainservice.EthChainService, error) {
-	if chainOpts.ChainPk == "" {
-		return nil, fmt.Errorf("chainpk must be set")
-	}
-
-	fmt.Println("Initializing chain service and connecting to " + chainOpts.ChainUrl + "...")
-
-	return chainservice.NewEthChainService(
-		chainOpts.ChainUrl,
-		chainOpts.ChainAuthToken,
-		chainOpts.ChainPk,
-		chainOpts.NaAddress,
-		chainOpts.CaAddress,
-		chainOpts.VpaAddress)
 }
 
 func StartAnvil() (*exec.Cmd, error) {
