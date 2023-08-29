@@ -50,8 +50,8 @@ var testVirtualState = state.State{
 	ChallengeDuration: 60,
 	AppData:           []byte{},
 	Outcome: Outcomes.CreateLongOutcome(
-		SimpleItem{testactors.Alice.Destination(), 6},
-		SimpleItem{testactors.Bob.Destination(), 4},
+		SimpleItem{testactors.Alice.Destination(), 10},
+		SimpleItem{testactors.Bob.Destination(), 0},
 	),
 	TurnNum: 0,
 	IsFinal: false,
