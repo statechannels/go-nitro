@@ -59,7 +59,7 @@ func TestNew(t *testing.T) {
 	request := NewObjectiveRequest(
 		testState.Participants[1],
 		testState.ChallengeDuration,
-		testState.Outcome,
+		testState.Outcome.Clone(),
 		0,
 		testState.AppDefinition,
 	)
@@ -69,7 +69,7 @@ func TestNew(t *testing.T) {
 	}
 
 	getByParticipantHasChannel := func(id types.Address) ([]*channel.Channel, error) {
-		c, _ := channel.New(testState, 0)
+		c, _ := channel.New(testState.Clone(), 0)
 		return []*channel.Channel{c}, nil
 	}
 
@@ -91,7 +91,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestConstructFromPayload(t *testing.T) {
-	ss := state.NewSignedState(testState)
+	ss := state.NewSignedState(testState.Clone())
 	id := protocols.ObjectiveId(ObjectivePrefix + testState.ChannelId().String())
 	op, err := protocols.CreateObjectivePayload(id, SignedStatePayload, ss)
 	testhelpers.Ok(t, err)
@@ -118,7 +118,7 @@ func TestConstructFromPayload(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	id := protocols.ObjectiveId(ObjectivePrefix + testState.ChannelId().String())
-	op, err := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState))
+	op, err := protocols.CreateObjectivePayload(id, SignedStatePayload, state.NewSignedState(testState.Clone()))
 	testhelpers.Ok(t, err)
 	// Construct various variables for use in TestUpdate
 	s, _ := ConstructFromPayload(false, op, testState.Participants[0])
