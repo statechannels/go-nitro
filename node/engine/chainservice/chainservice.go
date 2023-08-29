@@ -74,7 +74,8 @@ func (ce ConcludedEvent) String() string {
 
 type ChallengeRegistered struct {
 	commonEvent
-	candidate state.VariablePart
+	candidate          state.VariablePart
+	candidateSignature state.Signature
 }
 
 // StateHash returns the statehash which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
@@ -85,6 +86,14 @@ func (cr ChallengeRegistered) StateHash(fp state.FixedPart) (common.Hash, error)
 // Outcome returns the outcome which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
 func (cr ChallengeRegistered) Outcome() outcome.Exit {
 	return cr.candidate.Outcome
+}
+
+// SignedState returns the signe state  which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
+func (cr ChallengeRegistered) SignedState(fp state.FixedPart) (state.SignedState, error) {
+	s := state.StateFromFixedAndVariablePart(fp, cr.candidate)
+	ss := state.NewSignedState(s)
+	err := ss.AddSignature(cr.candidateSignature)
+	return ss, err
 }
 
 func (cr ChallengeRegistered) String() string {

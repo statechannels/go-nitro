@@ -336,7 +336,11 @@ func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, erro
 		}
 		c.OnChain.StateHash = h
 		c.OnChain.Outcome = e.Outcome()
-		break // TODO: update OnChain.StateHash and OnChain.Outcome
+		ss, err := e.SignedState(c.FixedPart)
+		if err != nil {
+			return nil, err
+		}
+		c.AddSignedState(ss)
 	default:
 		return &Channel{}, fmt.Errorf("channel %+v cannot handle event %+v", c, event)
 	}
