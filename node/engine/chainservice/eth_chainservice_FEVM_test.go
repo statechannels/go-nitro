@@ -89,7 +89,7 @@ func testAgainstEndpoint(t *testing.T, endpoint string, logFile string, pk *ecds
 		t.Fatal(err)
 	}
 
-	cs, err := newEthChainService(client, na, naAddress, caAddress, vpaAddress, txSubmitter)
+	cs, err := newEthChainService(client, 0, na, naAddress, caAddress, vpaAddress, txSubmitter)
 	if err != nil {
 		t.Fatal(err)
 	}

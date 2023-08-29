@@ -108,12 +108,12 @@ func NewEthChainService(chainOpts chain.ChainOpts) (*EthChainService, error) {
 		panic(err)
 	}
 
-	return newEthChainService(ethClient, na, chainOpts.NaAddress, chainOpts.CaAddress, chainOpts.VpaAddress, txSigner)
+	return newEthChainService(ethClient, chainOpts.ChainStartBlock, na, chainOpts.NaAddress, chainOpts.CaAddress, chainOpts.VpaAddress, txSigner)
 }
 
 // newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
+func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.NitroAdjudicator,
 	naAddress, caAddress, vpaAddress common.Address, txSigner *bind.TransactOpts,
 ) (*EthChainService, error) {
 	ctx, cancelCtx := context.WithCancel(context.Background())
@@ -131,13 +131,42 @@ func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 		return nil, err
 	}
 
-	// TODO: Return error from chain service instead of panicking
+	// Search for any missed events emitted while this node was offline
+	err = ecs.checkForMissedEvents(startBlock)
+	if err != nil {
+		return nil, err
+	}
+
 	ecs.wg.Add(3)
 	go ecs.listenForEventLogs(errChan, eventSub, eventChan, eventQuery)
 	go ecs.listenForNewBlocks(errChan, newBlockSub, newBlockChan)
 	go ecs.listenForErrors(errChan)
 
 	return &ecs, nil
+}
+
+func (ecs *EthChainService) checkForMissedEvents(startBlock uint64) error {
+	query := ethereum.FilterQuery{
+		FromBlock: big.NewInt(int64(startBlock)),
+		ToBlock:   nil, // For the current block number
+		Addresses: []common.Address{ecs.naAddress},
+		Topics:    [][]common.Hash{topicsToWatch},
+	}
+
+	events, err := ecs.chain.FilterLogs(context.Background(), query)
+	if err != nil {
+		ecs.logger.Error("failed to retrieve old chain logs: %v", err)
+		return err
+	}
+	ecs.logger.Info("found events since node was last online", "numEvents", len(events))
+
+	ecs.eventTracker.mu.Lock()
+	for _, event := range events {
+		heap.Push(&ecs.eventTracker.events, event)
+	}
+	ecs.eventTracker.mu.Unlock()
+
+	return nil
 }
 
 // listenForErrors listens for errors on the error channel and attempts to handle them if they occur.
@@ -318,14 +347,8 @@ out:
 			eventSub.Unsubscribe()
 
 		case chainEvent := <-eventChan:
-			for _, topic := range topicsToWatch {
-				if chainEvent.Topics[0] == topic {
-					ecs.logger.Debug("queueing new chainEvent", "block-num", chainEvent.BlockNumber)
-
-					ecs.updateEventTracker(errorChan, nil, &chainEvent)
-				}
-			}
-
+			ecs.logger.Debug("queueing new chainEvent", "block-num", chainEvent.BlockNumber)
+			ecs.updateEventTracker(errorChan, nil, &chainEvent)
 		}
 	}
 }
@@ -397,6 +420,7 @@ func (ecs *EthChainService) subscribeForLogs() (chan error, ethereum.Subscriptio
 	// Subscribe to Adjudicator events
 	eventQuery := ethereum.FilterQuery{
 		Addresses: []common.Address{ecs.naAddress},
+		Topics:    [][]common.Hash{topicsToWatch},
 	}
 	eventChan := make(chan ethTypes.Log)
 	eventSub, err := ecs.chain.SubscribeFilterLogs(ecs.ctx, eventQuery, eventChan)
