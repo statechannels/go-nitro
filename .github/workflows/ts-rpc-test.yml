@@ -18,7 +18,7 @@ jobs:
 
       # Install foundry so we can use it to run a chain instance
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+        uses: foundry-rs/foundry-toolchain@v1.0.10
 
       - name: Install dependencies
         run: yarn
