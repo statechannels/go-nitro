@@ -146,6 +146,7 @@ func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.
 }
 
 func (ecs *EthChainService) checkForMissedEvents(startBlock uint64) error {
+	ecs.logger.Info("checking for missed chainservice events", "startBlock", startBlock)
 	query := ethereum.FilterQuery{
 		FromBlock: big.NewInt(int64(startBlock)),
 		ToBlock:   nil, // For the current block number
@@ -158,7 +159,7 @@ func (ecs *EthChainService) checkForMissedEvents(startBlock uint64) error {
 		ecs.logger.Error("failed to retrieve old chain logs: %v", err)
 		return err
 	}
-	ecs.logger.Info("found events since node was last online", "numEvents", len(events))
+	ecs.logger.Info("found missed events", "numEvents", len(events))
 
 	ecs.eventTracker.mu.Lock()
 	for _, event := range events {
