@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"time"
@@ -140,7 +138,7 @@ func main() {
 			}
 			running = append(running, client)
 
-			err = waitForRpcClient(participants[ivan].url, 500*time.Millisecond, 5*time.Minute)
+			err = utils.WaitForRpcClient(participants[ivan].url, 500*time.Millisecond, 5*time.Minute)
 			if err != nil {
 				utils.StopCommands(running...)
 				panic(err)
@@ -154,12 +152,6 @@ func main() {
 					panic(err)
 				}
 				running = append(running, client)
-
-				err = waitForRpcClient(p.url, 500*time.Millisecond, 5*time.Minute)
-				if err != nil {
-					utils.StopCommands(running...)
-					panic(err)
-				}
 			}
 
 			utils.WaitForKillSignal()
@@ -221,27 +213,5 @@ func newColorWriter(c color, w io.Writer) colorWriter {
 	return colorWriter{
 		writer: w,
 		color:  c,
-	}
-}
-
-// waitForRpcClient waits for an RPC to be available at the given url
-// It does this by performing a GET request to the url until it receives a response
-func waitForRpcClient(rpcClientUrl string, interval, timeout time.Duration) error {
-	timeoutTicker := time.NewTicker(timeout)
-	defer timeoutTicker.Stop()
-	intervalTicker := time.NewTicker(interval)
-	defer intervalTicker.Stop()
-
-	client := &http.Client{}
-	for {
-		select {
-		case <-timeoutTicker.C:
-			return errors.New("polling timed out")
-		case <-intervalTicker.C:
-			resp, _ := client.Get(rpcClientUrl)
-			if resp != nil {
-				return nil
-			}
-		}
 	}
 }

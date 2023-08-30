@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/ethereum/go-ethereum/common"
@@ -44,6 +45,11 @@ func createChannels() error {
 			return err
 		}
 		clients[participant], err = rpc.NewRpcClient(clientConnection)
+		if err != nil {
+			panic(err)
+		}
+
+		err = utils.WaitForRpcClient(url, 500*time.Millisecond, 5*time.Minute)
 		if err != nil {
 			panic(err)
 		}
