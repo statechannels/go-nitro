@@ -3,16 +3,12 @@ package store // import "github.com/statechannels/go-nitro/node/engine/store"
 
 import (
 	"io"
-	"log/slog"
-	"path/filepath"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
-	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
-	"github.com/tidwall/buntdb"
 )
 
 const (
@@ -50,25 +46,4 @@ type ConsensusChannelStore interface {
 	GetConsensusChannelById(id types.Destination) (channel *consensus_channel.ConsensusChannel, err error)
 	SetConsensusChannel(*consensus_channel.ConsensusChannel) error
 	DestroyConsensusChannel(id types.Destination) error
-}
-
-func NewStore(pk []byte, useDurableStore bool, durableStoreFolder string, buntDbConfig buntdb.Config) (Store, error) {
-	var ourStore Store
-	var err error
-
-	if useDurableStore {
-		me := crypto.GetAddressFromSecretKeyBytes(pk)
-		dataFolder := filepath.Join(durableStoreFolder, me.String())
-
-		slog.Info("Initialising durable store...", "dataFolder", dataFolder)
-		ourStore, err = NewDurableStore(pk, dataFolder, buntdb.Config{})
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		slog.Info("Initialising mem store...")
-		ourStore = NewMemStore(pk)
-	}
-
-	return ourStore, nil
 }
