@@ -2,6 +2,7 @@ package NitroAdjudicator
 
 import "github.com/statechannels/go-nitro/channel/state/outcome"
 
+// ConvertBindingsExitToExit converts the exit type returned from abigen bindings to an outcome.Exit
 func ConvertBindingsExitToExit(e []ExitFormatSingleAssetExit) outcome.Exit {
 	exit := make([]outcome.SingleAssetExit, 0, len(e))
 	for _, sae := range e {
