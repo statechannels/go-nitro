@@ -86,7 +86,7 @@ Visually, we can see some of the on-chain funding for the channel has been trans
 
 ### Tracking on-chain storage
 
-When a channel has been finalized, and also when a channel has been (partially) defunded using `transfer`, the [on-chain storage](./0040-lifecycle-of-a-channel.md#adjudicator-storage) is updated. To continue the defunding process, it is necessary to track sufficient information to supply the new outcome for the next call to `transfer` (which could be made by a different party).
+When a channel has been partially defunded using `transfer`, the [on-chain storage](./0040-lifecycle-of-a-channel.md#adjudicator-storage) is updated. To continue the defunding process, it is necessary to track sufficient information to supply the new outcome for the next call to `transfer` (which could be made by a different party).
 
 To do this, it is necessary to listen for `AllocationUpdated` events and to compute the new outcome using `computeTransferEffectsAndInteractions` off-chain helper function
 
