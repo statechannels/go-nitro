@@ -12,10 +12,9 @@ import (
 )
 
 const (
-	ErrNoSuchObjective  = types.ConstError("store: no such objective")
-	ErrNoSuchChannel    = types.ConstError("store: failed to find required channel data")
-	ErrLoadVouchers     = types.ConstError("store: could not load vouchers")
-	lastBlockNumSeenKey = "lastBlockNumSeen"
+	ErrNoSuchObjective = types.ConstError("store: no such objective")
+	ErrNoSuchChannel   = types.ConstError("store: failed to find required channel data")
+	ErrLoadVouchers    = types.ConstError("store: could not load vouchers")
 )
 
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data
@@ -32,8 +31,6 @@ type Store interface {
 	DestroyChannel(id types.Destination) error
 	GetChannelsByAppDefinition(appDef types.Address) ([]*channel.Channel, error) // Returns any channels that includes the given app definition
 	ReleaseChannelFromOwnership(types.Destination) error                         // Release channel from being owned by any objective
-	GetLastBlockNumSeen() (uint64, error)
-	SetLastBlockNumSeen(uint64) error
 
 	ConsensusChannelStore
 	payments.VoucherStore

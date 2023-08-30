@@ -183,8 +183,6 @@ func (e *Engine) run(ctx context.Context) {
 		case pr := <-e.PaymentRequestsFromAPI:
 			res, err = e.handlePaymentRequest(pr)
 		case chainEvent := <-e.fromChain:
-			err = e.store.SetLastBlockNumSeen(chainEvent.BlockNum())
-			e.checkError(err)
 			res, err = e.handleChainEvent(chainEvent)
 		case message := <-e.fromMsg:
 			res, err = e.handleMessage(message)
