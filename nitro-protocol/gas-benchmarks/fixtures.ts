@@ -498,3 +498,70 @@ export async function challengeVirtualPaymentChannelWithVoucher(
     gasUsed,
   };
 }
+
+export async function respondWithChallengeVirtualPaymentApp(
+  channel: TestChannel,
+  asset: string,
+  amount: number,
+  payerWallet: Wallet,
+  challengerWallet: Wallet,
+  intermediaryWallet: Wallet
+): Promise<{
+  stateHash: Bytes32;
+  outcome: Outcome;
+  finalizesAt: number;
+  gasUsed: number;
+}> {
+  const postFund = channel.someState(asset);
+  postFund.appData = '0x';
+  postFund.turnNum = 1;
+
+  const finalState = channel.someState(asset);
+  const voucher: Voucher = {
+    channelId: channel.channelId,
+    amount: BigNumber.from(amount).toHexString(),
+  };
+  const voucherSignature = await signVoucher(voucher, payerWallet);
+  finalState.appData = encodeVoucherAmountAndSignature(voucher.amount, voucherSignature);
+  finalState.turnNum = 3;
+  finalState.isFinal = true;
+
+  const outcome = channel.outcome(MAGIC_ADDRESS_INDICATING_ETH);
+  outcome[0].allocations[0].amount = BigNumber.from(outcome[0].allocations[0].amount)
+    .sub(amount)
+    .toHexString();
+  outcome[0].allocations[1].amount = BigNumber.from(amount).toHexString();
+  finalState.outcome = outcome;
+
+  const candidate: SignedVariablePart = {
+    variablePart: getVariablePart(finalState),
+    sigs: [
+      signState(finalState, challengerWallet.privateKey).signature,
+      signState(finalState, payerWallet.privateKey).signature,
+      signState(finalState, intermediaryWallet.privateKey).signature,
+    ],
+  };
+
+  const challengeSignature = signChallengeMessage(
+    [{state: finalState} as SignedState],
+    challengerWallet.privateKey
+  );
+
+  const challengeTx = await nitroAdjudicator.challenge(
+    channel.fixedPart,
+    [],
+    candidate,
+    challengeSignature
+  );
+
+  const finalizesAt = await getFinalizesAtFromTransactionHash(challengeTx.hash);
+
+  const gasUsed = (await challengeTx.wait()).gasUsed.toNumber();
+
+  return {
+    stateHash: hashState(finalState),
+    finalizesAt,
+    outcome: finalState.outcome,
+    gasUsed,
+  };
+}
