@@ -82,7 +82,7 @@ interface IMultiAssetHolder {
      * @param destinationHoldings The new holdings for `destination`.
      */
     event DepositedEth(bytes32 indexed destination, uint256 destinationHoldings);
-    
+
     /**
      * @dev Indicates the assetOutcome for this channelId and assetIndex has changed due to a transfer. Includes sufficient data to compute:
      * - the new assetOutcome

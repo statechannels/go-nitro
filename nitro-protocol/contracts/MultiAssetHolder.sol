@@ -48,7 +48,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         uint256 held = holdings[eth][channelId];
         require(held == expectedHeld, 'held != expectedHeld');
         require(msg.value == amount, 'Incorrect msg.value for deposit');
-        
+
         held += amount;
 
         holdings[eth][channelId] = held;

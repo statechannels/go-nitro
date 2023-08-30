@@ -30,11 +30,7 @@ contract BatchOperator {
             lengthsErr
         );
         for (uint256 i = 0; i < channelIds.length; i++) {
-            adjudicator.deposit_eth{value: amounts[i]}(
-                channelIds[i],
-                expectedHelds[i],
-                amounts[i]
-            );
+            adjudicator.deposit_eth{value: amounts[i]}(channelIds[i], expectedHelds[i], amounts[i]);
         }
     }
 
