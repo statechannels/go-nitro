@@ -45,10 +45,10 @@ const (
 )
 
 var participants = map[name]participant{
-	alice: {blue, "http://127.0.0.1/4005/api/v1"},
-	irene: {green, "http://127.0.0.1/4006/api/v1"},
+	alice: {blue, "http://127.0.0.1:4005/api/v1"},
+	irene: {green, "http://127.0.0.1:4006/api/v1"},
 	ivan:  {cyan, "http://127.0.0.1:4008/api/v1"},
-	bob:   {yellow, "http://127.0.0.1/4007/api/v1"},
+	bob:   {yellow, "http://127.0.0.1:4007/api/v1"},
 }
 
 const (
@@ -131,7 +131,7 @@ func main() {
 			hostUI := cCtx.Bool(HOST_UI)
 
 			// Setup Ivan first, he is the DHT boot peer
-			client, err := setupRPCServer(participants[ivan], participants[ivan].color, naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
+			client, err := setupRPCServer(ivan, participants[ivan].color, naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
 			if err != nil {
 				utils.StopCommands(running...)
 				panic(err)
@@ -146,7 +146,8 @@ func main() {
 
 			for _, participantName := range []name{alice, bob, irene} {
 				p := participants[participantName]
-				client, err := setupRPCServer(p, p.color, naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
+				fmt.Println("participantName: " + participantName)
+				client, err := setupRPCServer(participantName, p.color, naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
 				if err != nil {
 					utils.StopCommands(running...)
 					panic(err)
@@ -165,7 +166,7 @@ func main() {
 }
 
 // setupRPCServer starts up an RPC server for the given participant
-func setupRPCServer(p participant, c color, na, vpa, ca types.Address, chainUrl, chainAuthToken string, dataFolder string, hostUI bool) (*exec.Cmd, error) {
+func setupRPCServer(n name, c color, na, vpa, ca types.Address, chainUrl, chainAuthToken string, dataFolder string, hostUI bool) (*exec.Cmd, error) {
 	args := []string{"run"}
 
 	if hostUI {
@@ -182,7 +183,7 @@ func setupRPCServer(p participant, c color, na, vpa, ca types.Address, chainUrl,
 
 	args = append(args, "-durablestorefolder", dataFolder)
 
-	args = append(args, "-config", fmt.Sprintf("./cmd/test-configs/%s.toml", p))
+	args = append(args, "-config", fmt.Sprintf("./cmd/test-configs/%s.toml", n))
 
 	cmd := exec.Command("go", args...)
 	cmd.Stdout = newColorWriter(c, os.Stdout)
