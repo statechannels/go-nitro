@@ -18,13 +18,18 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-type participant string
+type participant struct {
+	color
+	url string
+}
+
+type name string
 
 const (
-	alice participant = "alice"
-	bob   participant = "bob"
-	irene participant = "irene"
-	ivan  participant = "ivan"
+	alice name = "alice"
+	bob   name = "bob"
+	irene name = "irene"
+	ivan  name = "ivan"
 )
 
 type color string
@@ -41,7 +46,12 @@ const (
 	gray    color = "[90m"
 )
 
-var participantColor = map[participant]color{alice: blue, irene: green, ivan: cyan, bob: yellow}
+var participants = map[name]participant{
+	alice: {blue, "http://127.0.0.1/4005/api/v1"},
+	irene: {green, "http://127.0.0.1/4006/api/v1"},
+	ivan:  {cyan, "http://127.0.0.1:4008/api/v1"},
+	bob:   {yellow, "http://127.0.0.1/4007/api/v1"},
+}
 
 const (
 	FUNDED_TEST_PK  = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
@@ -123,27 +133,33 @@ func main() {
 			hostUI := cCtx.Bool(HOST_UI)
 
 			// Setup Ivan first, he is the DHT boot peer
-			client, err := setupRPCServer(ivan, participantColor[ivan], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
+			client, err := setupRPCServer(participants[ivan], participants[ivan].color, naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
 			if err != nil {
 				utils.StopCommands(running...)
 				panic(err)
 			}
 			running = append(running, client)
 
-			const IVAN_ADDRESS = "http://127.0.0.1:4008/api/v1"
-			err = waitForRpcClient(IVAN_ADDRESS, 500*time.Millisecond, 5*time.Minute)
+			err = waitForRpcClient(participants[ivan].url, 500*time.Millisecond, 5*time.Minute)
 			if err != nil {
 				utils.StopCommands(running...)
 				panic(err)
 			}
-			for _, p := range []participant{alice, bob, irene} {
 
-				client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
+			for _, participantName := range []name{alice, bob, irene} {
+				p := participants[participantName]
+				client, err := setupRPCServer(p, p.color, naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
 				if err != nil {
 					utils.StopCommands(running...)
 					panic(err)
 				}
 				running = append(running, client)
+
+				err = waitForRpcClient(p.url, 500*time.Millisecond, 5*time.Minute)
+				if err != nil {
+					utils.StopCommands(running...)
+					panic(err)
+				}
 			}
 
 			utils.WaitForKillSignal()
