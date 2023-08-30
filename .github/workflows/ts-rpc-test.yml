@@ -20,7 +20,7 @@ jobs:
       - name: Install (Forked) Foundry
         uses: statechannels/foundry-toolchain@master
         with:
-          version: "nightly-6c4c68a7031581bb8b8a10bb44db8dff4e04277f"
+          version: "nightly-bff4ed912bb023d7bf9b20eda581aa4867a1cf70"
 
       - name: Install dependencies
         run: yarn
