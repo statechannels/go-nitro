@@ -56,12 +56,12 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
     }
 
     /**
-     * @notice Deposit erc20 tokens against a given channelId.
-     * @dev Deposit erc20 tokens against a given channelId.
-     * @param asset erc20 token address
+     * @notice Deposit ETH or erc20 tokens against a given channelId.
+     * @dev Deposit ETH or erc20 tokens against a given channelId.
+     * @param asset erc20 token address, or zero address to indicate ETH
      * @param channelId ChannelId to be credited.
-     * @param expectedHeld The number of tokens the depositor believes are _already_ escrowed against the channelId.
-     * @param amount The intended number of tokens to be deposited.
+     * @param expectedHeld The number of wei/tokens the depositor believes are _already_ escrowed against the channelId.
+     * @param amount The intended number of wei/tokens to be deposited.
      */
     function deposit(
         address asset,
@@ -78,7 +78,12 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
         uint256 held = holdings[asset][channelId];
         require(held == expectedHeld, 'held != expectedHeld');
 
-        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
+        // require successful deposit before updating holdings (protect against reentrancy)
+        if (asset == address(0)) {
+            require(msg.value == amount, 'Incorrect msg.value for deposit');
+        } else {
+            IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
+        }
 
         held += amount;
 
