@@ -319,7 +319,7 @@ func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState,
 	return ss, nil
 }
 
-// UpdateWithChainEvent mutates the receiver if provided with a "new" chain event (with a greater block number than previously seen)
+// UpdateWithChainEvent mutates the receiver with the supplied chain event, replacing the relevant data fields.
 func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, error) {
 	switch e := event.(type) {
 	case chainservice.AllocationUpdatedEvent:
