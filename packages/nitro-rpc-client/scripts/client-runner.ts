@@ -139,6 +139,7 @@ yargs(hideBin(process.argv))
           waitForRPCServer(4005, yargs.waitduration),
           waitForRPCServer(4006, yargs.waitduration),
           waitForRPCServer(4007, yargs.waitduration),
+          waitForRPCServer(4008, yargs.waitduration),
         ]);
       }
 
