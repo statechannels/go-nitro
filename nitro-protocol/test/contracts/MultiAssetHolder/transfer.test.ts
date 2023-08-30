@@ -13,9 +13,9 @@ import {encodeOutcome, hashOutcome, Outcome} from '../../../src/contract/outcome
 import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicator';
 // eslint-disable-next-line import/order
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
-import {channelDataToStatus} from '../../../src';
+import {channelDataToStatus, isExternalDestination} from '../../../src';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../../../src/transactions';
-import {replaceAddressesAndBigNumberify, isExternal} from '../../../src/helpers';
+import {replaceAddressesAndBigNumberify} from '../../../src/helpers';
 
 const testProvider = getTestProvider();
 
@@ -201,7 +201,7 @@ describe('transfer', () => {
 
         // Check payouts
         for (const destination of Object.keys(payouts)) {
-          if (isExternal(destination)) {
+          if (isExternalDestination(destination)) {
             const asAddress = '0x' + destination.substring(26);
             const balance = await testProvider.getBalance(asAddress);
             console.log(`checking balance of ${destination}: ${balance.toString()}`);
