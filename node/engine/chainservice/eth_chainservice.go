@@ -271,15 +271,12 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 			if err != nil {
 				return fmt.Errorf("error in ParseChallengeRegistered: %w", err)
 			}
-			event := ChallengeRegisteredEvent{
-				commonEvent: commonEvent{channelID: cr.ChannelId, blockNum: l.BlockNumber},
-				candidate: state.VariablePart{
-					AppData: cr.Candidate.VariablePart.AppData,
-					Outcome: NitroAdjudicator.ConvertBindingsExitToExit(cr.Candidate.VariablePart.Outcome),
-					TurnNum: cr.Candidate.VariablePart.TurnNum.Uint64(),
-					IsFinal: cr.Candidate.VariablePart.IsFinal,
-				}, candidateSignatures: NitroAdjudicator.ConvertBindingsSignaturesToSignatures(cr.Candidate.Sigs),
-			}
+			event := NewChallengeRegisteredEvent(cr.ChannelId, l.BlockNumber, state.VariablePart{
+				AppData: cr.Candidate.VariablePart.AppData,
+				Outcome: NitroAdjudicator.ConvertBindingsExitToExit(cr.Candidate.VariablePart.Outcome),
+				TurnNum: cr.Candidate.VariablePart.TurnNum.Uint64(),
+				IsFinal: cr.Candidate.VariablePart.IsFinal,
+			}, NitroAdjudicator.ConvertBindingsSignaturesToSignatures(cr.Candidate.Sigs))
 			ecs.out <- event
 		case challengeClearedTopic:
 			ecs.logger.Info("Ignoring Challenge Cleared event")

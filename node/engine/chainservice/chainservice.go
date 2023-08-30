@@ -78,6 +78,24 @@ type ChallengeRegisteredEvent struct {
 	candidateSignatures []state.Signature
 }
 
+// NewChallengeRegisteredEvent constructs a ChallengeRegisteredEvent
+func NewChallengeRegisteredEvent(
+	channelId types.Destination,
+	blockNum uint64,
+	variablePart state.VariablePart,
+	sigs []state.Signature,
+) ChallengeRegisteredEvent {
+	return ChallengeRegisteredEvent{
+		commonEvent: commonEvent{channelID: channelId, blockNum: blockNum},
+		candidate: state.VariablePart{
+			AppData: variablePart.AppData,
+			Outcome: variablePart.Outcome,
+			TurnNum: variablePart.TurnNum,
+			IsFinal: variablePart.IsFinal,
+		}, candidateSignatures: sigs,
+	}
+}
+
 // StateHash returns the statehash stored on chain at the time of the ChallengeRegistered Event firing.
 func (cr ChallengeRegisteredEvent) StateHash(fp state.FixedPart) (common.Hash, error) {
 	return state.StateFromFixedAndVariablePart(fp, cr.candidate).Hash()
