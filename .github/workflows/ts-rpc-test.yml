@@ -17,8 +17,8 @@ jobs:
           node-version: "18.15.0"
 
       # Install foundry so we can use it to run a chain instance
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1.0.10
+      - name: Install (Forked) Foundry
+        uses: statechannels/foundry-toolchain@master
 
       - name: Install dependencies
         run: yarn
