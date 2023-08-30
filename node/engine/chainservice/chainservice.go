@@ -78,7 +78,7 @@ type ChallengeRegisteredEvent struct {
 	candidateSignatures []state.Signature
 }
 
-// StateHash returns the statehash which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
+// StateHash returns the statehash stored on chain at the time of the ChallengeRegistered Event firing.
 func (cr ChallengeRegisteredEvent) StateHash(fp state.FixedPart) (common.Hash, error) {
 	return state.StateFromFixedAndVariablePart(fp, cr.candidate).Hash()
 }
@@ -88,7 +88,7 @@ func (cr ChallengeRegisteredEvent) Outcome() outcome.Exit {
 	return cr.candidate.Outcome
 }
 
-// SignedState returns the signe state  which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
+// SignedState returns the signed state which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
 func (cr ChallengeRegisteredEvent) SignedState(fp state.FixedPart) (state.SignedState, error) {
 	s := state.StateFromFixedAndVariablePart(fp, cr.candidate)
 	ss := state.NewSignedState(s)
