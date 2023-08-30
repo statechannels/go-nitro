@@ -60,6 +60,7 @@ func CreateLedgerChannel(client rpc.RpcClientApi, counterPartyAddress common.Add
 // waitForRpcClient waits for an RPC to be available at the given url
 // It does this by performing a GET request to the url until it receives a response
 func WaitForRpcClient(rpcClientUrl string, interval, timeout time.Duration) error {
+	fmt.Printf("Waiting for client: %s\n", rpcClientUrl)
 	timeoutTicker := time.NewTicker(timeout)
 	defer timeoutTicker.Stop()
 	intervalTicker := time.NewTicker(interval)
@@ -73,6 +74,7 @@ func WaitForRpcClient(rpcClientUrl string, interval, timeout time.Duration) erro
 		case <-intervalTicker.C:
 			resp, _ := client.Get(rpcClientUrl)
 			if resp != nil {
+				fmt.Printf("Success! Client ready: %s\n", rpcClientUrl)
 				return nil
 			}
 		}
