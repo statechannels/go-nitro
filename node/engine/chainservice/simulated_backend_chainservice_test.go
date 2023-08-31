@@ -37,12 +37,6 @@ var concludeOutcome = outcome.Exit{
 	},
 }
 
-type NoopLogger struct{}
-
-func (l NoopLogger) Write(p []byte) (n int, err error) {
-	return 0, nil
-}
-
 func TestSimulatedBackendChainService(t *testing.T) {
 	one := big.NewInt(1)
 	three := big.NewInt(3)
@@ -66,7 +60,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		},
 		ChannelNonce:      37140676580,
 		AppDefinition:     bindings.ConsensusApp.Address,
-		ChallengeDuration: 0,
+		ChallengeDuration: 1000,
 		AppData:           []byte{},
 		Outcome:           concludeOutcome,
 		TurnNum:           uint64(2),
@@ -86,8 +80,8 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	concludeSignedState.AddSignature(aSig)
-	concludeSignedState.AddSignature(bSig)
+	_ = concludeSignedState.AddSignature(aSig)
+	_ = concludeSignedState.AddSignature(bSig)
 
 	challengeTx := protocols.NewChallengeTransaction(concludeState.ChannelId(), concludeSignedState, make([]state.SignedState, 0), challengerSig)
 
@@ -96,6 +90,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// Check that the received events matches the expected event
 
 	receivedEvent := <-out
@@ -105,7 +100,6 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
-	// Prepare test data to trigger EthChainService
 	testDeposit := types.Funds{
 		common.HexToAddress("0x00"): three,
 		bindings.Token.Address:      one,
@@ -122,7 +116,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		receivedEvent := <-out
 		dEvent := receivedEvent.(DepositedEvent)
-		expectedEvent := NewDepositedEvent(concludeState.ChannelId(), 2, dEvent.Asset, testDeposit[dEvent.Asset])
+		expectedEvent := NewDepositedEvent(concludeState.ChannelId(), 5, dEvent.Asset, testDeposit[dEvent.Asset])
 		if diff := cmp.Diff(expectedEvent, dEvent, cmp.AllowUnexported(DepositedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 			t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 		}
@@ -151,14 +145,14 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	}
 	// Check that the recieved event matches the expected event
 	concludedEvent := <-out
-	expectedEvent2 := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: 5}}
+	expectedEvent2 := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: 8}}
 	if diff := cmp.Diff(expectedEvent2, concludedEvent, cmp.AllowUnexported(ConcludedEvent{}, commonEvent{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
 	// Check that the recieved event matches the expected event
 	allocationUpdatedEvent := <-out
-	expectedEvent3 := NewAllocationUpdatedEvent(cId, 5, common.Address{}, new(big.Int).SetInt64(1))
+	expectedEvent3 := NewAllocationUpdatedEvent(cId, 8, common.Address{}, new(big.Int).SetInt64(1))
 
 	if diff := cmp.Diff(expectedEvent3, allocationUpdatedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
