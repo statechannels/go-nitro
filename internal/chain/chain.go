@@ -45,7 +45,7 @@ func InitializeEthChainService(chainOpts ChainOpts) (*chainservice.EthChainServi
 }
 
 func StartAnvil() (*exec.Cmd, error) {
-	chainCmd := exec.Command("anvil", "--chain-id", "1337", "--block-time", "1")
+	chainCmd := exec.Command("anvil", "--chain-id", "1337", "--block-time", "1", "--silent")
 	chainCmd.Stdout = os.Stdout
 	chainCmd.Stderr = os.Stderr
 	err := chainCmd.Start()

@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/logging"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	Token "github.com/statechannels/go-nitro/node/engine/chainservice/erc20"
 	chainutils "github.com/statechannels/go-nitro/node/engine/chainservice/utils"
@@ -311,7 +312,7 @@ out:
 				errorChan <- fmt.Errorf("subscribeFilterLogs failed on resubscribe: %w", err)
 				break out
 			}
-			ecs.logger.Debug("resubscribed to filtered event logs")
+			ecs.logger.Log(context.Background(), logging.TraceLogLevel, "resubscribed to filtered event logs")
 
 		case <-time.After(RESUB_INTERVAL):
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
@@ -354,11 +355,11 @@ out:
 				errorChan <- fmt.Errorf("subscribeNewHead failed on resubscribe: %w", err)
 				break out
 			}
-			ecs.logger.Debug("resubscribed to new blocks")
+			ecs.logger.Log(context.Background(), logging.TraceLogLevel, "resubscribed to new blocks")
 
 		case newBlock := <-newBlockChan:
 			newBlockNum := newBlock.Number.Uint64()
-			ecs.logger.Debug("detected new block", "block-num", newBlockNum)
+			ecs.logger.Log(context.Background(), logging.TraceLogLevel, "detected new block", "block-num", newBlockNum)
 			ecs.updateEventTracker(errorChan, &newBlockNum, nil)
 		}
 	}
