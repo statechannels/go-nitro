@@ -5,7 +5,7 @@ export type JsonRpcRequest<MethodName extends RequestMethod, RequestPayload> = {
   id: number; // in the json-rpc spec this is optional, but we require it for all our requests
   jsonrpc: "2.0";
   method: MethodName;
-  params: { AuthToken: string; Payload: RequestPayload };
+  params: { authtoken: string; payload: RequestPayload };
 };
 export type JsonRpcResponse<ResultType> = {
   id: number;
@@ -16,7 +16,7 @@ export type JsonRpcResponse<ResultType> = {
 export type JsonRpcNotification<NotificationName, NotificationParams> = {
   jsonrpc: "2.0";
   method: NotificationName;
-  params: { Payload: NotificationParams };
+  params: { payload: NotificationParams };
 };
 
 export type JsonRpcError<Code, Message, Data = undefined> = {

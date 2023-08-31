@@ -74,11 +74,11 @@ export function convertAddressToBytes32(address: string): string {
 export function generateRequest<
   K extends RequestMethod,
   T extends RPCRequestAndResponses[K][0]
->(method: K, params: T["params"]["Payload"], authToken: string): T {
+>(method: K, params: T["params"]["payload"], authToken: string): T {
   return {
     jsonrpc: "2.0",
     method,
-    params: { AuthToken: authToken, Payload: params },
+    params: { authtoken: authToken, payload: params },
     // Our schema defines id as a uint32. We mod the current time to ensure that we don't overflow
     id: Date.now() % 1_000_000_000,
   } as T; // TODO: We shouldn't have to cast here
