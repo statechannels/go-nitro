@@ -2,7 +2,7 @@ import { EventEmitter } from "eventemitter3";
 
 import {
   NotificationMethod,
-  NotificationPayload,
+  NotificationParams,
   RequestMethod,
   RPCNotification,
   RPCRequestAndResponses,
@@ -21,7 +21,7 @@ export type NotificationHandler<T extends RPCNotification> = (notif: T) => void;
  * Transport is an interface for some kind of RPC transport.
  */
 export type Transport = {
-  Notifications: EventEmitter<NotificationMethod, NotificationPayload>;
+  Notifications: EventEmitter<NotificationMethod, NotificationParams>;
 
   /**
    * Send the JSON-RPC request and returns the response.
