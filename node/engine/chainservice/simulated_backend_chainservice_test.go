@@ -2,6 +2,7 @@ package chainservice
 
 import (
 	"bytes"
+	"log/slog"
 	"math/big"
 	"testing"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
@@ -43,6 +45,8 @@ func (l NoopLogger) Write(p []byte) (n int, err error) {
 }
 
 func TestSimulatedBackendChainService(t *testing.T) {
+	logging.SetupDefaultFileLogger("simulatedBackendChainService.log", slog.LevelDebug)
+	
 	one := big.NewInt(1)
 	three := big.NewInt(3)
 
