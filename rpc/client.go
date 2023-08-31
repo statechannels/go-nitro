@@ -319,7 +319,7 @@ func unauthenticatedWaitForRequest[T serde.RequestPayload, U serde.ResponsePaylo
 	return waitForRequest[T, U](rc, method, requestData, "")
 }
 
-// authenticatedWaitForRequest calls waitForRequest with an empty auth token
+// authenticatedWaitForRequest calls waitForRequest with the client auth token
 func authenticatedWaitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *rpcClient, method serde.RequestMethod, requestData T) (U, error) {
 	rc.authTokenReady.Wait()
 	return waitForRequest[T, U](rc, method, requestData, rc.authToken)
