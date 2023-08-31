@@ -16,7 +16,7 @@ export type JsonRpcResponse<ResultType> = {
 export type JsonRpcNotification<NotificationName, NotificationParams> = {
   jsonrpc: "2.0";
   method: NotificationName;
-  params: NotificationParams;
+  params: { Payload: NotificationParams };
 };
 
 export type JsonRpcError<Code, Message, Data = undefined> = {
