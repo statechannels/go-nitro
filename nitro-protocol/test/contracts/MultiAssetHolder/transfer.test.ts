@@ -13,12 +13,14 @@ import {encodeOutcome, hashOutcome, Outcome} from '../../../src/contract/outcome
 import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicator';
 // eslint-disable-next-line import/order
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
-import {channelDataToStatus} from '../../../src';
+import {channelDataToStatus, isExternalDestination} from '../../../src';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../../../src/transactions';
 import {replaceAddressesAndBigNumberify} from '../../../src/helpers';
 
+const testProvider = getTestProvider();
+
 const testNitroAdjudicator = setupContract(
-  getTestProvider(),
+  testProvider,
   TESTNitroAdjudicatorArtifact,
   process.env.TEST_NITRO_ADJUDICATOR_ADDRESS
 ) as unknown as TESTNitroAdjudicator & Contract;
@@ -62,17 +64,21 @@ describe('transfer', () => {
     ${'17. guarantee allocationType'}      | ${{c: 1}}  | ${false} | ${{A: 1}}             | ${[0]}       | ${{A: 0}}             | ${{}}           | ${{A: 1}}       | ${reason3}
   `(
     `$name: isSimple: $isSimple, heldBefore: $heldBefore, setOutcome: $setOutcome, newOutcome: $newOutcome, heldAfter: $heldAfter, payouts: $payouts`,
-    async ({heldBefore, isSimple, setOutcome, indices, newOutcome, heldAfter, reason}) => {
+    async ({heldBefore, isSimple, setOutcome, indices, newOutcome, heldAfter, payouts, reason}) => {
       // Compute channelId
       addresses.c = randomChannelId();
       const channelId = addresses.c;
       addresses.C = randomChannelId();
       addresses.X = randomChannelId();
+      addresses.A = randomExternalDestination();
+      addresses.B = randomExternalDestination();
+
       // Transform input data (unpack addresses and BigNumberify amounts)
       heldBefore = replaceAddressesAndBigNumberify(heldBefore, addresses);
       setOutcome = replaceAddressesAndBigNumberify(setOutcome, addresses);
       newOutcome = replaceAddressesAndBigNumberify(newOutcome, addresses);
       heldAfter = replaceAddressesAndBigNumberify(heldAfter, addresses);
+      payouts = replaceAddressesAndBigNumberify(payouts, addresses);
 
       // Deposit into channels
 
@@ -193,7 +199,22 @@ describe('transfer', () => {
 
         expect(eventsFromTx).toMatchObject(expectedEvents);
 
-        // TODO check payouts are executed properly
+        // Check payouts
+        for (const destination of Object.keys(payouts)) {
+          if (isExternalDestination(destination)) {
+            const asAddress = '0x' + destination.substring(26);
+            const balance = await testProvider.getBalance(asAddress);
+            console.log(`checking balance of ${destination}: ${balance.toString()}`);
+            expect(balance).toEqual(payouts[destination]);
+          } else {
+            const holdings = await testNitroAdjudicator.holdings(
+              MAGIC_ADDRESS_INDICATING_ETH,
+              destination
+            );
+            console.log(`checking holdings of ${destination}: ${holdings.toString()}`);
+            expect(holdings).toEqual(payouts[destination]);
+          }
+        }
       }
     }
   );
