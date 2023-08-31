@@ -13,7 +13,7 @@ import {
   ReceiveVoucherResult,
 } from "./types";
 import { Transport } from "./transport";
-import { createOutcome, generateRequest } from "./utils";
+import { createOutcome } from "./utils";
 import { HttpTransport } from "./transport/http";
 import { getAndValidateResult } from "./serde";
 
@@ -44,7 +44,7 @@ export class NitroRpcClient {
       Amount: amount,
       Channel: channelId,
     };
-    const request = generateRequest("create_voucher", params);
+    const request = this.generateRequest("create_voucher", params);
     const res = await this.transport.sendRequest<"create_voucher">(request);
     return getAndValidateResult(res, "create_voucher");
   }
@@ -55,7 +55,7 @@ export class NitroRpcClient {
    * @returns The total amount of the channel and the delta of the voucher
    */
   public async ReceiveVoucher(voucher: Voucher): Promise<ReceiveVoucherResult> {
-    const request = generateRequest("receive_voucher", voucher);
+    const request = this.generateRequest("receive_voucher", voucher);
     const res = await this.transport.sendRequest<"receive_voucher">(request);
     return getAndValidateResult(res, "receive_voucher");
   }
@@ -146,7 +146,7 @@ export class NitroRpcClient {
       Amount: amount,
       Channel: channelId,
     };
-    const request = generateRequest("pay", params);
+    const request = this.generateRequest("pay", params);
     const res = await this.transport.sendRequest<"pay">(request);
     return getAndValidateResult(res, "pay");
   }
@@ -247,9 +247,29 @@ export class NitroRpcClient {
     method: K,
     params: RPCRequestAndResponses[K][0]["params"]
   ): Promise<RPCRequestAndResponses[K][1]["result"]> {
-    const request = generateRequest(method, params);
+    const request = this.generateRequest(method, params);
     const res = await this.transport.sendRequest<K>(request);
     return getAndValidateResult(res, method);
+  }
+
+  /**
+   * generateRequest is a helper function that generates a request object for the given method and params
+   *
+   * @param method - The RPC method to generate a request for
+   * @param params - The params to include in the request
+   * @returns A request object of the correct type
+   */
+  private generateRequest<
+    K extends RequestMethod,
+    T extends RPCRequestAndResponses[K][0]
+  >(method: K, params: T["params"]): T {
+    return {
+      jsonrpc: "2.0",
+      method,
+      params,
+      // Our schema defines id as a uint32. We mod the current time to ensure that we don't overflow
+      id: Date.now() % 1_000_000_000,
+    } as T; // TODO: We shouldn't have to cast here
   }
 
   /**
