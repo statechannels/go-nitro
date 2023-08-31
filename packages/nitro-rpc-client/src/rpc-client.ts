@@ -23,6 +23,8 @@ export class NitroRpcClient {
   // We fetch the address from the RPC server on first use
   private myAddress: string | undefined;
 
+  private authToken: string | undefined;
+
   public get Notifications() {
     return this.transport.Notifications;
   }
@@ -237,7 +239,7 @@ export class NitroRpcClient {
     });
   }
 
-  async sendRequest<K extends RequestMethod>(
+  private async sendRequest<K extends RequestMethod>(
     method: K,
     params: RPCRequestAndResponses[K][0]["params"]
   ): Promise<RPCRequestAndResponses[K][1]["result"]> {
