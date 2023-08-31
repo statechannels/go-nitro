@@ -1,5 +1,11 @@
 import { NitroRpcClient } from "./rpc-client";
-import { LedgerChannelInfo, Outcome, PaymentChannelInfo } from "./types";
+import {
+  LedgerChannelInfo,
+  Outcome,
+  PaymentChannelInfo,
+  RequestMethod,
+  RPCRequestAndResponses,
+} from "./types";
 
 export const RPC_PATH = "api/v1";
 
@@ -56,6 +62,26 @@ export function createOutcome(
 export function convertAddressToBytes32(address: string): string {
   const digits = address.startsWith("0x") ? address.substring(2) : address;
   return `0x${digits.padStart(24, "0")}`;
+}
+
+/**
+ * generateRequest is a helper function that generates a request object for the given method and params
+ *
+ * @param method - The RPC method to generate a request for
+ * @param params - The params to include in the request
+ * @returns A request object of the correct type
+ */
+export function generateRequest<
+  K extends RequestMethod,
+  T extends RPCRequestAndResponses[K][0]
+>(method: K, params: T["params"]["Payload"], authToken: string): T {
+  return {
+    jsonrpc: "2.0",
+    method,
+    params: { AuthToken: authToken, Payload: params },
+    // Our schema defines id as a uint32. We mod the current time to ensure that we don't overflow
+    id: Date.now() % 1_000_000_000,
+  } as T; // TODO: We shouldn't have to cast here
 }
 
 export function getLocalRPCUrl(port: number): string {
