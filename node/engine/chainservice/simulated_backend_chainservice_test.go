@@ -11,6 +11,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/testactors"
+	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -72,6 +73,38 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		IsFinal:           true,
 	}
 
+	challengerSig, err := NitroAdjudicator.SignChallengeMessage(concludeState, Alice.PrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	concludeSignedState := state.NewSignedState(concludeState)
+	aSig, err := concludeState.Sign(Alice.PrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bSig, err := concludeState.Sign(Bob.PrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	concludeSignedState.AddSignature(aSig)
+	concludeSignedState.AddSignature(bSig)
+
+	challengeTx := protocols.NewChallengeTransaction(concludeState.ChannelId(), concludeSignedState, make([]state.SignedState, 0), challengerSig)
+
+	out := cs.EventFeed()
+	err = cs.SendTransaction(challengeTx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Check that the received events matches the expected event
+
+	receivedEvent := <-out
+	crEvent := receivedEvent.(ChallengeRegisteredEvent)
+	expectedEvent := NewChallengeRegisteredEvent(concludeState.ChannelId(), 2, crEvent.candidate, crEvent.candidateSignatures)
+	if diff := cmp.Diff(expectedEvent, crEvent, cmp.AllowUnexported(ChallengeRegisteredEvent{}, commonEvent{}, big.Int{})); diff != "" {
+		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
+	}
+
 	// Prepare test data to trigger EthChainService
 	testDeposit := types.Funds{
 		common.HexToAddress("0x00"): three,
@@ -79,7 +112,6 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	}
 	testTx := protocols.NewDepositTransaction(concludeState.ChannelId(), testDeposit)
 
-	out := cs.EventFeed()
 	// Submit transaction
 	err = cs.SendTransaction(testTx)
 	if err != nil {
@@ -101,10 +133,6 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		t.Fatalf("Mismatch between the deposit transaction and the received events")
 	}
 
-	// Generate Signatures
-	aSig, _ := concludeState.Sign(Alice.PrivateKey)
-	bSig, _ := concludeState.Sign(Bob.PrivateKey)
-
 	cId := concludeState.ChannelId()
 
 	signedConcludeState := state.NewSignedState(concludeState)
@@ -123,16 +151,16 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	}
 	// Check that the recieved event matches the expected event
 	concludedEvent := <-out
-	expectedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: 5}}
-	if diff := cmp.Diff(expectedEvent, concludedEvent, cmp.AllowUnexported(ConcludedEvent{}, commonEvent{})); diff != "" {
+	expectedEvent2 := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: 5}}
+	if diff := cmp.Diff(expectedEvent2, concludedEvent, cmp.AllowUnexported(ConcludedEvent{}, commonEvent{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
 	// Check that the recieved event matches the expected event
 	allocationUpdatedEvent := <-out
-	expectedEvent2 := NewAllocationUpdatedEvent(cId, 5, common.Address{}, new(big.Int).SetInt64(1))
+	expectedEvent3 := NewAllocationUpdatedEvent(cId, 5, common.Address{}, new(big.Int).SetInt64(1))
 
-	if diff := cmp.Diff(expectedEvent2, allocationUpdatedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
+	if diff := cmp.Diff(expectedEvent3, allocationUpdatedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
