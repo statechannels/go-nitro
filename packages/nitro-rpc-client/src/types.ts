@@ -81,6 +81,10 @@ export type ReceiveVoucherResult = {
 /**
  * RPC Requests
  */
+export type GetAuthTokenRequest = JsonRpcRequest<
+  "get_auth_token",
+  Record<string, never>
+>;
 export type GetAddressRequest = JsonRpcRequest<
   "get_address",
   Record<string, never>
@@ -131,6 +135,7 @@ export type ReceiveVoucherRequest = JsonRpcRequest<"receive_voucher", Voucher>;
 /**
  * RPC Responses
  */
+export type GetAuthTokenResponse = JsonRpcResponse<string>;
 export type GetPaymentChannelResponse = JsonRpcResponse<PaymentChannelInfo>;
 export type PaymentResponse = JsonRpcResponse<PaymentParams>;
 export type GetLedgerChannelResponse = JsonRpcResponse<LedgerChannelInfo>;
@@ -151,6 +156,7 @@ export type ReceiveVoucherResponse = JsonRpcResponse<ReceiveVoucherResult>;
  * This is a map of all the RPC methods to their request and response types
  */
 export type RPCRequestAndResponses = {
+  get_auth_token: [GetAuthTokenRequest, GetAuthTokenResponse];
   create_ledger_channel: [DirectFundRequest, DirectFundResponse];
   close_ledger_channel: [DirectDefundRequest, DirectDefundResponse];
   version: [VersionRequest, VersionResponse];

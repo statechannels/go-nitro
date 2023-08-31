@@ -239,6 +239,10 @@ export class NitroRpcClient {
     });
   }
 
+  private async getAuthToken(): Promise<string> {
+    return this.sendRequest("get_auth_token", {});
+  }
+
   private async sendRequest<K extends RequestMethod>(
     method: K,
     params: RPCRequestAndResponses[K][0]["params"]
@@ -269,6 +273,8 @@ export class NitroRpcClient {
     url: string
   ): Promise<NitroRpcClient> {
     const transport = await HttpTransport.createTransport(url);
-    return new NitroRpcClient(transport);
+    const rpcClient = new NitroRpcClient(transport);
+    rpcClient.authToken = await rpcClient.getAuthToken();
+    return rpcClient;
   }
 }
