@@ -78,7 +78,7 @@ export class NitroRpcClient {
       this.transport.Notifications.on(
         "objective_completed",
         (params: ObjectiveCompleteNotification["params"]) => {
-          if (params === objectiveId) {
+          if (params["Payload"] === objectiveId) {
             resolve();
           }
         }
