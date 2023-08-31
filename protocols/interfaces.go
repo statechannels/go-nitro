@@ -7,6 +7,7 @@ import (
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/crypto"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -42,6 +43,22 @@ type WithdrawAllTransaction struct {
 
 func NewWithdrawAllTransaction(channelId types.Destination, signedState state.SignedState) WithdrawAllTransaction {
 	return WithdrawAllTransaction{SignedState: signedState, ChainTransaction: ChainTransactionBase{channelId: channelId}}
+}
+
+type ChallengeTransaction struct {
+	ChainTransaction
+	Candidate     state.SignedState
+	Proof         []state.SignedState
+	ChallengerSig crypto.Signature
+}
+
+func NewChallengeTransaction(
+	channelId types.Destination,
+	candidate state.SignedState,
+	proof []state.SignedState,
+	challengerSig crypto.Signature,
+) ChallengeTransaction {
+	return ChallengeTransaction{ChainTransaction: ChainTransactionBase{channelId: channelId}, Candidate: candidate, Proof: proof, ChallengerSig: challengerSig}
 }
 
 // SideEffects are effects to be executed by an imperative shell
