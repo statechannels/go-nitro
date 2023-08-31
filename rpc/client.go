@@ -116,7 +116,7 @@ func NewRpcClient(trans transport.Requester) (RpcClientApi, error) {
 	}
 
 	// Retrieve the address and set it on the rpcClient
-	res, err := authenticatedWaitForRequest[serde.NoPayloadRequest, common.Address](c, serde.GetAddressMethod, serde.NoPayloadRequest{})
+	res, err := waitForAuthorizedRequest[serde.NoPayloadRequest, common.Address](c, serde.GetAddressMethod, serde.NoPayloadRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func (rc *rpcClient) Address() (common.Address, error) {
 // AuthToken fetches an authentication token from the nitro node
 func (rc *rpcClient) AuthToken() (string, error) {
 	if rc.authToken == "" {
-		return unauthenticatedWaitForRequest[serde.NoPayloadRequest, string](rc, serde.GetAuthTokenMethod, serde.NoPayloadRequest{})
+		return WaitForRequestNoAuth[serde.NoPayloadRequest, string](rc, serde.GetAuthTokenMethod, serde.NoPayloadRequest{})
 	}
 	return rc.authToken, nil
 }
@@ -164,20 +164,20 @@ func (rc *rpcClient) AuthToken() (string, error) {
 // It is the responsibility of the caller to send the voucher to the payee.
 func (rc *rpcClient) CreateVoucher(chId types.Destination, amount uint64) (payments.Voucher, error) {
 	req := serde.PaymentRequest{Channel: chId, Amount: amount}
-	return authenticatedWaitForRequest[serde.PaymentRequest, payments.Voucher](rc, serde.CreateVoucherRequestMethod, req)
+	return waitForAuthorizedRequest[serde.PaymentRequest, payments.Voucher](rc, serde.CreateVoucherRequestMethod, req)
 }
 
 // ReceiveVoucher receives a voucher and adds it to the go-nitro store.
 // It returns the total amount received so far and the amount received from the voucher supplied.
 // It can be used to add a voucher that was sent outside of the go-nitro system.
 func (rc *rpcClient) ReceiveVoucher(v payments.Voucher) (payments.ReceiveVoucherSummary, error) {
-	return authenticatedWaitForRequest[payments.Voucher, payments.ReceiveVoucherSummary](rc, serde.ReceiveVoucherRequestMethod, v)
+	return waitForAuthorizedRequest[payments.Voucher, payments.ReceiveVoucherSummary](rc, serde.ReceiveVoucherRequestMethod, v)
 }
 
 func (rc *rpcClient) GetPaymentChannel(chId types.Destination) (query.PaymentChannelInfo, error) {
 	req := serde.GetPaymentChannelRequest{Id: chId}
 
-	return authenticatedWaitForRequest[serde.GetPaymentChannelRequest, query.PaymentChannelInfo](rc, serde.GetPaymentChannelRequestMethod, req)
+	return waitForAuthorizedRequest[serde.GetPaymentChannelRequest, query.PaymentChannelInfo](rc, serde.GetPaymentChannelRequestMethod, req)
 }
 
 // CreatePaymentChannel creates a new virtual payment channel
@@ -190,7 +190,7 @@ func (rc *rpcClient) CreatePaymentChannel(intermediaries []types.Address, counte
 		rand.Uint64(),
 		common.Address{})
 
-	return authenticatedWaitForRequest[virtualfund.ObjectiveRequest, virtualfund.ObjectiveResponse](rc, serde.CreatePaymentChannelRequestMethod, objReq)
+	return waitForAuthorizedRequest[virtualfund.ObjectiveRequest, virtualfund.ObjectiveResponse](rc, serde.CreatePaymentChannelRequestMethod, objReq)
 }
 
 // ClosePaymentChannel attempts to close the payment channel with supplied id
@@ -198,23 +198,23 @@ func (rc *rpcClient) ClosePaymentChannel(id types.Destination) (protocols.Object
 	objReq := virtualdefund.NewObjectiveRequest(
 		id)
 
-	return authenticatedWaitForRequest[virtualdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.ClosePaymentChannelRequestMethod, objReq)
+	return waitForAuthorizedRequest[virtualdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.ClosePaymentChannelRequestMethod, objReq)
 }
 
 func (rc *rpcClient) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, error) {
 	req := serde.GetLedgerChannelRequest{Id: id}
 
-	return authenticatedWaitForRequest[serde.GetLedgerChannelRequest, query.LedgerChannelInfo](rc, serde.GetLedgerChannelRequestMethod, req)
+	return waitForAuthorizedRequest[serde.GetLedgerChannelRequest, query.LedgerChannelInfo](rc, serde.GetLedgerChannelRequestMethod, req)
 }
 
 // GetAllLedgerChannels returns all ledger channels
 func (rc *rpcClient) GetAllLedgerChannels() ([]query.LedgerChannelInfo, error) {
-	return authenticatedWaitForRequest[serde.NoPayloadRequest, []query.LedgerChannelInfo](rc, serde.GetAllLedgerChannelsMethod, struct{}{})
+	return waitForAuthorizedRequest[serde.NoPayloadRequest, []query.LedgerChannelInfo](rc, serde.GetAllLedgerChannelsMethod, struct{}{})
 }
 
 // GetPaymentChannelsByLedger returns all active payment channels for a given ledger channel
 func (rc *rpcClient) GetPaymentChannelsByLedger(ledgerId types.Destination) ([]query.PaymentChannelInfo, error) {
-	return authenticatedWaitForRequest[serde.GetPaymentChannelsByLedgerRequest, []query.PaymentChannelInfo](rc, serde.GetPaymentChannelsByLedgerMethod, serde.GetPaymentChannelsByLedgerRequest{LedgerId: ledgerId})
+	return waitForAuthorizedRequest[serde.GetPaymentChannelsByLedgerRequest, []query.PaymentChannelInfo](rc, serde.GetPaymentChannelsByLedgerMethod, serde.GetPaymentChannelsByLedgerRequest{LedgerId: ledgerId})
 }
 
 // CreateLedger creates a new ledger channel
@@ -226,20 +226,20 @@ func (rc *rpcClient) CreateLedgerChannel(counterparty types.Address, ChallengeDu
 		rand.Uint64(),
 		common.Address{})
 
-	return authenticatedWaitForRequest[directfund.ObjectiveRequest, directfund.ObjectiveResponse](rc, serde.CreateLedgerChannelRequestMethod, objReq)
+	return waitForAuthorizedRequest[directfund.ObjectiveRequest, directfund.ObjectiveResponse](rc, serde.CreateLedgerChannelRequestMethod, objReq)
 }
 
 // CloseLedger closes a ledger channel
 func (rc *rpcClient) CloseLedgerChannel(id types.Destination) (protocols.ObjectiveId, error) {
 	objReq := directdefund.NewObjectiveRequest(id)
 
-	return authenticatedWaitForRequest[directdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.CloseLedgerChannelRequestMethod, objReq)
+	return waitForAuthorizedRequest[directdefund.ObjectiveRequest, protocols.ObjectiveId](rc, serde.CloseLedgerChannelRequestMethod, objReq)
 }
 
 // Pay uses the specified channel to pay the specified amount
 func (rc *rpcClient) Pay(id types.Destination, amount uint64) (serde.PaymentRequest, error) {
 	pReq := serde.PaymentRequest{Amount: amount, Channel: id}
-	return authenticatedWaitForRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
+	return waitForAuthorizedRequest[serde.PaymentRequest, serde.PaymentRequest](rc, serde.PayRequestMethod, pReq)
 }
 
 func (rc *rpcClient) Close() error {
@@ -314,13 +314,13 @@ func (rc *rpcClient) PaymentChannelUpdatesChan(paymentChannelId types.Destinatio
 	return c
 }
 
-// unauthenticatedWaitForRequest calls waitForRequest with an empty auth token
-func unauthenticatedWaitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *rpcClient, method serde.RequestMethod, requestData T) (U, error) {
+// WaitForRequestNoAuth calls waitForRequest with an empty auth token
+func WaitForRequestNoAuth[T serde.RequestPayload, U serde.ResponsePayload](rc *rpcClient, method serde.RequestMethod, requestData T) (U, error) {
 	return waitForRequest[T, U](rc, method, requestData, "")
 }
 
-// authenticatedWaitForRequest calls waitForRequest with the client auth token
-func authenticatedWaitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *rpcClient, method serde.RequestMethod, requestData T) (U, error) {
+// waitForAuthorizedRequest calls waitForRequest with the client auth token
+func waitForAuthorizedRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *rpcClient, method serde.RequestMethod, requestData T) (U, error) {
 	rc.authTokenReady.Wait()
 	return waitForRequest[T, U](rc, method, requestData, rc.authToken)
 }
