@@ -1,11 +1,11 @@
 /**
  * JSON RPC Types
  */
-export type JsonRpcRequest<MethodName extends RequestMethod, RequestParams> = {
+export type JsonRpcRequest<MethodName extends RequestMethod, RequestPayload> = {
   id: number; // in the json-rpc spec this is optional, but we require it for all our requests
   jsonrpc: "2.0";
   method: MethodName;
-  params: RequestParams;
+  params: { AuthToken: string; Payload: RequestPayload };
 };
 export type JsonRpcResponse<ResultType> = {
   id: number;

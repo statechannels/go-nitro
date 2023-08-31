@@ -318,7 +318,7 @@ async function isServerUp(port: number): Promise<boolean> {
   const url = new URL(`http://${getLocalRPCUrl(port)}`).toString();
 
   try {
-    const req = generateRequest("get_address", {});
+    const req = generateRequest("get_address", {}, "");
     result = await axios.post(url, JSON.stringify(req));
   } catch (e) {
     return false;
