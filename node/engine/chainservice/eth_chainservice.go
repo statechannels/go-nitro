@@ -312,7 +312,7 @@ out:
 				errorChan <- fmt.Errorf("subscribeFilterLogs failed on resubscribe: %w", err)
 				break out
 			}
-			ecs.logger.Log(context.Background(), logging.TraceLogLevel, "resubscribed to filtered event logs")
+			ecs.logger.Log(context.Background(), logging.LevelTrace, "resubscribed to filtered event logs")
 
 		case <-time.After(RESUB_INTERVAL):
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
@@ -355,11 +355,11 @@ out:
 				errorChan <- fmt.Errorf("subscribeNewHead failed on resubscribe: %w", err)
 				break out
 			}
-			ecs.logger.Log(context.Background(), logging.TraceLogLevel, "resubscribed to new blocks")
+			ecs.logger.Log(context.Background(), logging.LevelTrace, "resubscribed to new blocks")
 
 		case newBlock := <-newBlockChan:
 			newBlockNum := newBlock.Number.Uint64()
-			ecs.logger.Log(context.Background(), logging.TraceLogLevel, "detected new block", "block-num", newBlockNum)
+			ecs.logger.Log(context.Background(), logging.LevelTrace, "detected new block", "block-num", newBlockNum)
 			ecs.updateEventTracker(errorChan, &newBlockNum, nil)
 		}
 	}
