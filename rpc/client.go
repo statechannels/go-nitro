@@ -87,7 +87,7 @@ type rpcClient struct {
 	ledgerChannelUpdates  *safesync.Map[chan query.LedgerChannelInfo]
 	paymentChannelUpdates *safesync.Map[chan query.PaymentChannelInfo]
 	cancel                context.CancelFunc
-	wg                    *sync.WaitGroup
+	routineTracker        *sync.WaitGroup
 	nodeAddress           common.Address
 	logger                *slog.Logger
 	authToken             string
@@ -109,7 +109,7 @@ func NewRpcClient(trans transport.Requester) (RpcClientApi, error) {
 		ledgerChannelUpdates:  &safesync.Map[chan query.LedgerChannelInfo]{},
 		paymentChannelUpdates: &safesync.Map[chan query.PaymentChannelInfo]{},
 		cancel:                cancel,
-		wg:                    &sync.WaitGroup{},
+		routineTracker:        &sync.WaitGroup{},
 		nodeAddress:           common.Address{},
 		authTokenReady:        &sync.WaitGroup{},
 		logger:                slog.Default(),
@@ -129,7 +129,7 @@ func NewRpcClient(trans transport.Requester) (RpcClientApi, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.wg.Add(1)
+	c.routineTracker.Add(1)
 	go c.subscribeToNotifications(ctx, notificationChan)
 
 	c.authTokenReady.Add(1)
@@ -244,7 +244,7 @@ func (rc *rpcClient) Pay(id types.Destination, amount uint64) (serde.PaymentRequ
 
 func (rc *rpcClient) Close() error {
 	rc.cancel()
-	rc.wg.Wait()
+	rc.routineTracker.Wait()
 	return rc.transport.Close()
 }
 
@@ -253,7 +253,7 @@ func (rc *rpcClient) subscribeToNotifications(ctx context.Context, notificationC
 	for {
 		select {
 		case <-ctx.Done():
-			rc.wg.Done()
+			rc.routineTracker.Done()
 			return
 		case data := <-notificationChan:
 
@@ -326,10 +326,10 @@ func waitForAuthorizedRequest[T serde.RequestPayload, U serde.ResponsePayload](r
 }
 
 func waitForRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *rpcClient, method serde.RequestMethod, requestData T, authToken string) (U, error) {
-	rc.wg.Add(1)
-	defer rc.wg.Done()
+	rc.routineTracker.Add(1)
+	defer rc.routineTracker.Done()
 
-	res, err := sendRequest[T, U](rc.transport, method, requestData, rc.authToken, rc.logger, rc.wg)
+	res, err := sendRequest[T, U](rc.transport, method, requestData, rc.authToken, rc.logger, rc.routineTracker)
 	if err != nil {
 		panic(err)
 	}
