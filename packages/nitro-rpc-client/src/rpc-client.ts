@@ -78,7 +78,7 @@ export class NitroRpcClient {
       this.transport.Notifications.on(
         "objective_completed",
         (params: ObjectiveCompleteNotification["params"]) => {
-          if (params["Payload"] === objectiveId) {
+          if (params["payload"] === objectiveId) {
             resolve();
           }
         }
@@ -253,7 +253,7 @@ export class NitroRpcClient {
 
   private async sendRequest<K extends RequestMethod>(
     method: K,
-    params: RPCRequestAndResponses[K][0]["params"]["Payload"]
+    params: RPCRequestAndResponses[K][0]["params"]["payload"]
   ): Promise<RPCRequestAndResponses[K][1]["result"]> {
     const request = generateRequest(method, params, this.authToken || "");
     const res = await this.transport.sendRequest<K>(request);

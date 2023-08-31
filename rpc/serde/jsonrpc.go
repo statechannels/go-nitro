@@ -88,8 +88,8 @@ type NotificationPayload interface {
 }
 
 type Params[T RequestPayload | NotificationPayload] struct {
-	AuthToken string
-	Payload   T
+	AuthToken string `json:"authtoken"`
+	Payload   T      `json:"payload"`
 }
 
 type JsonRpcSpecificRequest[T RequestPayload | NotificationPayload] struct {
