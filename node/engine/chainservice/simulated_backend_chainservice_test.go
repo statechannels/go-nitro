@@ -46,7 +46,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	one := big.NewInt(1)
 	three := big.NewInt(3)
 
-	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
+	sim, bindings, ethAccounts, err := SetupSimulatedBackend(2)
 	defer closeSimulatedChain(t, sim)
 	if err != nil {
 		t.Fatal(err)
@@ -123,16 +123,15 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	}
 	// Check that the recieved event matches the expected event
 	concludedEvent := <-out
-	expectedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: 5}}
-	if diff := cmp.Diff(expectedEvent, concludedEvent, cmp.AllowUnexported(ConcludedEvent{}, commonEvent{})); diff != "" {
+	expectedConcludedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: 5}}
+	if diff := cmp.Diff(expectedConcludedEvent, concludedEvent, cmp.AllowUnexported(ConcludedEvent{}, commonEvent{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
 	// Check that the recieved event matches the expected event
 	allocationUpdatedEvent := <-out
-	expectedEvent2 := NewAllocationUpdatedEvent(cId, 5, common.Address{}, new(big.Int).SetInt64(1))
-
-	if diff := cmp.Diff(expectedEvent2, allocationUpdatedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
+	expectedAllocationUpatedEvent := NewAllocationUpdatedEvent(cId, 5, common.Address{}, new(big.Int).SetInt64(1))
+	if diff := cmp.Diff(expectedAllocationUpatedEvent, allocationUpdatedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
@@ -146,6 +145,34 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	// Make assertion
 	if !bytes.Equal(statusOnChain[:], emptyBytes[:]) {
 		t.Fatalf("Adjudicator not updated as expected, got %v wanted %v", common.Bytes2Hex(statusOnChain[:]), common.Bytes2Hex(emptyBytes[:]))
+	}
+
+	// Start new chain service. It should detect old chain events that were emitted while it was offline
+	cs2, err := NewSimulatedBackendChainService(sim, bindings, ethAccounts[1])
+	defer closeChainService(t, cs2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sim.Commit()
+
+	var receivedEvent Event
+	for i := 0; i < 2; i++ {
+		receivedEvent = <-cs2.EventFeed()
+		_, ok := receivedEvent.(DepositedEvent)
+		if !ok {
+			t.Fatalf("Expected chain event to be DepositedEvent")
+		}
+	}
+
+	receivedEvent = <-cs2.EventFeed()
+	if diff := cmp.Diff(expectedConcludedEvent, receivedEvent, cmp.AllowUnexported(ConcludedEvent{}, commonEvent{})); diff != "" {
+		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
+	}
+
+	receivedEvent = <-cs2.EventFeed()
+	if diff := cmp.Diff(expectedAllocationUpatedEvent, receivedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
+		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 }
 
