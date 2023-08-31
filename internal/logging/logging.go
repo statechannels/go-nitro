@@ -11,6 +11,8 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+const LevelTrace slog.Level = -5
+
 // newLogWriter returns a writer for the given logDir and logFile
 // If the log file already exists it will be removed and a fresh file will be created
 func newLogWriter(logDir, logFile string) *os.File {

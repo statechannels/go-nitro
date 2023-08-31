@@ -46,7 +46,7 @@ func (l NoopLogger) Write(p []byte) (n int, err error) {
 
 func TestSimulatedBackendChainService(t *testing.T) {
 	logging.SetupDefaultFileLogger("simulatedBackendChainService.log", slog.LevelDebug)
-	
+
 	one := big.NewInt(1)
 	three := big.NewInt(3)
 

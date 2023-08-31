@@ -319,7 +319,7 @@ func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState,
 	return ss, nil
 }
 
-// UpdateWithChainEvent mutates the receiver if provided with a "new" chain event (with a greater block number than previously seen)
+// UpdateWithChainEvent mutates the receiver with the supplied chain event, replacing the relevant data fields.
 func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, error) {
 	switch e := event.(type) {
 	case chainservice.AllocationUpdatedEvent:
@@ -329,8 +329,18 @@ func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, erro
 		c.OnChain.Holdings[e.Asset] = e.NowHeld
 	case chainservice.ConcludedEvent:
 		break // TODO: update OnChain.StateHash and OnChain.Outcome
-	case chainservice.ChallengeEvent:
-		break // TODO: update OnChain.StateHash and OnChain.Outcome
+	case chainservice.ChallengeRegisteredEvent:
+		h, err := e.StateHash(c.FixedPart)
+		if err != nil {
+			return nil, err
+		}
+		c.OnChain.StateHash = h
+		c.OnChain.Outcome = e.Outcome()
+		ss, err := e.SignedState(c.FixedPart)
+		if err != nil {
+			return nil, err
+		}
+		c.AddSignedState(ss)
 	default:
 		return &Channel{}, fmt.Errorf("channel %+v cannot handle event %+v", c, event)
 	}

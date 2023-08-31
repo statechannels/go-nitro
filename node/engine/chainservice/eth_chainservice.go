@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/statechannels/go-nitro/internal/chain"
+	"github.com/statechannels/go-nitro/internal/logging"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	Token "github.com/statechannels/go-nitro/node/engine/chainservice/erc20"
 	chainutils "github.com/statechannels/go-nitro/node/engine/chainservice/utils"
@@ -118,7 +119,7 @@ func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.
 ) (*EthChainService, error) {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 
-	logger := slog.Default().With("tx-signer", txSigner.From.String())
+	logger := logging.LoggerWithAddress(slog.Default(), txSigner.From)
 
 	eventQueue := EventQueue{}
 	heap.Init(&eventQueue)
@@ -238,10 +239,10 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 		}
 		return nil
 	case protocols.WithdrawAllTransaction:
-		state := tx.SignedState.State()
+		signedState := tx.SignedState.State()
 		signatures := tx.SignedState.Signatures()
-		nitroFixedPart := NitroAdjudicator.INitroTypesFixedPart(NitroAdjudicator.ConvertFixedPart(state.FixedPart()))
-		nitroVariablePart := NitroAdjudicator.ConvertVariablePart(state.VariablePart())
+		nitroFixedPart := NitroAdjudicator.INitroTypesFixedPart(NitroAdjudicator.ConvertFixedPart(signedState.FixedPart()))
+		nitroVariablePart := NitroAdjudicator.ConvertVariablePart(signedState.VariablePart())
 		nitroSignatures := []NitroAdjudicator.INitroTypesSignature{NitroAdjudicator.ConvertSignature(signatures[0]), NitroAdjudicator.ConvertSignature(signatures[1])}
 
 		candidate := NitroAdjudicator.INitroTypesSignedVariablePart{

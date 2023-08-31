@@ -33,13 +33,12 @@ contract VirtualPaymentApp is IForceMoveApp {
         RecoveredVariablePart[] calldata proof,
         RecoveredVariablePart calldata candidate
     ) external pure override returns (bool, string memory) {
-        // This channel has only 4 states which can be supported:
+        // This channel has only 3 states which can be supported:
         // 0 prefund
         // 1 postfund
         // 2 redemption
-        // 3 final
 
-        // states 0,1,3 can be supported via unanimous consensus:
+        // states 0,1 can be supported via unanimous consensus:
 
         if (proof.length == 0) {
             require(
@@ -49,11 +48,6 @@ contract VirtualPaymentApp is IForceMoveApp {
             );
             if (candidate.variablePart.turnNum == 0) return (true, ''); // prefund
             if (candidate.variablePart.turnNum == 1) return (true, ''); // postfund
-            if (candidate.variablePart.turnNum == 3) {
-                // final (note: there is a core protocol escape hatch for this, too, so it could be removed)
-                require(candidate.variablePart.isFinal, '!final; turnNum=3 && |proof|=0');
-                return (true, '');
-            }
             revert('bad candidate turnNum; |proof|=0');
         }
 

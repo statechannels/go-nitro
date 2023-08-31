@@ -12,6 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/testhelpers"
+	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -25,6 +26,19 @@ func TestChannel(t *testing.T) {
 	}
 
 	s := state.TestState.Clone()
+
+	ss := state.NewSignedState(s)
+
+	alicePrivateKey := common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
+	bobPrivateKey := common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`)
+	sigA, err := ss.State().Sign(alicePrivateKey)
+	if err != nil {
+		t.Error(err)
+	}
+	sigB, err := ss.State().Sign(bobPrivateKey)
+	if err != nil {
+		t.Error(err)
+	}
 
 	c, err2 := New(s, 0)
 
@@ -144,19 +158,9 @@ func TestChannel(t *testing.T) {
 		}
 	}
 
-	alicePrivateKey := common.Hex2Bytes(`caab404f975b4620747174a75f08d98b4e5a7053b691b41bcfc0d839d48b7634`)
-	bobPrivateKey := common.Hex2Bytes(`62ecd49c4ccb41a70ad46532aed63cf815de15864bc415c87d507afd6a5e8da2`)
 	testAddSignedState := func(t *testing.T) {
 		myC, _ := New(s, 0)
-		ss := state.NewSignedState(s)
-		sigA, err := ss.State().Sign(alicePrivateKey)
-		if err != nil {
-			t.Error(err)
-		}
-		sigB, err := ss.State().Sign(bobPrivateKey)
-		if err != nil {
-			t.Error(err)
-		}
+
 		err = ss.AddSignature(sigA)
 		if err != nil {
 			t.Error(err)
@@ -282,6 +286,31 @@ func TestChannel(t *testing.T) {
 			t.Errorf("LatestSignedState: mismatch (-want +got):\n%s", diff)
 		}
 	}
+	testUpdateWithChallengeRegisteredEvent := func(t *testing.T) {
+		event := chainservice.NewChallengeRegisteredEvent(c.ChannelId(), 99999, state.TestState.VariablePart(), []state.Signature{sigA, sigB})
+
+		_, err := c.UpdateWithChainEvent(event)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := state.TestState.Outcome
+		got := c.OnChain.Outcome
+
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Fatalf("mismatch (-want +got):\n%s", diff)
+		}
+
+		want2, _ := state.TestState.Hash()
+		got2 := c.OnChain.StateHash
+		if diff := cmp.Diff(want2, got2); diff != "" {
+			t.Fatalf("mismatch (-want +got):\n%s", diff)
+		}
+
+		got2, _ = c.OffChain.SignedStateForTurnNum[state.TestState.TurnNum].State().Hash()
+		if diff := cmp.Diff(want2, got2); diff != "" {
+			t.Fatalf("mismatch (-want +got):\n%s", diff)
+		}
+	}
 
 	t.Run(`TestNew`, testNew)
 	t.Run(`TestClone`, testClone)
@@ -296,6 +325,7 @@ func TestChannel(t *testing.T) {
 	t.Run(`TestTotal`, testTotal)
 	t.Run(`TestAddStateWithSignature`, testAddStateWithSignature)
 	t.Run(`TestAddSignedState`, testAddSignedState)
+	t.Run(`TestUpdateWithChallengeRegisteredEvent`, testUpdateWithChallengeRegisteredEvent)
 }
 
 func TestVirtualChannel(t *testing.T) {

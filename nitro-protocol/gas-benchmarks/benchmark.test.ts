@@ -22,8 +22,6 @@ import {
   Bob,
   paymentAmount,
   challengeChannel,
-  Ingrid,
-  respondWithChallengeVirtualPaymentApp,
 } from './fixtures';
 import {batchSizes, GasResults} from './gas';
 import {
@@ -449,27 +447,6 @@ describe('Consumes the expected gas for clearing a challenge', () => {
       MAGIC_ADDRESS_INDICATING_ETH,
       gasRequiredTo.ETHClearChallenge.satp.challengeResponseL
     );
-    // challenge with L leaves the channel on-chain with a new challenge,  ⬛ -> (L) -> 👩
-  });
-  it(`when clearing the challenge using challenge for V`, async () => {
-    // challenge for L raised on chain,  ⬛ -> (L) -> 👩
-    await challengeVirtualPaymentChannelWithVoucher(
-      V,
-      MAGIC_ADDRESS_INDICATING_ETH,
-      BigNumber.from(paymentAmount).toNumber(),
-      Alice,
-      Bob
-    );
-
-    const {gasUsed} = await respondWithChallengeVirtualPaymentApp(
-      V,
-      MAGIC_ADDRESS_INDICATING_ETH,
-      BigNumber.from(paymentAmount).toNumber(),
-      Alice,
-      Bob,
-      Ingrid
-    );
-    expect(gasUsed).toEqual(gasRequiredTo.ETHClearChallenge.satp.challengeResponseV);
     // challenge with L leaves the channel on-chain with a new challenge,  ⬛ -> (L) -> 👩
   });
 });

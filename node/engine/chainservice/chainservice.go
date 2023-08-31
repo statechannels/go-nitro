@@ -6,6 +6,8 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -66,13 +68,59 @@ type ConcludedEvent struct {
 	commonEvent
 }
 
-type ChallengeEvent struct {
-	commonEvent
-	// TODO fill out other fields
-}
-
 func (ce ConcludedEvent) String() string {
 	return "Channel " + ce.channelID.String() + " concluded at Block " + fmt.Sprint(ce.blockNum)
+}
+
+type ChallengeRegisteredEvent struct {
+	commonEvent
+	candidate           state.VariablePart
+	candidateSignatures []state.Signature
+}
+
+// NewChallengeRegisteredEvent constructs a ChallengeRegisteredEvent
+func NewChallengeRegisteredEvent(
+	channelId types.Destination,
+	blockNum uint64,
+	variablePart state.VariablePart,
+	sigs []state.Signature,
+) ChallengeRegisteredEvent {
+	return ChallengeRegisteredEvent{
+		commonEvent: commonEvent{channelID: channelId, blockNum: blockNum},
+		candidate: state.VariablePart{
+			AppData: variablePart.AppData,
+			Outcome: variablePart.Outcome,
+			TurnNum: variablePart.TurnNum,
+			IsFinal: variablePart.IsFinal,
+		}, candidateSignatures: sigs,
+	}
+}
+
+// StateHash returns the statehash stored on chain at the time of the ChallengeRegistered Event firing.
+func (cr ChallengeRegisteredEvent) StateHash(fp state.FixedPart) (common.Hash, error) {
+	return state.StateFromFixedAndVariablePart(fp, cr.candidate).Hash()
+}
+
+// Outcome returns the outcome which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
+func (cr ChallengeRegisteredEvent) Outcome() outcome.Exit {
+	return cr.candidate.Outcome
+}
+
+// SignedState returns the signed state which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
+func (cr ChallengeRegisteredEvent) SignedState(fp state.FixedPart) (state.SignedState, error) {
+	s := state.StateFromFixedAndVariablePart(fp, cr.candidate)
+	ss := state.NewSignedState(s)
+	for _, sig := range cr.candidateSignatures {
+		err := ss.AddSignature(sig)
+		if err != nil {
+			return state.SignedState{}, err
+		}
+	}
+	return ss, nil
+}
+
+func (cr ChallengeRegisteredEvent) String() string {
+	return "CHALLENGE registered for Channel " + cr.channelID.String() + " at Block " + fmt.Sprint(cr.blockNum)
 }
 
 func NewDepositedEvent(channelId types.Destination, blockNum uint64, assetAddress common.Address, nowHeld *big.Int) DepositedEvent {
@@ -84,7 +132,6 @@ func NewAllocationUpdatedEvent(channelId types.Destination, blockNum uint64, ass
 }
 
 // todo implement other event types
-// ChallengeRegistered
 // ChallengeCleared
 
 // ChainEventHandler describes an objective that can handle chain events
