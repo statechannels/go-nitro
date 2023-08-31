@@ -116,7 +116,7 @@ func NewRpcClient(trans transport.Requester) (RpcClientApi, error) {
 	}
 
 	// Retrieve the address and set it on the rpcClient
-	res, err := waitForAuthorizedRequest[serde.NoPayloadRequest, common.Address](c, serde.GetAddressMethod, serde.NoPayloadRequest{})
+	res, err := WaitForRequestNoAuth[serde.NoPayloadRequest, common.Address](c, serde.GetAddressMethod, serde.NoPayloadRequest{})
 	if err != nil {
 		return nil, err
 	}
