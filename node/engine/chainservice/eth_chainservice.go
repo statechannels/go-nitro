@@ -398,6 +398,7 @@ func (ecs *EthChainService) updateEventTracker(errorChan chan<- error, blockNumb
 	}
 	if chainEvent != nil {
 		heap.Push(&ecs.eventTracker.events, *chainEvent)
+		ecs.logger.Debug("event added to queue", "updated-queue-length", ecs.eventTracker.events.Len())
 	}
 
 	eventsToDispatch := []ethTypes.Log{}

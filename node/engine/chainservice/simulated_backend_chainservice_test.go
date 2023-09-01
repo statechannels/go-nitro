@@ -50,6 +50,8 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	one := big.NewInt(1)
 	three := big.NewInt(3)
 
+	var receivedEvent Event
+
 	sim, bindings, ethAccounts, err := SetupSimulatedBackend(2)
 	defer closeSimulatedChain(t, sim)
 	if err != nil {
@@ -92,7 +94,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 
 	// Check that the received events matches the expected event
 	for i := 0; i < 2; i++ {
-		receivedEvent := <-out
+		receivedEvent = <-out
 		dEvent := receivedEvent.(DepositedEvent)
 		expectedEvent := NewDepositedEvent(concludeState.ChannelId(), 2, dEvent.Asset, testDeposit[dEvent.Asset])
 		if diff := cmp.Diff(expectedEvent, dEvent, cmp.AllowUnexported(DepositedEvent{}, commonEvent{}, big.Int{})); diff != "" {
@@ -120,11 +122,20 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Start new chain service. It should detect old chain events that were emitted while it was offline
+	cs2, err := NewSimulatedBackendChainService(sim, bindings, ethAccounts[1])
+	defer closeChainService(t, cs2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	concludeTx := protocols.NewWithdrawAllTransaction(cId, signedConcludeState)
 	err = cs.SendTransaction(concludeTx)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// Check that the recieved event matches the expected event
 	concludedEvent := <-out
 	expectedConcludedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: 5}}
@@ -151,16 +162,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		t.Fatalf("Adjudicator not updated as expected, got %v wanted %v", common.Bytes2Hex(statusOnChain[:]), common.Bytes2Hex(emptyBytes[:]))
 	}
 
-	// Start new chain service. It should detect old chain events that were emitted while it was offline
-	cs2, err := NewSimulatedBackendChainService(sim, bindings, ethAccounts[1])
-	defer closeChainService(t, cs2)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	sim.Commit()
-
-	var receivedEvent Event
+	// Check events from cs2 to ensure they match the expected values
 	for i := 0; i < 2; i++ {
 		receivedEvent = <-cs2.EventFeed()
 		_, ok := receivedEvent.(DepositedEvent)
