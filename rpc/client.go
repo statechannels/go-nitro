@@ -130,7 +130,9 @@ func NewRpcClient(trans transport.Requester) (RpcClientApi, error) {
 	c.routineTracker.Add(1)
 	go c.subscribeToNotifications(ctx, notificationChan)
 
-	c.authToken, err = c.AuthToken()
+	authToken, err := WaitForRequestNoAuth[serde.NoPayloadRequest, string](c, serde.GetAuthTokenMethod, serde.NoPayloadRequest{})
+	c.authToken = authToken
+
 	return c, err
 }
 
@@ -146,14 +148,6 @@ func NewHttpRpcClient(rpcServerUrl string) (RpcClientApi, error) {
 // Address returns the address of the the nitro node
 func (rc *rpcClient) Address() (common.Address, error) {
 	return rc.nodeAddress, nil
-}
-
-// AuthToken fetches an authentication token from the nitro node
-func (rc *rpcClient) AuthToken() (string, error) {
-	if rc.authToken == "" {
-		return WaitForRequestNoAuth[serde.NoPayloadRequest, string](rc, serde.GetAuthTokenMethod, serde.NoPayloadRequest{})
-	}
-	return rc.authToken, nil
 }
 
 // CreateVoucher creates a voucher for the given channelId and amount and returns it.
