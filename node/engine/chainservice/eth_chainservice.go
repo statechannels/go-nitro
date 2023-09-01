@@ -131,17 +131,21 @@ func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.
 	if err != nil {
 		return nil, err
 	}
+ 	
+	// Prevent go routines from processing events before checkForMissedEvents completes
+	ecs.eventTracker.mu.Lock()
+	
+	ecs.wg.Add(3)
+	go ecs.listenForEventLogs(errChan, eventSub, eventChan, eventQuery)
+	go ecs.listenForNewBlocks(errChan, newBlockSub, newBlockChan)
+	go ecs.listenForErrors(errChan)
 
 	// Search for any missed events emitted while this node was offline
 	err = ecs.checkForMissedEvents(startBlock)
 	if err != nil {
 		return nil, err
 	}
-
-	ecs.wg.Add(3)
-	go ecs.listenForEventLogs(errChan, eventSub, eventChan, eventQuery)
-	go ecs.listenForNewBlocks(errChan, newBlockSub, newBlockChan)
-	go ecs.listenForErrors(errChan)
+	ecs.eventTracker.mu.Unlock()
 
 	return &ecs, nil
 }
@@ -155,19 +159,16 @@ func (ecs *EthChainService) checkForMissedEvents(startBlock uint64) error {
 		Topics:    [][]common.Hash{topicsToWatch},
 	}
 
-	events, err := ecs.chain.FilterLogs(context.Background(), query)
+	events, err := ecs.chain.FilterLogs(ecs.ctx, query)
 	if err != nil {
 		ecs.logger.Error("failed to retrieve old chain logs: %v", err)
 		return err
 	}
 	ecs.logger.Info("found missed events", "numEvents", len(events))
 
-	ecs.eventTracker.mu.Lock()
 	for _, event := range events {
 		heap.Push(&ecs.eventTracker.events, event)
 	}
-	ecs.eventTracker.mu.Unlock()
-
 	return nil
 }
 
