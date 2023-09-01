@@ -23,6 +23,14 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+// These topics are the keccak256 hash of the event name with the types of its parameters, e.g.
+//
+//	crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
+//
+// They are computed by the abigen tool https://geth.ethereum.org/docs/tools/abigen
+// and can be extracted manually from the commens in the output bindings file.
+//
+// This is not ideal https://github.com/statechannels/go-nitro/issues/1417
 var (
 	allocationUpdatedTopic   = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256,uint256)"))
 	concludedTopic           = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
