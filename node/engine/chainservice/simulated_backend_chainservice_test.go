@@ -17,8 +17,9 @@ import (
 )
 
 var (
-	Alice = testactors.Alice
-	Bob   = testactors.Bob
+	CHALLENGE_DURATION = uint32(1000) // 1000 seconds. Much longer than the duration of the test
+	Alice              = testactors.Alice
+	Bob                = testactors.Bob
 )
 
 var concludeOutcome = outcome.Exit{
@@ -60,7 +61,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		},
 		ChannelNonce:      37140676580,
 		AppDefinition:     bindings.ConsensusApp.Address,
-		ChallengeDuration: 1000,
+		ChallengeDuration: CHALLENGE_DURATION,
 		AppData:           []byte{},
 		Outcome:           concludeOutcome,
 		TurnNum:           uint64(2),
