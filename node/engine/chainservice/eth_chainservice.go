@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 
+	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/chain"
 	"github.com/statechannels/go-nitro/internal/logging"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
@@ -313,7 +314,17 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 			ecs.out <- event
 
 		case challengeRegisteredTopic:
-			ecs.logger.Info("Ignoring Challenge Registered event")
+			cr, err := ecs.na.ParseChallengeRegistered(l)
+			if err != nil {
+				return fmt.Errorf("error in ParseChallengeRegistered: %w", err)
+			}
+			event := NewChallengeRegisteredEvent(cr.ChannelId, l.BlockNumber, state.VariablePart{
+				AppData: cr.Candidate.VariablePart.AppData,
+				Outcome: NitroAdjudicator.ConvertBindingsExitToExit(cr.Candidate.VariablePart.Outcome),
+				TurnNum: cr.Candidate.VariablePart.TurnNum.Uint64(),
+				IsFinal: cr.Candidate.VariablePart.IsFinal,
+			}, NitroAdjudicator.ConvertBindingsSignaturesToSignatures(cr.Candidate.Sigs))
+			ecs.out <- event
 		case challengeClearedTopic:
 			ecs.logger.Info("Ignoring Challenge Cleared event")
 		default:

@@ -99,7 +99,6 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	}
 
 	// Check that the received events matches the expected event
-
 	receivedEvent = <-out
 	crEvent := receivedEvent.(ChallengeRegisteredEvent)
 	expectedChallengeRegisteredEvent := NewChallengeRegisteredEvent(concludeState.ChannelId(), 2, crEvent.candidate, crEvent.candidateSignatures)
@@ -119,7 +118,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Check that the received events matches the expected event
+	// Check that the received events match the expected events
 	for i := 0; i < 2; i++ {
 		receivedEvent = <-out
 		dEvent := receivedEvent.(DepositedEvent)
@@ -161,14 +160,14 @@ func TestSimulatedBackendChainService(t *testing.T) {
 
 	// Check that the recieved event matches the expected event
 	concludedEvent := <-out
-	expectedConcludedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: 5}}
+	expectedConcludedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: 8}}
 	if diff := cmp.Diff(expectedConcludedEvent, concludedEvent, cmp.AllowUnexported(ConcludedEvent{}, commonEvent{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
 	// Check that the recieved event matches the expected event
 	allocationUpdatedEvent := <-out
-	expectedAllocationUpdatedEvent := NewAllocationUpdatedEvent(cId, 5, common.Address{}, new(big.Int).SetInt64(1))
+	expectedAllocationUpdatedEvent := NewAllocationUpdatedEvent(cId, 8, common.Address{}, new(big.Int).SetInt64(1))
 	if diff := cmp.Diff(expectedAllocationUpdatedEvent, allocationUpdatedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
@@ -186,6 +185,13 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	}
 
 	// Check events from cs2 to ensure they match the expected values
+	receivedEvent = <-cs2.EventFeed()
+	crEvent = receivedEvent.(ChallengeRegisteredEvent)
+	expectedChallengeRegisteredEvent = NewChallengeRegisteredEvent(concludeState.ChannelId(), 2, crEvent.candidate, crEvent.candidateSignatures)
+	if diff := cmp.Diff(expectedChallengeRegisteredEvent, crEvent, cmp.AllowUnexported(ChallengeRegisteredEvent{}, commonEvent{}, big.Int{})); diff != "" {
+		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
+	}
+	
 	for i := 0; i < 2; i++ {
 		receivedEvent = <-cs2.EventFeed()
 		_, ok := receivedEvent.(DepositedEvent)
