@@ -91,7 +91,6 @@ type rpcClient struct {
 	nodeAddress           common.Address
 	logger                *slog.Logger
 	authToken             string
-	authTokenReady        *sync.WaitGroup
 }
 
 // response includes a payload or an error.
@@ -111,7 +110,6 @@ func NewRpcClient(trans transport.Requester) (RpcClientApi, error) {
 		cancel:                cancel,
 		routineTracker:        &sync.WaitGroup{},
 		nodeAddress:           common.Address{},
-		authTokenReady:        &sync.WaitGroup{},
 		logger:                slog.Default(),
 	}
 
@@ -132,9 +130,7 @@ func NewRpcClient(trans transport.Requester) (RpcClientApi, error) {
 	c.routineTracker.Add(1)
 	go c.subscribeToNotifications(ctx, notificationChan)
 
-	c.authTokenReady.Add(1)
 	c.authToken, err = c.AuthToken()
-	c.authTokenReady.Done()
 	return c, err
 }
 
@@ -321,7 +317,6 @@ func WaitForRequestNoAuth[T serde.RequestPayload, U serde.ResponsePayload](rc *r
 
 // waitForAuthorizedRequest calls waitForRequest with the client auth token
 func waitForAuthorizedRequest[T serde.RequestPayload, U serde.ResponsePayload](rc *rpcClient, method serde.RequestMethod, requestData T) (U, error) {
-	rc.authTokenReady.Wait()
 	return waitForRequest[T, U](rc, method, requestData, rc.authToken)
 }
 
