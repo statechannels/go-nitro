@@ -191,7 +191,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	if diff := cmp.Diff(expectedChallengeRegisteredEvent, crEvent, cmp.AllowUnexported(ChallengeRegisteredEvent{}, commonEvent{}, big.Int{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
-	
+
 	for i := 0; i < 2; i++ {
 		receivedEvent = <-cs2.EventFeed()
 		_, ok := receivedEvent.(DepositedEvent)
