@@ -58,7 +58,12 @@ func NewChallengeTransaction(
 	proof []state.SignedState,
 	challengerSig crypto.Signature,
 ) ChallengeTransaction {
-	return ChallengeTransaction{ChainTransaction: ChainTransactionBase{channelId: channelId}, Candidate: candidate, Proof: proof, ChallengerSig: challengerSig}
+	return ChallengeTransaction{
+		ChainTransaction: ChainTransactionBase{channelId: channelId},
+		Candidate:        candidate,
+		Proof:            proof,
+		ChallengerSig:    challengerSig,
+	}
 }
 
 // SideEffects are effects to be executed by an imperative shell
