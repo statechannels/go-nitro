@@ -4,13 +4,14 @@ pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 import {NitroUtils} from './libraries/NitroUtils.sol';
+import './interfaces/INitroAdjudicator.sol';
 import './ForceMove.sol';
 import './MultiAssetHolder.sol';
 
 /**
  * @dev The NitroAdjudicator contract extends MultiAssetHolder and ForceMove
  */
-contract NitroAdjudicator is ForceMove, MultiAssetHolder {
+contract NitroAdjudicator is INitroAdjudicator, ForceMove, MultiAssetHolder {
     /**
      * @notice Finalizes a channel according to the given candidate, and liquidates all assets for the channel.
      * @dev Finalizes a channel according to the given candidate, and liquidates all assets for the channel.
