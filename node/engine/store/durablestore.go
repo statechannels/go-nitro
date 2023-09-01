@@ -228,6 +228,10 @@ func (ds *DurableStore) GetLastBlockNumSeen() (uint64, error) {
 	err := ds.lastBlockNumSeen.View(func(tx *buntdb.Tx) error {
 		val, err := tx.Get(lastBlockNumSeenKey)
 		if err != nil {
+			if errors.Is(err, buntdb.ErrNotFound) {
+				result = 0
+				return nil
+			}
 			return err
 		}
 		result, err = strconv.ParseUint(val, 10, 64)

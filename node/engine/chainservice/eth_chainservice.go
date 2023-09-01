@@ -15,6 +15,7 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/statechannels/go-nitro/channel/state"
+	"github.com/statechannels/go-nitro/internal/chain"
 	"github.com/statechannels/go-nitro/internal/logging"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	Token "github.com/statechannels/go-nitro/node/engine/chainservice/erc20"
@@ -86,31 +87,40 @@ const RESUB_INTERVAL = 15 * time.Second
 const REQUIRED_BLOCK_CONFIRMATIONS = 2
 
 // NewEthChainService is a convenient wrapper around newEthChainService, which provides a simpler API
-func NewEthChainService(chainUrl, chainAuthToken, chainPk string, naAddress, caAddress, vpaAddress common.Address) (*EthChainService, error) {
-	if vpaAddress == caAddress {
-		return nil, fmt.Errorf("virtual payment app address and consensus app address cannot be the same: %s", vpaAddress.String())
+func NewEthChainService(chainOpts chain.ChainOpts) (*EthChainService, error) {
+	if chainOpts.ChainPk == "" {
+		return nil, fmt.Errorf("chainpk must be set")
 	}
-	ethClient, txSigner, err := chainutils.ConnectToChain(context.Background(), chainUrl, chainAuthToken, common.Hex2Bytes(chainPk))
+	if chainOpts.VpaAddress == chainOpts.CaAddress {
+		return nil, fmt.Errorf("virtual payment app address and consensus app address cannot be the same: %s", chainOpts.VpaAddress.String())
+	}
+
+	ethClient, txSigner, err := chainutils.ConnectToChain(
+		context.Background(),
+		chainOpts.ChainUrl,
+		chainOpts.ChainAuthToken,
+		common.Hex2Bytes(chainOpts.ChainPk),
+	)
 	if err != nil {
 		panic(err)
 	}
 
-	na, err := NitroAdjudicator.NewNitroAdjudicator(naAddress, ethClient)
+	na, err := NitroAdjudicator.NewNitroAdjudicator(chainOpts.NaAddress, ethClient)
 	if err != nil {
 		panic(err)
 	}
 
-	return newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner)
+	return newEthChainService(ethClient, chainOpts.ChainStartBlock, na, chainOpts.NaAddress, chainOpts.CaAddress, chainOpts.VpaAddress, txSigner)
 }
 
 // newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
 // and listens to events from an eventSource
-func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
+func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.NitroAdjudicator,
 	naAddress, caAddress, vpaAddress common.Address, txSigner *bind.TransactOpts,
 ) (*EthChainService, error) {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 
-	logger := slog.Default().With("tx-signer", txSigner.From.String())
+	logger := logging.LoggerWithAddress(slog.Default(), txSigner.From)
 
 	eventQueue := EventQueue{}
 	heap.Init(&eventQueue)
@@ -123,13 +133,44 @@ func newEthChainService(chain ethChain, na *NitroAdjudicator.NitroAdjudicator,
 		return nil, err
 	}
 
-	// TODO: Return error from chain service instead of panicking
+	// Prevent go routines from processing events before checkForMissedEvents completes
+	ecs.eventTracker.mu.Lock()
+
 	ecs.wg.Add(3)
 	go ecs.listenForEventLogs(errChan, eventSub, eventChan, eventQuery)
 	go ecs.listenForNewBlocks(errChan, newBlockSub, newBlockChan)
 	go ecs.listenForErrors(errChan)
 
+	// Search for any missed events emitted while this node was offline
+	err = ecs.checkForMissedEvents(startBlock)
+	if err != nil {
+		return nil, err
+	}
+	ecs.eventTracker.mu.Unlock()
+
 	return &ecs, nil
+}
+
+func (ecs *EthChainService) checkForMissedEvents(startBlock uint64) error {
+	ecs.logger.Info("checking for missed chainservice events", "startBlock", startBlock)
+	query := ethereum.FilterQuery{
+		FromBlock: big.NewInt(int64(startBlock)),
+		ToBlock:   nil, // For the current block number
+		Addresses: []common.Address{ecs.naAddress},
+		Topics:    [][]common.Hash{topicsToWatch},
+	}
+
+	events, err := ecs.chain.FilterLogs(ecs.ctx, query)
+	if err != nil {
+		ecs.logger.Error("failed to retrieve old chain logs: %v", err)
+		return err
+	}
+	ecs.logger.Info("found missed events", "numEvents", len(events))
+
+	for _, event := range events {
+		heap.Push(&ecs.eventTracker.events, event)
+	}
+	return nil
 }
 
 // listenForErrors listens for errors on the error channel and attempts to handle them if they occur.
@@ -200,10 +241,10 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 		}
 		return nil
 	case protocols.WithdrawAllTransaction:
-		state := tx.SignedState.State()
+		signedState := tx.SignedState.State()
 		signatures := tx.SignedState.Signatures()
-		nitroFixedPart := NitroAdjudicator.INitroTypesFixedPart(NitroAdjudicator.ConvertFixedPart(state.FixedPart()))
-		nitroVariablePart := NitroAdjudicator.ConvertVariablePart(state.VariablePart())
+		nitroFixedPart := NitroAdjudicator.INitroTypesFixedPart(NitroAdjudicator.ConvertFixedPart(signedState.FixedPart()))
+		nitroVariablePart := NitroAdjudicator.ConvertVariablePart(signedState.VariablePart())
 		nitroSignatures := []NitroAdjudicator.INitroTypesSignature{NitroAdjudicator.ConvertSignature(signatures[0]), NitroAdjudicator.ConvertSignature(signatures[1])}
 
 		candidate := NitroAdjudicator.INitroTypesSignedVariablePart{
@@ -317,7 +358,7 @@ out:
 				errorChan <- fmt.Errorf("subscribeFilterLogs failed on resubscribe: %w", err)
 				break out
 			}
-			ecs.logger.Log(context.Background(), logging.LevelTrace, "resubscribed to filtered event logs")
+			ecs.logger.Debug("resubscribed to filtered event logs")
 
 		case <-time.After(RESUB_INTERVAL):
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
@@ -325,14 +366,8 @@ out:
 			eventSub.Unsubscribe()
 
 		case chainEvent := <-eventChan:
-			for _, topic := range topicsToWatch {
-				if chainEvent.Topics[0] == topic {
-					ecs.logger.Debug("queueing new chainEvent", "block-num", chainEvent.BlockNumber)
-
-					ecs.updateEventTracker(errorChan, nil, &chainEvent)
-				}
-			}
-
+			ecs.logger.Debug("queueing new chainEvent", "block-num", chainEvent.BlockNumber)
+			ecs.updateEventTracker(errorChan, nil, &chainEvent)
 		}
 	}
 }
@@ -360,11 +395,11 @@ out:
 				errorChan <- fmt.Errorf("subscribeNewHead failed on resubscribe: %w", err)
 				break out
 			}
-			ecs.logger.Log(context.Background(), logging.LevelTrace, "resubscribed to new blocks")
+			ecs.logger.Debug("resubscribed to new blocks")
 
 		case newBlock := <-newBlockChan:
 			newBlockNum := newBlock.Number.Uint64()
-			ecs.logger.Log(context.Background(), logging.LevelTrace, "detected new block", "block-num", newBlockNum)
+			ecs.logger.Debug("detected new block", "block-num", newBlockNum)
 			ecs.updateEventTracker(errorChan, &newBlockNum, nil)
 		}
 	}
@@ -380,6 +415,7 @@ func (ecs *EthChainService) updateEventTracker(errorChan chan<- error, blockNumb
 	}
 	if chainEvent != nil {
 		heap.Push(&ecs.eventTracker.events, *chainEvent)
+		ecs.logger.Debug("event added to queue", "updated-queue-length", ecs.eventTracker.events.Len())
 	}
 
 	eventsToDispatch := []ethTypes.Log{}
@@ -404,6 +440,7 @@ func (ecs *EthChainService) subscribeForLogs() (chan error, ethereum.Subscriptio
 	// Subscribe to Adjudicator events
 	eventQuery := ethereum.FilterQuery{
 		Addresses: []common.Address{ecs.naAddress},
+		Topics:    [][]common.Hash{topicsToWatch},
 	}
 	eventChan := make(chan ethTypes.Log)
 	eventSub, err := ecs.chain.SubscribeFilterLogs(ecs.ctx, eventQuery, eventChan)
