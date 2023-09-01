@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/statechannels/go-nitro/channel/state"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
@@ -23,20 +22,13 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-// These topics are the keccak256 hash of the event name with the types of its parameters, e.g.
-//
-//	crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
-//
-// They are computed by the abigen tool https://geth.ethereum.org/docs/tools/abigen
-// and can be extracted manually from the commens in the output bindings file.
-//
-// This is not ideal https://github.com/statechannels/go-nitro/issues/1417
 var (
-	allocationUpdatedTopic   = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256,uint256)"))
-	concludedTopic           = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
-	depositedTopic           = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256)"))
-	challengeRegisteredTopic = common.HexToHash("0x0aa12461ee6c137332989aa12cec79f4772ab2c1a8732a382aada7e9f3ec9d34")
-	challengeClearedTopic    = crypto.Keccak256Hash([]byte("ChallengeCleared(bytes32 indexed channelId, uint48 newTurnNumRecord)"))
+	naAbi, _                 = NitroAdjudicator.NitroAdjudicatorMetaData.GetAbi()
+	concludedTopic           = naAbi.Events["Concluded"].ID
+	allocationUpdatedTopic   = naAbi.Events["AllocationUpdated"].ID
+	depositedTopic           = naAbi.Events["Deposited"].ID
+	challengeRegisteredTopic = naAbi.Events["ChallengeRegistered"].ID
+	challengeClearedTopic    = naAbi.Events["ChallengeCleared"].ID
 )
 
 var topicsToWatch = []common.Hash{
