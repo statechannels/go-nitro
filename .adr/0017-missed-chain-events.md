@@ -6,7 +6,10 @@ Review
 
 ## Context
 
-A user should be able to restart a nitro node without concern that it has missed chain events that caused the node's data to get out of sync with other nodes and the chain state. Similarly, a nitro node should be able to start for the first time and catch up on any relevant chain events that occurred before the node started. To address these concerns, a nitro node should check for any chain events it might have missed since it was last online, and queue those events to be processed as part of the node's initialization routines.
+
+It is critical that a go-nitro node can synchronise pertinent blockchain state, in order to successfully perform off chain protocols and protect against faulty challenges. For efficiency reasons, a node synchronises that state by listening to blockchain events. Missing those events can therefore cause the node's data to get out of sync with other nodes and the chain state. Events might be missed if the node has not been continuously running throughout the lifetime of any particular channel it is a participant in. For example, there may have been a period of downtime or loss of internet due to power loss or maintenance.
+
+To address these concerns, a nitro node should check for any chain events it might have missed since it was last online, and queue those events to be processed as part of the node's initialization routines.
 
 If the `chainservice` communicates with the `engine` when new blocks are processed, the node can store the `lastBlockSeen` in the `durablestore`. Then, when the node is initialized it can read the `lastBlockSeen` from the `store`, and search for any chain events that occurred between that block and the current block.
 
