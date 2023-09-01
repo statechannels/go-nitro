@@ -1,11 +1,11 @@
 /**
  * JSON RPC Types
  */
-export type JsonRpcRequest<MethodName extends RequestMethod, RequestParams> = {
+export type JsonRpcRequest<MethodName extends RequestMethod, RequestPayload> = {
   id: number; // in the json-rpc spec this is optional, but we require it for all our requests
   jsonrpc: "2.0";
   method: MethodName;
-  params: RequestParams;
+  params: { authtoken: string; payload: RequestPayload };
 };
 export type JsonRpcResponse<ResultType> = {
   id: number;
@@ -13,10 +13,10 @@ export type JsonRpcResponse<ResultType> = {
   result: ResultType;
 };
 
-export type JsonRpcNotification<NotificationName, NotificationParams> = {
+export type JsonRpcNotification<NotificationName, NotificationPayload> = {
   jsonrpc: "2.0";
   method: NotificationName;
-  params: NotificationParams;
+  params: { payload: NotificationPayload };
 };
 
 export type JsonRpcError<Code, Message, Data = undefined> = {
@@ -28,9 +28,9 @@ export type JsonRpcError<Code, Message, Data = undefined> = {
 };
 
 /**
- * Objective params and responses
+ * Objective payloads and responses
  */
-export type DirectFundParams = {
+export type DirectFundPayload = {
   CounterParty: string;
   ChallengeDuration: number;
   Outcome: Outcome;
@@ -38,7 +38,7 @@ export type DirectFundParams = {
   AppDefinition: string;
   AppData: string;
 };
-export type VirtualFundParams = {
+export type VirtualFundPayload = {
   Intermediaries: string[];
   CounterParty: string;
   ChallengeDuration: number;
@@ -46,7 +46,7 @@ export type VirtualFundParams = {
   Nonce: number;
   AppDefinition: string;
 };
-export type PaymentParams = {
+export type PaymentPayload = {
   // todo: this should be a bigint
   Amount: number;
   Channel: string;
@@ -81,18 +81,22 @@ export type ReceiveVoucherResult = {
 /**
  * RPC Requests
  */
+export type GetAuthTokenRequest = JsonRpcRequest<
+  "get_auth_token",
+  Record<string, never>
+>;
 export type GetAddressRequest = JsonRpcRequest<
   "get_address",
   Record<string, never>
 >;
 export type DirectFundRequest = JsonRpcRequest<
   "create_ledger_channel",
-  DirectFundParams
+  DirectFundPayload
 >;
-export type PaymentRequest = JsonRpcRequest<"pay", PaymentParams>;
+export type PaymentRequest = JsonRpcRequest<"pay", PaymentPayload>;
 export type VirtualFundRequest = JsonRpcRequest<
   "create_payment_channel",
-  VirtualFundParams
+  VirtualFundPayload
 >;
 export type GetLedgerChannelRequest = JsonRpcRequest<
   "get_ledger_channel",
@@ -123,7 +127,7 @@ export type VirtualDefundRequest = JsonRpcRequest<
 
 export type CreateVoucherRequest = JsonRpcRequest<
   "create_voucher",
-  PaymentParams
+  PaymentPayload
 >;
 
 export type ReceiveVoucherRequest = JsonRpcRequest<"receive_voucher", Voucher>;
@@ -131,8 +135,9 @@ export type ReceiveVoucherRequest = JsonRpcRequest<"receive_voucher", Voucher>;
 /**
  * RPC Responses
  */
+export type GetAuthTokenResponse = JsonRpcResponse<string>;
 export type GetPaymentChannelResponse = JsonRpcResponse<PaymentChannelInfo>;
-export type PaymentResponse = JsonRpcResponse<PaymentParams>;
+export type PaymentResponse = JsonRpcResponse<PaymentPayload>;
 export type GetLedgerChannelResponse = JsonRpcResponse<LedgerChannelInfo>;
 export type VirtualFundResponse = JsonRpcResponse<ObjectiveResponse>;
 export type VersionResponse = JsonRpcResponse<string>;
@@ -151,6 +156,7 @@ export type ReceiveVoucherResponse = JsonRpcResponse<ReceiveVoucherResult>;
  * This is a map of all the RPC methods to their request and response types
  */
 export type RPCRequestAndResponses = {
+  get_auth_token: [GetAuthTokenRequest, GetAuthTokenResponse];
   create_ledger_channel: [DirectFundRequest, DirectFundResponse];
   close_ledger_channel: [DirectDefundRequest, DirectDefundResponse];
   version: [VersionRequest, VersionResponse];
@@ -187,7 +193,7 @@ export type RPCNotification =
   | PaymentChannelUpdatedNotification
   | LedgerChannelUpdatedNotification;
 export type NotificationMethod = RPCNotification["method"];
-export type NotificationPayload = RPCNotification["params"];
+export type NotificationParams = RPCNotification["params"];
 export type PaymentChannelUpdatedNotification = JsonRpcNotification<
   "payment_channel_updated",
   PaymentChannelInfo

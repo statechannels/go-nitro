@@ -4,7 +4,7 @@ import { EventEmitter } from "eventemitter3";
 
 import {
   NotificationMethod,
-  NotificationPayload,
+  NotificationParams,
   RequestMethod,
   RPCRequestAndResponses,
 } from "../types";
@@ -12,7 +12,7 @@ import {
 import { Transport } from ".";
 
 export class HttpTransport {
-  Notifications: EventEmitter<NotificationMethod, NotificationPayload>;
+  Notifications: EventEmitter<NotificationMethod, NotificationParams>;
 
   public static async createTransport(server: string): Promise<Transport> {
     // eslint-disable-next-line new-cap

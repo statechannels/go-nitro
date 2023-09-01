@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/statechannels/go-nitro/internal/chain"
 	"github.com/statechannels/go-nitro/internal/logging"
@@ -25,11 +24,12 @@ import (
 )
 
 var (
-	allocationUpdatedTopic   = crypto.Keccak256Hash([]byte("AllocationUpdated(bytes32,uint256,uint256,uint256)"))
-	concludedTopic           = crypto.Keccak256Hash([]byte("Concluded(bytes32,uint48)"))
-	depositedTopic           = crypto.Keccak256Hash([]byte("Deposited(bytes32,address,uint256)"))
-	challengeRegisteredTopic = crypto.Keccak256Hash([]byte("ChallengeRegistered(bytes32 indexed channelId, uint48 turnNumRecord, uint48 finalizesAt, bool isFinal, (address[],uint64,address,uint48) fixedPart, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[])[] proof, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[]) candidate)"))
-	challengeClearedTopic    = crypto.Keccak256Hash([]byte("ChallengeCleared(bytes32 indexed channelId, uint48 newTurnNumRecord)"))
+	naAbi, _                 = NitroAdjudicator.NitroAdjudicatorMetaData.GetAbi()
+	concludedTopic           = naAbi.Events["Concluded"].ID
+	allocationUpdatedTopic   = naAbi.Events["AllocationUpdated"].ID
+	depositedTopic           = naAbi.Events["Deposited"].ID
+	challengeRegisteredTopic = naAbi.Events["ChallengeRegistered"].ID
+	challengeClearedTopic    = naAbi.Events["ChallengeCleared"].ID
 )
 
 var topicsToWatch = []common.Hash{
@@ -131,10 +131,10 @@ func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.
 	if err != nil {
 		return nil, err
 	}
- 	
+
 	// Prevent go routines from processing events before checkForMissedEvents completes
 	ecs.eventTracker.mu.Lock()
-	
+
 	ecs.wg.Add(3)
 	go ecs.listenForEventLogs(errChan, eventSub, eventChan, eventQuery)
 	go ecs.listenForNewBlocks(errChan, newBlockSub, newBlockChan)
@@ -252,7 +252,12 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 		}
 		_, err := ecs.na.ConcludeAndTransferAllAssets(ecs.defaultTxOpts(), nitroFixedPart, candidate)
 		return err
-
+	case protocols.ChallengeTransaction:
+		fp, candidate := NitroAdjudicator.ConvertSignedStateToFixedPartAndSignedVariablePart(tx.Candidate)
+		proof := NitroAdjudicator.ConvertSignedStatesToProof(tx.Proof)
+		challengerSig := NitroAdjudicator.ConvertSignature(tx.ChallengerSig)
+		_, err := ecs.na.Challenge(ecs.defaultTxOpts(), fp, proof, candidate, challengerSig)
+		return err
 	default:
 		return fmt.Errorf("unexpected transaction type %T", tx)
 	}

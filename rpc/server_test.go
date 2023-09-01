@@ -52,6 +52,32 @@ func sendRequestAndExpectError(t *testing.T, request []byte, expectedError serde
 	assert.Equal(t, expectedError, jsonResponse.Error)
 }
 
+func getAuthToken(t *testing.T) string {
+	request := serde.JsonRpcSpecificRequest[serde.NoPayloadRequest]{Jsonrpc: "2.0", Id: 1, Method: "get_auth_token"}
+	jsonRequest, err := json.Marshal(request)
+	if err != nil {
+		t.Error(err)
+	}
+
+	mockNode := &nitro.Node{}
+	mockResponder := &mockResponder{}
+	// Since we're using an empty node we want to disable notifications
+	// otherwise the server will try to send notifications to the node and fail
+	_, err = newRpcServerWithoutNotifications(mockNode, mockResponder)
+	if err != nil {
+		t.Error(err)
+	}
+
+	response := mockResponder.Handler(jsonRequest)
+
+	jsonResponse := serde.JsonRpcSuccessResponse[string]{}
+	err = json.Unmarshal(response, &jsonResponse)
+	if err != nil {
+		t.Error(err)
+	}
+	return jsonResponse.Result
+}
+
 func TestRpcParseError(t *testing.T) {
 	request := []byte{}
 	sendRequestAndExpectError(t, request, serde.ParseError)
@@ -119,7 +145,10 @@ func TestRpcMethodNotFound(t *testing.T) {
 }
 
 func TestRpcGetPaymentChannelMissingParam(t *testing.T) {
-	request := serde.JsonRpcSpecificRequest[serde.GetPaymentChannelRequest]{Jsonrpc: "2.0", Id: 2, Method: "get_payment_channel"}
+	authToken := getAuthToken(t)
+	request := serde.JsonRpcSpecificRequest[serde.GetPaymentChannelRequest]{
+		Jsonrpc: "2.0", Id: 2, Method: "get_payment_channel", Params: serde.Params[serde.GetPaymentChannelRequest]{AuthToken: authToken},
+	}
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {
 		t.Error(err)
@@ -129,6 +158,8 @@ func TestRpcGetPaymentChannelMissingParam(t *testing.T) {
 }
 
 func TestRpcPayInvalidParam(t *testing.T) {
+	authToken := getAuthToken(t)
+
 	paymentRequest := serde.PaymentRequest{
 		Amount:  100,
 		Channel: types.Destination{},
@@ -138,7 +169,7 @@ func TestRpcPayInvalidParam(t *testing.T) {
 		Jsonrpc: "2.0",
 		Id:      2,
 		Method:  "pay",
-		Params:  paymentRequest,
+		Params:  serde.Params[serde.PaymentRequest]{AuthToken: authToken, Payload: paymentRequest},
 	}
 
 	jsonRequest, err := json.Marshal(request)

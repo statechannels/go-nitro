@@ -13,13 +13,15 @@ import (
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/testactors"
+	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
 var (
-	Alice = testactors.Alice
-	Bob   = testactors.Bob
+	CHALLENGE_DURATION = uint32(1000) // 1000 seconds. Much longer than the duration of the test
+	Alice              = testactors.Alice
+	Bob                = testactors.Bob
 )
 
 var concludeOutcome = outcome.Exit{
@@ -36,12 +38,6 @@ var concludeOutcome = outcome.Exit{
 			},
 		},
 	},
-}
-
-type NoopLogger struct{}
-
-func (l NoopLogger) Write(p []byte) (n int, err error) {
-	return 0, nil
 }
 
 func TestSimulatedBackendChainService(t *testing.T) {
@@ -71,21 +67,52 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		},
 		ChannelNonce:      37140676580,
 		AppDefinition:     bindings.ConsensusApp.Address,
-		ChallengeDuration: 0,
+		ChallengeDuration: CHALLENGE_DURATION,
 		AppData:           []byte{},
 		Outcome:           concludeOutcome,
 		TurnNum:           uint64(2),
 		IsFinal:           true,
 	}
 
-	// Prepare test data to trigger EthChainService
+	challengerSig, err := NitroAdjudicator.SignChallengeMessage(concludeState, Alice.PrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	concludeSignedState := state.NewSignedState(concludeState)
+	aSig, err := concludeState.Sign(Alice.PrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bSig, err := concludeState.Sign(Bob.PrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = concludeSignedState.AddSignature(aSig)
+	_ = concludeSignedState.AddSignature(bSig)
+
+	challengeTx := protocols.NewChallengeTransaction(concludeState.ChannelId(), concludeSignedState, make([]state.SignedState, 0), challengerSig)
+
+	out := cs.EventFeed()
+	err = cs.SendTransaction(challengeTx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check that the received events matches the expected event
+
+	receivedEvent = <-out
+	crEvent := receivedEvent.(ChallengeRegisteredEvent)
+	expectedChallengeRegisteredEvent := NewChallengeRegisteredEvent(concludeState.ChannelId(), 2, crEvent.candidate, crEvent.candidateSignatures)
+	if diff := cmp.Diff(expectedChallengeRegisteredEvent, crEvent, cmp.AllowUnexported(ChallengeRegisteredEvent{}, commonEvent{}, big.Int{})); diff != "" {
+		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
+	}
+
 	testDeposit := types.Funds{
 		common.HexToAddress("0x00"): three,
 		bindings.Token.Address:      one,
 	}
 	testTx := protocols.NewDepositTransaction(concludeState.ChannelId(), testDeposit)
 
-	out := cs.EventFeed()
 	// Submit transaction
 	err = cs.SendTransaction(testTx)
 	if err != nil {
@@ -96,8 +123,8 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		receivedEvent = <-out
 		dEvent := receivedEvent.(DepositedEvent)
-		expectedEvent := NewDepositedEvent(concludeState.ChannelId(), 2, dEvent.Asset, testDeposit[dEvent.Asset])
-		if diff := cmp.Diff(expectedEvent, dEvent, cmp.AllowUnexported(DepositedEvent{}, commonEvent{}, big.Int{})); diff != "" {
+		expectedDepositEvent := NewDepositedEvent(concludeState.ChannelId(), 5, dEvent.Asset, testDeposit[dEvent.Asset])
+		if diff := cmp.Diff(expectedDepositEvent, dEvent, cmp.AllowUnexported(DepositedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 			t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 		}
 		delete(testDeposit, dEvent.Asset)
@@ -106,10 +133,6 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	if len(testDeposit) != 0 {
 		t.Fatalf("Mismatch between the deposit transaction and the received events")
 	}
-
-	// Generate Signatures
-	aSig, _ := concludeState.Sign(Alice.PrivateKey)
-	bSig, _ := concludeState.Sign(Bob.PrivateKey)
 
 	cId := concludeState.ChannelId()
 
@@ -145,8 +168,8 @@ func TestSimulatedBackendChainService(t *testing.T) {
 
 	// Check that the recieved event matches the expected event
 	allocationUpdatedEvent := <-out
-	expectedAllocationUpatedEvent := NewAllocationUpdatedEvent(cId, 5, common.Address{}, new(big.Int).SetInt64(1))
-	if diff := cmp.Diff(expectedAllocationUpatedEvent, allocationUpdatedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
+	expectedAllocationUpdatedEvent := NewAllocationUpdatedEvent(cId, 5, common.Address{}, new(big.Int).SetInt64(1))
+	if diff := cmp.Diff(expectedAllocationUpdatedEvent, allocationUpdatedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
@@ -177,7 +200,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	}
 
 	receivedEvent = <-cs2.EventFeed()
-	if diff := cmp.Diff(expectedAllocationUpatedEvent, receivedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
+	if diff := cmp.Diff(expectedAllocationUpdatedEvent, receivedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 }

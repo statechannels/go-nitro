@@ -16,6 +16,7 @@ import (
 type RequestMethod string
 
 const (
+	GetAuthTokenMethod                RequestMethod = "get_auth_token"
 	GetAddressMethod                  RequestMethod = "get_address"
 	VersionMethod                     RequestMethod = "version"
 	CreateLedgerChannelRequestMethod  RequestMethod = "create_ledger_channel"
@@ -45,6 +46,9 @@ type NotificationOrRequest interface {
 
 const JsonRpcVersion = "2.0"
 
+type AuthRequest struct {
+	Id string
+}
 type PaymentRequest struct {
 	Amount  uint64
 	Channel types.Destination
@@ -68,6 +72,7 @@ type RequestPayload interface {
 		directdefund.ObjectiveRequest |
 		virtualfund.ObjectiveRequest |
 		virtualdefund.ObjectiveRequest |
+		AuthRequest |
 		PaymentRequest |
 		GetLedgerChannelRequest |
 		GetPaymentChannelRequest |
@@ -82,11 +87,16 @@ type NotificationPayload interface {
 		query.LedgerChannelInfo
 }
 
+type Params[T RequestPayload | NotificationPayload] struct {
+	AuthToken string `json:"authtoken"`
+	Payload   T      `json:"payload"`
+}
+
 type JsonRpcSpecificRequest[T RequestPayload | NotificationPayload] struct {
-	Jsonrpc string `json:"jsonrpc"`
-	Id      uint64 `json:"id"`
-	Method  string `json:"method"`
-	Params  T      `json:"params"`
+	Jsonrpc string    `json:"jsonrpc"`
+	Id      uint64    `json:"id"`
+	Method  string    `json:"method"`
+	Params  Params[T] `json:"params"`
 }
 
 type (
@@ -115,12 +125,12 @@ type JsonRpcSuccessResponse[T ResponsePayload] struct {
 	Result  T      `json:"result"`
 }
 
-func NewJsonRpcSpecificRequest[T RequestPayload | NotificationPayload, U RequestMethod | NotificationMethod](requestId uint64, method U, objectiveRequest T) *JsonRpcSpecificRequest[T] {
+func NewJsonRpcSpecificRequest[T RequestPayload | NotificationPayload, U RequestMethod | NotificationMethod](requestId uint64, method U, objectiveRequest T, authToken string) *JsonRpcSpecificRequest[T] {
 	return &JsonRpcSpecificRequest[T]{
 		Jsonrpc: JsonRpcVersion,
 		Id:      requestId,
 		Method:  string(method),
-		Params:  objectiveRequest,
+		Params:  Params[T]{AuthToken: authToken, Payload: objectiveRequest},
 	}
 }
 
@@ -178,4 +188,5 @@ var (
 	InternalServerError   = JsonRpcError{Code: -32603, Message: "Internal error"}
 	RequestUnmarshalError = JsonRpcError{Code: -32010, Message: "Could not unmarshal request object"}
 	ParamsUnmarshalError  = JsonRpcError{Code: -32009, Message: "Could not unmarshal params object"}
+	InvalidAuthTokenError = JsonRpcError{Code: -32008, Message: "Invalid auth token"}
 )

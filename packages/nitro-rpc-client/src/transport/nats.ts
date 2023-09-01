@@ -4,7 +4,7 @@ import { EventEmitter } from "eventemitter3";
 import {
   JsonRpcNotification,
   NotificationMethod,
-  NotificationPayload,
+  NotificationParams,
   RequestMethod,
   RPCRequestAndResponses,
 } from "../types";
@@ -21,7 +21,7 @@ export class NatsTransport {
 
   private notifications = new EventEmitter<
     NotificationMethod,
-    NotificationPayload
+    NotificationParams
   >();
 
   public static async createTransport(server: string): Promise<Transport> {
@@ -42,7 +42,7 @@ export class NatsTransport {
 
   public get Notifications(): EventEmitter<
     NotificationMethod,
-    NotificationPayload
+    NotificationParams
   > {
     return this.notifications;
   }
@@ -52,7 +52,7 @@ export class NatsTransport {
       msg.data;
       const notif = JSONCodec().decode(msg.data) as JsonRpcNotification<
         NotificationMethod,
-        NotificationPayload
+        NotificationParams
       >;
 
       switch (notif.method) {

@@ -65,20 +65,20 @@ export function convertAddressToBytes32(address: string): string {
 }
 
 /**
- * generateRequest is a helper function that generates a request object for the given method and params
+ * generateRequest is a helper function that generates a request object for the given method and payloads
  *
  * @param method - The RPC method to generate a request for
- * @param params - The params to include in the request
+ * @param payload - The payloads to include in the request
  * @returns A request object of the correct type
  */
 export function generateRequest<
   K extends RequestMethod,
   T extends RPCRequestAndResponses[K][0]
->(method: K, params: T["params"]): T {
+>(method: K, payload: T["params"]["payload"], authToken: string): T {
   return {
     jsonrpc: "2.0",
     method,
-    params,
+    params: { authtoken: authToken, payload: payload },
     // Our schema defines id as a uint32. We mod the current time to ensure that we don't overflow
     id: Date.now() % 1_000_000_000,
   } as T; // TODO: We shouldn't have to cast here

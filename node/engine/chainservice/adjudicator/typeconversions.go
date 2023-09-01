@@ -62,3 +62,25 @@ func ConvertSignature(s nc.Signature) INitroTypesSignature {
 	copy(sig.S[:], s.S) // TODO we should just use 32 byte types, which would remove the need for this func
 	return sig
 }
+
+func ConvertSignedStateToFixedPartAndSignedVariablePart(s state.SignedState) (INitroTypesFixedPart, INitroTypesSignedVariablePart) {
+	fp := ConvertFixedPart(s.State().FixedPart())
+	svp := INitroTypesSignedVariablePart{
+		VariablePart: ConvertVariablePart(s.State().VariablePart()),
+		Sigs:         make([]INitroTypesSignature, 0, len(s.Signatures())),
+	}
+	for _, sig := range s.Signatures() {
+		svp.Sigs = append(svp.Sigs, ConvertSignature(sig))
+	}
+
+	return fp, svp
+}
+
+func ConvertSignedStatesToProof(ss []state.SignedState) []INitroTypesSignedVariablePart {
+	svps := make([]INitroTypesSignedVariablePart, 0, len(ss))
+	for _, s := range ss {
+		_, svp := ConvertSignedStateToFixedPartAndSignedVariablePart(s)
+		svps = append(svps, svp)
+	}
+	return svps
+}
