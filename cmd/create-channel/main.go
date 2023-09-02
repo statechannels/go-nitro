@@ -37,7 +37,7 @@ func main() {
 	logging.SetupDefaultFileLogger(LOG_FILE, slog.LevelDebug)
 
 	url := fmt.Sprintf(":%d/api/v1", participantOpts.RpcPort)
-	clientConnection, err := http.NewWebSocketTransportAsClient(url)
+	clientConnection, err := http.NewHttpTransportAsClient(url)
 	if err != nil {
 		panic(err)
 	}
