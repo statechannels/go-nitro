@@ -4,7 +4,7 @@ type TransportType string
 
 const (
 	Nats TransportType = "nats"
-	Ws   TransportType = "ws"
+	Http TransportType = "http"
 )
 
 // Requester is a transport that can send requests and subscribe to notifications
