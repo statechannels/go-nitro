@@ -46,7 +46,7 @@ func TestRpcWithNats(t *testing.T) {
 	}
 }
 
-func TestRpcWithWebsockets(t *testing.T) {
+func TestRpcWithHttp(t *testing.T) {
 	for _, n := range []int{2, 3, 4} {
 		executeNRpcTestWrapper(t, "ws", n, false)
 	}
