@@ -48,13 +48,13 @@ func TestRpcWithNats(t *testing.T) {
 
 func TestRpcWithHttp(t *testing.T) {
 	for _, n := range []int{2, 3, 4} {
-		executeNRpcTestWrapper(t, "ws", n, false)
+		executeNRpcTestWrapper(t, transport.Http, n, false)
 	}
 }
 
 func TestRPCWithManualVoucherExchange(t *testing.T) {
-	executeNRpcTestWrapper(t, "ws", 4, true)
-	executeNRpcTestWrapper(t, "nats", 4, true)
+	executeNRpcTestWrapper(t, transport.Http, 4, true)
+	executeNRpcTestWrapper(t, transport.Nats, 4, true)
 }
 
 func executeNRpcTestWrapper(t *testing.T, connectionType transport.TransportType, n int, manualVoucherExchange bool) {
@@ -414,9 +414,9 @@ func setupNitroNodeWithRPCClient(
 
 	var useNats bool
 	switch connectionType {
-	case "nats":
+	case transport.Nats:
 		useNats = true
-	case "ws":
+	case transport.Http:
 		useNats = false
 	default:
 		err = fmt.Errorf("unknown connection type %v", connectionType)
@@ -429,13 +429,13 @@ func setupNitroNodeWithRPCClient(
 
 	var clientConnection transport.Requester
 	switch connectionType {
-	case "nats":
+	case transport.Nats:
 
 		clientConnection, err = natstrans.NewNatsTransportAsClient(rpcServer.Url())
 		if err != nil {
 			panic(err)
 		}
-	case "ws":
+	case transport.Http:
 
 		clientConnection, err = http.NewHttpTransportAsClient(rpcServer.Url())
 		if err != nil {

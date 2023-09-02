@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/statechannels/go-nitro/payments"
+	"github.com/statechannels/go-nitro/rpc/transport"
 
 	"github.com/statechannels/go-nitro/internal/logging"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
@@ -237,11 +238,11 @@ func setupNitroClients(t *testing.T, logFile string) (alice, irene, bob rpc.RpcC
 	aliceChainService := chainservice.NewMockChainService(chain, ta.Alice.Address())
 	bobChainService := chainservice.NewMockChainService(chain, ta.Bob.Address())
 	ireneChainService := chainservice.NewMockChainService(chain, ta.Irene.Address())
-	ireneClient, msgIrene, ireneCleanup := setupNitroNodeWithRPCClient(t, ta.Irene.PrivateKey, 3106, 4106, ireneChainService, "ws", []string{})
+	ireneClient, msgIrene, ireneCleanup := setupNitroNodeWithRPCClient(t, ta.Irene.PrivateKey, 3106, 4106, ireneChainService, transport.Http, []string{})
 	bootPeers := []string{msgIrene.MultiAddr}
-	aliceClient, msgAlice, aliceCleanup := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3105, 4105, aliceChainService, "ws", bootPeers)
+	aliceClient, msgAlice, aliceCleanup := setupNitroNodeWithRPCClient(t, ta.Alice.PrivateKey, 3105, 4105, aliceChainService, transport.Http, bootPeers)
 
-	bobClient, msgBob, bobCleanup := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3107, 4107, bobChainService, "ws", bootPeers)
+	bobClient, msgBob, bobCleanup := setupNitroNodeWithRPCClient(t, ta.Bob.PrivateKey, 3107, 4107, bobChainService, transport.Http, bootPeers)
 
 	slog.Info("Clients created")
 
