@@ -19,12 +19,12 @@ import (
 )
 
 const (
-	websocketServerAddress = "127.0.0.1:"
-	maxRequestSize         = 8192
-	apiVersionPath         = "/api/v1"
+	httpServerAddress = "127.0.0.1:"
+	maxRequestSize    = 8192
+	apiVersionPath    = "/api/v1"
 )
 
-type serverWebSocketTransport struct {
+type serverHttpTransport struct {
 	httpServer            *http.Server
 	requestHandlers       map[string]func([]byte) []byte
 	port                  string
@@ -34,38 +34,38 @@ type serverWebSocketTransport struct {
 	wg *sync.WaitGroup
 }
 
-// NewWebSocketTransportAsServer starts an http server that accepts websocket connections
-func NewWebSocketTransportAsServer(port string) (*serverWebSocketTransport, error) {
-	wsc := &serverWebSocketTransport{port: port, notificationListeners: safesync.Map[chan []byte]{}, logger: slog.Default()}
+// NewHttpSocketTransportAsServer starts an http server
+func NewHttpSocketTransportAsServer(port string) (*serverHttpTransport, error) {
+	transport := &serverHttpTransport{port: port, notificationListeners: safesync.Map[chan []byte]{}, logger: slog.Default()}
 
-	tcpListener, err := net.Listen("tcp", ":"+wsc.port)
+	tcpListener, err := net.Listen("tcp", ":"+transport.port)
 	if err != nil {
 		return nil, err
 	}
 
 	var serveMux http.ServeMux
 
-	serveMux.HandleFunc(apiVersionPath, wsc.request)
-	serveMux.HandleFunc(path.Join(apiVersionPath, "subscribe"), wsc.subscribe)
-	wsc.httpServer = &http.Server{
+	serveMux.HandleFunc(apiVersionPath, transport.request)
+	serveMux.HandleFunc(path.Join(apiVersionPath, "subscribe"), transport.subscribe)
+	transport.httpServer = &http.Server{
 		Handler:      &serveMux,
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,
 	}
 
-	wsc.requestHandlers = make(map[string]func([]byte) []byte)
-	wsc.wg = &sync.WaitGroup{}
+	transport.requestHandlers = make(map[string]func([]byte) []byte)
+	transport.wg = &sync.WaitGroup{}
 
-	wsc.wg.Add(1)
-	go wsc.serveHttp(tcpListener)
+	transport.wg.Add(1)
+	go transport.serveHttp(tcpListener)
 
-	return wsc, nil
+	return transport, nil
 }
 
-func (wsc *serverWebSocketTransport) serveHttp(tcpListener net.Listener) {
-	defer wsc.wg.Done()
+func (t *serverHttpTransport) serveHttp(tcpListener net.Listener) {
+	defer t.wg.Done()
 
-	err := wsc.httpServer.Serve(tcpListener)
+	err := t.httpServer.Serve(tcpListener)
 	if err != nil && errors.Is(err, http.ErrServerClosed) {
 		return
 	}
@@ -74,35 +74,35 @@ func (wsc *serverWebSocketTransport) serveHttp(tcpListener net.Listener) {
 	}
 }
 
-func (wsc *serverWebSocketTransport) RegisterRequestHandler(apiVersion string, handler func([]byte) []byte) error {
-	wsc.requestHandlers[apiVersion] = handler
+func (t *serverHttpTransport) RegisterRequestHandler(apiVersion string, handler func([]byte) []byte) error {
+	t.requestHandlers[apiVersion] = handler
 	return nil
 }
 
-func (wsc *serverWebSocketTransport) Notify(data []byte) error {
-	wsc.notificationListeners.Range(func(key string, value chan []byte) bool {
+func (t *serverHttpTransport) Notify(data []byte) error {
+	t.notificationListeners.Range(func(key string, value chan []byte) bool {
 		value <- data
 		return true
 	})
 	return nil
 }
 
-func (wsc *serverWebSocketTransport) Close() error {
+func (t *serverHttpTransport) Close() error {
 	// This will cause the serveHttp gand listenForClose goroutines to exit
-	err := wsc.httpServer.Shutdown(context.Background())
+	err := t.httpServer.Shutdown(context.Background())
 	if err != nil {
 		return err
 	}
 
-	wsc.wg.Wait()
+	t.wg.Wait()
 	return nil
 }
 
-func (wsc *serverWebSocketTransport) Url() string {
-	return websocketServerAddress + wsc.port + apiVersionPath
+func (t *serverHttpTransport) Url() string {
+	return httpServerAddress + t.port + apiVersionPath
 }
 
-func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Request) {
+func (t *serverHttpTransport) request(w http.ResponseWriter, r *http.Request) {
 	// Pull api version from the url and determine if the version is supported
 	pathSegments := strings.Split(r.URL.Path, "/")
 	if len(pathSegments) < 3 {
@@ -111,7 +111,7 @@ func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Requ
 	}
 
 	apiVersion := pathSegments[2] // first segment is an empty string
-	handler, ok := wsc.requestHandlers[apiVersion]
+	handler, ok := t.requestHandlers[apiVersion]
 	if !ok {
 		http.Error(w, "Invalid API version", http.StatusBadRequest)
 		return
@@ -141,7 +141,7 @@ func (wsc *serverWebSocketTransport) request(w http.ResponseWriter, r *http.Requ
 }
 
 var upgrader = websocket.Upgrader{} // use default options
-func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Request) {
+func (t *serverHttpTransport) subscribe(w http.ResponseWriter, r *http.Request) {
 	// TODO: We currently allow requests from any origins. We should probably use a whitelist.
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 
@@ -153,9 +153,9 @@ func (wsc *serverWebSocketTransport) subscribe(w http.ResponseWriter, r *http.Re
 	defer c.Close()
 	notificationChan := make(chan []byte)
 	key := strconv.Itoa(int(rand.Uint64()))
-	wsc.notificationListeners.Store(key, notificationChan)
-	wsc.logger.Debug("Websocket transport added a notification listener")
-	defer wsc.notificationListeners.Delete(key)
+	t.notificationListeners.Store(key, notificationChan)
+	t.logger.Debug("Websocket transport added a notification listener")
+	defer t.notificationListeners.Delete(key)
 
 	closeChan := make(chan error)
 
