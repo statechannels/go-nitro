@@ -22,7 +22,7 @@ import (
 	"github.com/statechannels/go-nitro/rand"
 	"github.com/statechannels/go-nitro/rpc/serde"
 	"github.com/statechannels/go-nitro/rpc/transport"
-	"github.com/statechannels/go-nitro/rpc/transport/ws"
+	"github.com/statechannels/go-nitro/rpc/transport/http"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -138,7 +138,7 @@ func NewRpcClient(trans transport.Requester) (RpcClientApi, error) {
 
 // NewHttpRpcClient creates a new rpcClient using an http transport
 func NewHttpRpcClient(rpcServerUrl string) (RpcClientApi, error) {
-	transport, err := ws.NewWebSocketTransportAsClient(rpcServerUrl)
+	transport, err := http.NewWebSocketTransportAsClient(rpcServerUrl)
 	if err != nil {
 		return nil, err
 	}

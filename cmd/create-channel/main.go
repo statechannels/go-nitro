@@ -9,7 +9,7 @@ import (
 	"github.com/statechannels/go-nitro/cmd/utils"
 	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/rpc"
-	"github.com/statechannels/go-nitro/rpc/transport/ws"
+	"github.com/statechannels/go-nitro/rpc/transport/http"
 )
 
 type participantOpts struct {
@@ -37,7 +37,7 @@ func main() {
 	logging.SetupDefaultFileLogger(LOG_FILE, slog.LevelDebug)
 
 	url := fmt.Sprintf(":%d/api/v1", participantOpts.RpcPort)
-	clientConnection, err := ws.NewWebSocketTransportAsClient(url)
+	clientConnection, err := http.NewWebSocketTransportAsClient(url)
 	if err != nil {
 		panic(err)
 	}
