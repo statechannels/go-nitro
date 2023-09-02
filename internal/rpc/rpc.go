@@ -19,7 +19,7 @@ func InitializeRpcServer(node *node.Node, rpcPort int, useNats bool) (*rpc.RpcSe
 		slog.Info("Initializing NATS RPC transport...")
 		transport, err = nats.NewNatsTransportAsServer(rpcPort)
 	} else {
-		slog.Info("Initializing websocket RPC transport...")
+		slog.Info("Initializing Http RPC transport...")
 		transport, err = http.NewHttpSocketTransportAsServer(fmt.Sprint(rpcPort))
 	}
 	if err != nil {
