@@ -1,26 +1,41 @@
 package chainservice
 
 import (
+	"container/heap"
+	"sync"
+
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-type EventQueue []types.Log
+type eventTracker struct {
+	latestBlockNum uint64
+	events         eventQueue
+	mu             sync.Mutex
+}
 
-func (q EventQueue) Len() int { return len(q) }
-func (q EventQueue) Less(i, j int) bool {
+func NewEventTracker(startBlock uint64) *eventTracker {
+	eventQueue := eventQueue{}
+	heap.Init(&eventQueue)
+	return &eventTracker{latestBlockNum: startBlock, events: eventQueue}
+}
+
+type eventQueue []types.Log
+
+func (q eventQueue) Len() int { return len(q) }
+func (q eventQueue) Less(i, j int) bool {
 	if q[i].BlockNumber == q[j].BlockNumber {
 		return i < j
 	}
 	return q[i].BlockNumber < q[j].BlockNumber
 }
 
-func (q EventQueue) Swap(i, j int) { q[i], q[j] = q[j], q[i] }
+func (q eventQueue) Swap(i, j int) { q[i], q[j] = q[j], q[i] }
 
-func (q *EventQueue) Push(x interface{}) {
+func (q *eventQueue) Push(x interface{}) {
 	*q = append(*q, x.(types.Log))
 }
 
-func (q *EventQueue) Pop() interface{} {
+func (q *eventQueue) Pop() interface{} {
 	old := *q
 	n := len(old)
 	x := old[n-1]
