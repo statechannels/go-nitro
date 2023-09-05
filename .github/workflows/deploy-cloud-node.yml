@@ -21,6 +21,7 @@ jobs:
         run: make docker/cloud/push
 
   deploy:
+    needs: build
     runs-on: ubuntu-latest
 
     steps:
