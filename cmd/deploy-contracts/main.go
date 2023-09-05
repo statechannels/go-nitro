@@ -28,7 +28,7 @@ func main() {
 		&cli.BoolFlag{
 			Name:    START_ANVIL,
 			Usage:   "Specifies whether to start a local anvil instance",
-			Value:   true,
+			Value:   false,
 			Aliases: []string{"a"},
 		},
 		&cli.StringFlag{
@@ -78,7 +78,6 @@ func main() {
 				panic(err)
 			}
 
-			utils.WaitForKillSignal()
 			utils.StopCommands(running...)
 			return nil
 		},
