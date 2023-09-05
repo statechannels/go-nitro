@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,6 +20,10 @@ jobs:
       - name: Push Docker image to DigitalOcean
         run: make docker/cloud/push
 
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Deploy to Droplet
         env:
           SSH_PRIVATE_KEY: ${{ secrets.DO_SSH_PRIVATE_KEY }}
