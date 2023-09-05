@@ -87,7 +87,7 @@ const RESUB_INTERVAL = 15 * time.Second
 const REQUIRED_BLOCK_CONFIRMATIONS = 2
 
 // NewEthChainService is a convenient wrapper around newEthChainService, which provides a simpler API
-func NewEthChainService(chainOpts chain.ChainOpts) (*EthChainService, error) {
+func NewEthChainService(chainOpts chain.ChainOpts) (ChainService, error) {
 	if chainOpts.ChainPk == "" {
 		return nil, fmt.Errorf("chainpk must be set")
 	}
