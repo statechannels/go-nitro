@@ -4789,9 +4789,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@statechannels/nitro-protocol@workspace:nitro-protocol":
+"@statechannels/nitro-protocol@workspace:packages/nitro-protocol":
   version: 0.0.0-use.local
-  resolution: "@statechannels/nitro-protocol@workspace:nitro-protocol"
+  resolution: "@statechannels/nitro-protocol@workspace:packages/nitro-protocol"
   dependencies:
     "@nomicfoundation/hardhat-network-helpers": ^1.0.3
     "@nomiclabs/hardhat-ethers": ^2.1.1
