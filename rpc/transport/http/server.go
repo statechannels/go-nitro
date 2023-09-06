@@ -34,8 +34,8 @@ type serverHttpTransport struct {
 	wg *sync.WaitGroup
 }
 
-// NewHttpSocketTransportAsServer starts an http server
-func NewHttpSocketTransportAsServer(port string) (*serverHttpTransport, error) {
+// NewHttpTransportAsServer starts an http server
+func NewHttpTransportAsServer(port string) (*serverHttpTransport, error) {
 	transport := &serverHttpTransport{port: port, notificationListeners: safesync.Map[chan []byte]{}, logger: slog.Default()}
 
 	tcpListener, err := net.Listen("tcp", ":"+transport.port)
