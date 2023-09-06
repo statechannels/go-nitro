@@ -52,7 +52,7 @@ let ForceMove: Contract;
 const provider = getTestProvider();
 
 const participants = ['', '', ''];
-const wallets = new Array(3);
+const wallets = new Array<Wallet>(3);
 
 const challengeDuration = 86400; // 1 day
 const outcome: Outcome = [
@@ -97,7 +97,7 @@ async function createTwoPartySignedCountingAppState(
 }
 
 beforeAll(async () => {
-  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
+  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS|| "");
 });
 
 // Scenarios are synonymous with channelNonce:
@@ -159,8 +159,11 @@ describe('challenge', () => {
     ${reverts7}  | ${empty}                     | ${fourStates}  | ${'correct'}           | ${INVALID_NUMBER_OF_PROOF_STATES}
   `(
     '$description', // For the purposes of this test, participants are fixed, making channelId 1-1 with channelNonce
-    async ({initialFingerprint, stateData, challengeSignatureType, reasonString}) => {
-      const {appDatas, whoSignedWhat}: transitionType = stateData;
+    async (tc) => {
+
+
+      const {reasonString,challengeSignatureType,stateData,initialFingerprint} = tc as unknown as {initialFingerprint:string, stateData:transitionType, challengeSignatureType:string, reasonString:undefined|string}
+      const {appDatas,whoSignedWhat} = stateData
 
       const states: State[] = appDatas.map((data, idx) => ({
         turnNum: largestTurnNum - appDatas.length + 1 + idx,
@@ -273,7 +276,8 @@ describe('challenge with transaction generator', () => {
     ${'challenge(0,1) accepted'}                    | ${[0, 1]} | ${[]}                              | ${[1, 2]} | ${1}
     ${'challenge(1,2) accepted'}                    | ${[0, 1]} | ${[]}                              | ${[2, 3]} | ${0}
     ${'challenge(2,3) accepted, MAX_OUTCOME_ITEMS'} | ${[0, 1]} | ${largeOutcome(MAX_OUTCOME_ITEMS)} | ${[3, 4]} | ${0}
-  `('$description', async ({appData, turnNums, challenger}) => {
+  `('$description', async (tc) => {
+    const {appData,  turnNums, challenger} = tc as unknown as {appData:number[], turnNums:number[], challenger:number}
     const transactionRequest: ethers.providers.TransactionRequest = createChallengeTransaction(
       [
         await createTwoPartySignedCountingAppState(appData[0], turnNums[0]),

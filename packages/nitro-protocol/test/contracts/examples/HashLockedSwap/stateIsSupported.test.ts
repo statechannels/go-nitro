@@ -58,7 +58,7 @@ const challengeDuration = 0x100;
 const whoSignedWhat = [1, 0];
 
 beforeAll(async () => {
-  hashTimeLock = setupContract(provider, HashLockedSwapArtifact, process.env.HASH_LOCK_ADDRESS);
+  hashTimeLock = setupContract(provider, HashLockedSwapArtifact, process.env.HASH_LOCK_ADDRESS || "");
 });
 
 const preImage = '0xdeadbeef';
@@ -89,21 +89,22 @@ describe('stateIsSupported', () => {
     ${false} | ${conditionalPayment} | ${{Sender: 1, Receiver: 0}} | ${4}     | ${incorrectPreImage} | ${{Sender: 0, Receiver: 1}} | ${'Receiver cannot unlock with incorrect preimage'}
   `(
     '$description',
-    async ({
+    async (tc) => {
+        let {
       isValid,
       dataA,
       balancesA,
       turnNumB,
       dataB,
       balancesB,
-    }: {
+    } = tc as unknown as  {
       isValid: boolean;
       dataA: HashLockedSwapData;
       balancesA: AssetOutcomeShortHand;
       turnNumB: number;
       dataB: HashLockedSwapData;
       balancesB: AssetOutcomeShortHand;
-    }) => {
+    }
       const turnNumA = turnNumB - 1;
       balancesA = replaceAddressesAndBigNumberify(balancesA, addresses) as AssetOutcomeShortHand;
       const allocationsA: Allocation[] = [];

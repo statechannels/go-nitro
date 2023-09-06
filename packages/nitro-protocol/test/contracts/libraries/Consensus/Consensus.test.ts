@@ -36,7 +36,7 @@ beforeAll(async () => {
   Consensus = setupContract(
     provider,
     testConsensusArtifact,
-    process.env.TEST_CONSENSUS_ADDRESS
+    process.env.TEST_CONSENSUS_ADDRESS ||""
   ) as Contract & TESTConsensus;
 });
 
@@ -63,10 +63,7 @@ describe('requireConsensus', () => {
     async ({
       turnNumToShortenedVariablePart,
       reason,
-    }: {
-      turnNumToShortenedVariablePart: TurnNumToShortenedVariablePart;
-      reason: undefined | string;
-    }) => {
+    }: any) => {
       const state: State = {
         turnNum: 0,
         isFinal: false,
@@ -74,7 +71,7 @@ describe('requireConsensus', () => {
         channelNonce,
         challengeDuration,
         outcome: defaultOutcome,
-        appDefinition,
+        appDefinition: appDefinition ||"",
         appData: '0x',
       };
 
