@@ -1,7 +1,7 @@
 set -e
 
 GONITRO_DIR=$(pwd)
-NITRO_PROTOCOL_DIR=$GONITRO_DIR/nitro-protocol
+NITRO_PROTOCOL_DIR=$GONITRO_DIR/packages/nitro-protocol
 TEMP_DIR=$NITRO_PROTOCOL_DIR/tmp-build
 GETH_DIR=$(go list -m -f '{{.Dir}}' github.com/ethereum/go-ethereum)
 
