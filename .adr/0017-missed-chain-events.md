@@ -10,7 +10,7 @@ It is critical that a go-nitro node can synchronise pertinent blockchain state, 
 
 To address these concerns, a nitro node should check for any chain events it might have missed since it was last online, and queue those events to be processed as part of the node's initialization routines.
 
-If the `chainservice` communicates with the `engine` when new blocks are processed, the node can store the `lastBlockSeen` in the `durablestore`. Then, when the node is initialized it can read the `lastBlockSeen` from the `store`, and search for any chain events that occurred between that block and the current block.
+If the `chainservice` communicates with the `engine` when new blocks are processed, the node can store the `lastBlockNumSeen` in the `durablestore`. Then, when the node is initialized it can read the `lastBlockNumSeen` from the `store`, and search for any chain events that occurred between that block and the current block. If the node uses a `memstore`, then the `lastBlockNumSeen` will always be set to `0` when the node is first initialized.
 
 ```go
 		ecs.wg.Add(3)
