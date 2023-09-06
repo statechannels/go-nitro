@@ -1,4 +1,5 @@
 import {it} from '@jest/globals';
+import {BytesLike} from 'ethers';
 
 import {encodeGuaranteeData, decodeGuaranteeData, Guarantee} from '../../../src/contract/outcome';
 
@@ -14,7 +15,12 @@ describe('outcome', () => {
     it.each`
       description     | encodeFunction         | decodeFunction         | data
       ${description0} | ${encodeGuaranteeData} | ${decodeGuaranteeData} | ${guarantee}
-    `('$description', ({encodeFunction, decodeFunction, data}) => {
+    `('$description', tc => {
+      const {encodeFunction, decodeFunction, data} = tc as {
+        encodeFunction: (g: Guarantee) => BytesLike;
+        decodeFunction: (b: BytesLike) => Guarantee;
+        data: Guarantee;
+      };
       const encodedData = encodeFunction(data);
       const decodedData = decodeFunction(encodedData);
       expect(decodedData).toEqual(data);

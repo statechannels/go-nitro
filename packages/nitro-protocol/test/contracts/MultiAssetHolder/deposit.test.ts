@@ -16,19 +16,19 @@ const provider = getTestProvider();
 const testNitroAdjudicator = setupContract(
   provider,
   TESTNitroAdjudicatorArtifact,
-  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS
+  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS || ''
 ) as unknown as TESTNitroAdjudicator & Contract;
 
 const token = setupContract(
   provider,
   TokenArtifact,
-  process.env.TEST_TOKEN_ADDRESS
+  process.env.TEST_TOKEN_ADDRESS || ''
 ) as unknown as Token & Contract;
 
 const badToken = setupContract(
   provider,
   BadTokenArtifact,
-  process.env.BAD_TOKEN_ADDRESS
+  process.env.BAD_TOKEN_ADDRESS || ''
 ) as unknown as BadToken & Contract;
 
 const signer0 = getTestProvider().getSigner(0); // Convention matches setupContract function
@@ -81,12 +81,13 @@ describe('deposit', () => {
     ${description7} | ${ETH}      | ${1} | ${0}         | ${2}   | ${2}      | ${'held != expectedHeld'}
     ${description8} | ${ETH}      | ${0} | ${0}         | ${1}   | ${1}      | ${noValueReason}
     ${description9} | ${BadERC20} | ${0} | ${0}         | ${1}   | ${1}      | ${undefined}
-  `('$description', async ({asset, held, expectedHeld, amount, reasonString, heldAfter}) => {
-    held = BigNumber.from(held);
-    expectedHeld = BigNumber.from(expectedHeld);
-    amount = BigNumber.from(amount);
-    heldAfter = BigNumber.from(heldAfter);
-
+  `('$description', async tc => {
+    const held = BigNumber.from(tc.held);
+    const expectedHeld = BigNumber.from(tc.expectedHeld);
+    const amount = BigNumber.from(tc.amount);
+    const heldAfter = BigNumber.from(tc.heldAfter);
+    const asset = tc.asset as string;
+    const reasonString = tc.reasonString as string;
     const destination = getChannelId({
       channelNonce,
       participants,
@@ -126,7 +127,7 @@ describe('deposit', () => {
       expect(allowance.sub(amount).sub(held).gte(0)).toBe(true);
     }
 
-    if (held > 0) {
+    if (held.gt(0)) {
       // Set holdings by depositing in the 'safest' way
       const {events} = await (
         await testNitroAdjudicator.deposit(asset, destination, 0, held, {
