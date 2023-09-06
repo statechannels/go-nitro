@@ -30,7 +30,7 @@ export function setupContract(
 }
 
 export function getCountingAppContractAddress(): string {
-  return process.env.COUNTING_APP_ADDRESS;
+  return process.env.COUNTING_APP_ADDRESS || '';
 }
 
 export const nonParticipant = ethers.Wallet.createRandom();
