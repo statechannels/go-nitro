@@ -25,6 +25,5 @@ module.exports = {
   reporters: ['default'],
   testMatch: ['<rootDir>/test/src/**/?(*.)test.ts?(x)', '<rootDir>/test/?(*.)test.ts?(x)'],
   testEnvironment: 'node',
-  testURL: 'http://localhost',
   preset: 'ts-jest',
 };
