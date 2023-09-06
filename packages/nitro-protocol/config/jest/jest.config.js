@@ -10,11 +10,16 @@ const root = resolve(__dirname, '../../');
 
 // eslint-disable-next-line no-undef
 module.exports = {
-  globals: {
-    'ts-jest': {
-      tsconfig: './test/tsconfig.json',
-    },
+  preset: 'ts-jest',
+  transform: {
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        tsconfig: './test/tsconfig.json',
+      },
+    ],
   },
+
   rootDir: root,
   collectCoverageFrom: ['**/*.{js,jsx,ts,tsx}'],
   reporters: ['default'],
