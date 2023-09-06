@@ -23,6 +23,8 @@ jobs:
         run: yarn hardhat compile
       - name: Run gas benchmarks
         run: yarn benchmark:diff
+      - name: Run contract tests
+        run: yarn test:contracts
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v2

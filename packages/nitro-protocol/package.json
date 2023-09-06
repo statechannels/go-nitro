@@ -20,7 +20,7 @@
     "contracts:deploy-localhost": "yarn hardhat deploy --network localhost --export-all addresses.json && node ./scripts/postdeploy.ts",
     "contracts:deploy-goerli": "yarn hardhat deploy --network goerli --export-all addresses.json && node ./scripts/postdeploy.js",
     "contracts:node": "yarn hardhat node --no-deploy",
-    "test": "yarn test:contracts && yarn test:app --all",
+    "test": "yarn test:app",
     "test:app": "yarn hardhat compile && jest -c ./config/jest/jest.config.js",
     "test:contracts": "yarn hardhat compile && jest -c ./config/jest/jest.contracts.config.js",
     "lint:check": "yarn eslint \"./\" --cache && yarn prettier:check",
