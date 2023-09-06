@@ -2,11 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
-	"os/exec"
 
-	"github.com/statechannels/go-nitro/cmd/utils"
 	"github.com/statechannels/go-nitro/internal/chain"
 	"github.com/urfave/cli/v2"
 )
@@ -20,17 +19,10 @@ const (
 	CHAIN_AUTH_TOKEN = "chainauthtoken"
 	CHAIN_URL        = "chainurl"
 	DEPLOYER_PK      = "chainpk"
-	START_ANVIL      = "startanvil"
 )
 
 func main() {
 	flags := []cli.Flag{
-		&cli.BoolFlag{
-			Name:    START_ANVIL,
-			Usage:   "Specifies whether to start a local anvil instance",
-			Value:   false,
-			Aliases: []string{"a"},
-		},
 		&cli.StringFlag{
 			Name:    CHAIN_AUTH_TOKEN,
 			Usage:   "Specifies the auth token for the chain",
@@ -58,27 +50,16 @@ func main() {
 		Flags: flags,
 
 		Action: func(cCtx *cli.Context) error {
-			running := []*exec.Cmd{}
-			if cCtx.Bool(START_ANVIL) {
-				anvilCmd, err := chain.StartAnvil()
-				if err != nil {
-					utils.StopCommands(running...)
-					panic(err)
-				}
-				running = append(running, anvilCmd)
-			}
-
 			chainAuthToken := cCtx.String(CHAIN_AUTH_TOKEN)
 			chainUrl := cCtx.String(CHAIN_URL)
 			chainPk := cCtx.String(DEPLOYER_PK)
 
 			_, _, _, err := chain.DeployContracts(context.Background(), chainUrl, chainAuthToken, chainPk)
 			if err != nil {
-				utils.StopCommands(running...)
 				panic(err)
 			}
 
-			utils.StopCommands(running...)
+			fmt.Println("Successfully completed!")
 			return nil
 		},
 	}
