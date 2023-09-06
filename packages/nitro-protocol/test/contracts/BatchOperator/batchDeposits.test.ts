@@ -16,25 +16,25 @@ const provider = getTestProvider();
 const batchOperator = setupContract(
   provider,
   BatchOperatorArtifact,
-  process.env.BATCH_OPERATOR_ADDRESS || ''
+  process.env.BATCH_OPERATOR_ADDRESS
 ) as unknown as BatchOperator & Contract;
 
 const nitroAdjudicator = setupContract(
   provider,
   NitroAdjudicatorArtifact,
-  process.env.NITRO_ADJUDICATOR_ADDRESS || ''
+  process.env.NITRO_ADJUDICATOR_ADDRESS
 ) as unknown as NitroAdjudicator & Contract;
 
 const token = setupContract(
   provider,
   TokenArtifact,
-  process.env.TEST_TOKEN_ADDRESS || ''
+  process.env.TEST_TOKEN_ADDRESS
 ) as unknown as Token & Contract;
 
 const badToken = setupContract(
   provider,
   BadTokenArtifact,
-  process.env.BAD_TOKEN_ADDRESS || ''
+  process.env.BAD_TOKEN_ADDRESS
 ) as unknown as BadToken & Contract;
 
 const ETH = MAGIC_ADDRESS_INDICATING_ETH;
@@ -119,7 +119,7 @@ describe('deposit_batch', () => {
       getChannelId({
         channelNonce: getRandomNonce(description),
         participants: [signerAddress, counterparty],
-        appDefinition: consensusApp || '',
+        appDefinition: consensusApp,
         challengeDuration: 100,
       })
     );

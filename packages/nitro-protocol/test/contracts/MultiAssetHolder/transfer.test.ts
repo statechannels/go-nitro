@@ -22,7 +22,7 @@ const testProvider = getTestProvider();
 const testNitroAdjudicator = setupContract(
   testProvider,
   TESTNitroAdjudicatorArtifact,
-  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS || ''
+  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS
 ) as unknown as TESTNitroAdjudicator & Contract;
 
 const addresses = {
