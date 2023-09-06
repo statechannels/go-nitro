@@ -4,7 +4,7 @@ description: How to program a state channel to fit your application.
 
 # Execution Rules
 
-A channel's execution rules dictate the conditions under which a state may be considered **supported** by the underlying blockchain, and also dictate how one supported state may supercede another. In this manner, state channels may be "updated" as participants follow the rules to support state after state.
+A channel's execution rules dictate the conditions under which a state may be considered [**supported**](./0010-states-channels.md#support-proofs) by the underlying blockchain, and also dictate how one supported state may supercede another. In this manner, state channels may be "updated" as participants follow the rules to support state after state.
 
 If a state is supported by the underylying blockchain, it has a chance to be the **final state** for the channel. The final state influences how any assets locked into the channel will be dispersed.
 
@@ -12,7 +12,7 @@ Unlike the rules of the underlying blockchain -- which dictate which state histo
 
 The rules for how one supported state may supercede another are very simple. Each state has a version number, with greater version numbers superceding lesser ones.
 
-The state channel rules are enshrined in two places on the blockchain: firstly, in the **core protocol**, and secondly in the **application rules**.
+The state channel rules are enshrined in two places on the blockchain: firstly, in the [**core protocol**](#core-protocol-rules), and secondly in the [**application rules**](#application-rules).
 
 Participants _may_ provide "support proofs" to the blockchain in order to record the execution of the state channel. They will typically prefer to not do that, since it costs gas -- but they will keep such "support proofs" in hand in case they need to use them.
 
@@ -67,4 +67,4 @@ Ledger channels are a special type of channel used to fund other channels -- the
 
 #### `VirtualPaymentApp`
 
-The virtual payment app allows a _payer_ to pay a _payee_ via their inirection connection through `n` intermediaries. Payments are simply signed "vouchers" sent from the _payer_ to the _payee_. This app is in effect a mini state channel adjudicator, which requires unanimous consensu for most state execution, but parses vouchers and allows for other transitions via _forced transtiions_ (or unilateral consensus). See the [source code](https://github.com/statechannels/go-nitro/blob/main/nitro-protocol/contracts/VirtualPaymentApp.sol).
+The virtual payment app allows a _payer_ to pay a _payee_ via their inirection connection through `n` intermediaries. Payments are simply signed "vouchers" sent from the _payer_ to the _payee_. This app is in effect a mini state channel adjudicator, which requires unanimous consensus for most state execution, but parses vouchers and allows for other transitions via _forced transtiions_ (or unilateral consensus). See the [source code](https://github.com/statechannels/go-nitro/blob/main/nitro-protocol/contracts/VirtualPaymentApp.sol).
