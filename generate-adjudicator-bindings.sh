@@ -16,8 +16,8 @@ echo "Compiling contracts..."
 
 solc --include-path $GONITRO_DIR \
   --base-path $NITRO_PROTOCOL_DIR \
-  @statechannels/exit-format/=../node_modules/@statechannels/exit-format/ \
-  @openzeppelin/contracts/=../node_modules/@openzeppelin/contracts/ \
+  @statechannels/exit-format/=../../node_modules/@statechannels/exit-format/ \
+  @openzeppelin/contracts=../../node_modules/@openzeppelin/contracts/ \
   $NITRO_PROTOCOL_DIR/contracts/NitroAdjudicator.sol \
   $NITRO_PROTOCOL_DIR/contracts/ConsensusApp.sol \
   $NITRO_PROTOCOL_DIR/contracts/Token.sol \
