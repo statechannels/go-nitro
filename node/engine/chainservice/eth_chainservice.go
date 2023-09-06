@@ -1,7 +1,6 @@
 package chainservice
 
 import (
-	"container/heap"
 	"context"
 	"fmt"
 	"log/slog"
@@ -49,12 +48,6 @@ type ethChain interface {
 }
 
 // eventTracker holds on to events in memory and dispatches an event after required number of confirmations
-type eventTracker struct {
-	latestBlockNum uint64
-	events         EventQueue
-	mu             sync.Mutex
-}
-
 type EthChainService struct {
 	chain                    ethChain
 	na                       *NitroAdjudicator.NitroAdjudicator
@@ -121,10 +114,7 @@ func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.
 	ctx, cancelCtx := context.WithCancel(context.Background())
 
 	logger := logging.LoggerWithAddress(slog.Default(), txSigner.From)
-
-	eventQueue := EventQueue{}
-	heap.Init(&eventQueue)
-	tracker := &eventTracker{latestBlockNum: 0, events: eventQueue}
+	tracker := NewEventTracker(startBlock)
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
 	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, &sync.WaitGroup{}, tracker}
@@ -146,29 +136,36 @@ func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.
 	if err != nil {
 		return nil, err
 	}
+
 	ecs.eventTracker.mu.Unlock()
 
 	return &ecs, nil
 }
 
 func (ecs *EthChainService) checkForMissedEvents(startBlock uint64) error {
-	ecs.logger.Info("checking for missed chainservice events", "startBlock", startBlock)
+	// Fetch the latest block
+	latestBlock, err := ecs.chain.BlockByNumber(ecs.ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	ecs.logger.Info("checking for missed chain events", "startBlock", startBlock, "currentBlock", latestBlock.Number())
 	query := ethereum.FilterQuery{
 		FromBlock: big.NewInt(int64(startBlock)),
-		ToBlock:   nil, // For the current block number
+		ToBlock:   latestBlock.Number(),
 		Addresses: []common.Address{ecs.naAddress},
 		Topics:    [][]common.Hash{topicsToWatch},
 	}
 
-	events, err := ecs.chain.FilterLogs(ecs.ctx, query)
+	missedEvents, err := ecs.chain.FilterLogs(ecs.ctx, query)
 	if err != nil {
 		ecs.logger.Error("failed to retrieve old chain logs: %v", err)
 		return err
 	}
-	ecs.logger.Info("found missed events", "numEvents", len(events))
+	ecs.logger.Info("finished checking for missed chain events", "numMissedEvents", len(missedEvents))
 
-	for _, event := range events {
-		heap.Push(&ecs.eventTracker.events, event)
+	for _, event := range missedEvents {
+		ecs.eventTracker.Push(event)
 	}
 	return nil
 }
@@ -182,10 +179,7 @@ func (ecs *EthChainService) listenForErrors(errChan <-chan error) {
 			ecs.wg.Done()
 			return
 		case err := <-errChan:
-
-			// Print to STDOUT in case we're using a noop logger
-			fmt.Println(err)
-
+			fmt.Println(err) // Print to STDOUT in case we're using a noop logger
 			ecs.logger.Error("chain service error", "error", err)
 
 			// Manually panic in case we're using a logger that doesn't call exit(1)
@@ -286,7 +280,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 				return fmt.Errorf("error in ParseAllocationUpdated: %w", err)
 			}
 
-			tx, pending, err := ecs.chain.TransactionByHash(context.Background(), l.TxHash)
+			tx, pending, err := ecs.chain.TransactionByHash(ecs.ctx, l.TxHash)
 			if pending {
 				return fmt.Errorf("expected transaction to be part of the chain, but the transaction is pending")
 			}
@@ -392,7 +386,7 @@ out:
 			var sErr error
 			newBlockSub, sErr = ecs.chain.SubscribeNewHead(ecs.ctx, newBlockChan)
 			if sErr != nil {
-				errorChan <- fmt.Errorf("subscribeNewHead failed on resubscribe: %w", err)
+				errorChan <- fmt.Errorf("subscribeNewHead failed on resubscribe: %w", sErr)
 				break out
 			}
 			ecs.logger.Log(context.Background(), logging.LevelTrace, "resubscribed to new blocks")
@@ -414,13 +408,13 @@ func (ecs *EthChainService) updateEventTracker(errorChan chan<- error, blockNumb
 		ecs.eventTracker.latestBlockNum = *blockNumber
 	}
 	if chainEvent != nil {
-		heap.Push(&ecs.eventTracker.events, *chainEvent)
+		ecs.eventTracker.Push(*chainEvent)
 		ecs.logger.Debug("event added to queue", "updated-queue-length", ecs.eventTracker.events.Len())
 	}
 
 	eventsToDispatch := []ethTypes.Log{}
 	for ecs.eventTracker.events.Len() > 0 && ecs.eventTracker.latestBlockNum >= (ecs.eventTracker.events)[0].BlockNumber+REQUIRED_BLOCK_CONFIRMATIONS {
-		chainEvent := heap.Pop(&ecs.eventTracker.events).(ethTypes.Log)
+		chainEvent := ecs.eventTracker.Pop()
 		eventsToDispatch = append(eventsToDispatch, chainEvent)
 		ecs.logger.Debug("event popped from queue", "updated-queue-length", ecs.eventTracker.events.Len())
 
@@ -472,7 +466,7 @@ func (ecs *EthChainService) GetVirtualPaymentAppAddress() types.Address {
 }
 
 func (ecs *EthChainService) GetChainId() (*big.Int, error) {
-	return ecs.chain.ChainID(context.Background())
+	return ecs.chain.ChainID(ecs.ctx)
 }
 
 func (ecs *EthChainService) Close() error {

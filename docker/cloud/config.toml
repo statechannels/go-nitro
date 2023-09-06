@@ -11,12 +11,13 @@ pk = ""
 # Chain Public Address: 0x16e43DDc5FE417046Da7A0C469cCD4DE6b4764fA
 chainpk = ""
 
-naaddress = "0x86dbCA138C8aF6f9710d17F892bA788e87BeF000"
-vpaaddress = "0x9B955E99c325Be47e4De330F90d36D2E3D4778a9"
-caaddress = "0xC0FA32D0ca8067C9B5b4471Eb41299537E7B6a33"
+naaddress = "0xe32d4B5C5a80660710f6a2aD3cB1c11664138F34"
+vpaaddress = "0x4D1a804e1cE383D75032C52878553212992C98D7"
+caaddress = "0x0C9D79725afc344A388045235CD0B23eA4f0E838"
 
 # RPC provider docs: https://lotus.filecoin.io/lotus/developers/glif-nodes/#testnet-endpoint
 chainurl = "wss://wss.calibration.node.glif.io/apigw/lotus/rpc/v0"
+chainstartblock = 886696
 chainauthtoken = ""
 
 bootpeers = ""
