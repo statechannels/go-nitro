@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
 	"path"
 	"strconv"
@@ -38,11 +37,6 @@ type serverHttpTransport struct {
 func NewHttpTransportAsServer(port string) (*serverHttpTransport, error) {
 	transport := &serverHttpTransport{port: port, notificationListeners: safesync.Map[chan []byte]{}, logger: slog.Default()}
 
-	tcpListener, err := net.Listen("tcp", ":"+transport.port)
-	if err != nil {
-		return nil, err
-	}
-
 	var serveMux http.ServeMux
 
 	// Used to check if the server is ready
@@ -55,6 +49,7 @@ func NewHttpTransportAsServer(port string) (*serverHttpTransport, error) {
 	serveMux.HandleFunc(apiVersionPath, transport.request)
 	serveMux.HandleFunc(path.Join(apiVersionPath, "subscribe"), transport.subscribe)
 	transport.httpServer = &http.Server{
+		Addr:         ":" + port,
 		Handler:      &serveMux,
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,
@@ -64,15 +59,16 @@ func NewHttpTransportAsServer(port string) (*serverHttpTransport, error) {
 	transport.wg = &sync.WaitGroup{}
 
 	transport.wg.Add(1)
-	go transport.serveHttp(tcpListener)
+	go transport.serveHttp()
 
 	return transport, nil
 }
 
-func (t *serverHttpTransport) serveHttp(tcpListener net.Listener) {
+func (t *serverHttpTransport) serveHttp() {
 	defer t.wg.Done()
 
-	err := t.httpServer.Serve(tcpListener)
+	err := t.httpServer.ListenAndServe()
+
 	if err != nil && errors.Is(err, http.ErrServerClosed) {
 		return
 	}
@@ -95,7 +91,7 @@ func (t *serverHttpTransport) Notify(data []byte) error {
 }
 
 func (t *serverHttpTransport) Close() error {
-	// This will cause the serveHttp gand listenForClose goroutines to exit
+	// This will cause the serveHttp and listenForClose goroutines to exit
 	err := t.httpServer.Shutdown(context.Background())
 	if err != nil {
 		return err
