@@ -17,7 +17,7 @@ import (
 
 func InitializeNode(pkString string, chainOpts chain.ChainOpts,
 	useDurableStore bool, durableStoreFolder string, msgPort int, bootPeers []string,
-) (*node.Node, *store.Store, *p2pms.P2PMessageService, *chainservice.EthChainService, error) {
+) (*node.Node, *store.Store, *p2pms.P2PMessageService, chainservice.ChainService, error) {
 	if pkString == "" {
 		panic("pk must be set")
 	}
