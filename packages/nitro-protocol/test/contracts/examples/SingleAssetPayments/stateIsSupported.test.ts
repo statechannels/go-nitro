@@ -47,7 +47,7 @@ beforeAll(async () => {
   singleAssetPayments = setupContract(
     provider,
     SingleAssetPaymentsArtifact,
-    process.env.SINGLE_ASSET_PAYMENTS_ADDRESS || ""
+    process.env.SINGLE_ASSET_PAYMENTS_ADDRESS || ''
   );
 });
 
@@ -70,18 +70,8 @@ describe('stateIsSupported', () => {
     ${[1, 1]} | ${[false, false]} | ${{A: 1, B: 1}} | ${[3, 4]} | ${{A: 0, B: 2}} | ${whoSignedWhatA} | ${reason2}   | ${'Guarantee'}
     ${[1, 1]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${[3, 4]} | ${{A: 1, B: 2}} | ${whoSignedWhatA} | ${reason3}   | ${'Total amounts increase'}
     ${[2, 2]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${[3, 4]} | ${{A: 2, B: 0}} | ${whoSignedWhatA} | ${reason4}   | ${'More than one asset'}
-  `(
-    '$description',
-    async (tc)=>{
-        let {
-      isAllocation,
-      numAssets,
-      balancesA,
-      turnNums,
-      balancesB,
-      whoSignedWhat,
-      reason,
-    } = tc as unknown as  {
+  `('$description', async tc => {
+    const {isAllocation, numAssets, turnNums, whoSignedWhat, reason} = tc as unknown as {
       isAllocation: boolean[];
       numAssets: number[];
       balancesA: AssetOutcomeShortHand;
@@ -89,98 +79,98 @@ describe('stateIsSupported', () => {
       balancesB: AssetOutcomeShortHand;
       whoSignedWhat: number[];
       reason?: string;
+    };
+    let balancesA = tc.balancesA as AssetOutcomeShortHand;
+    balancesA = replaceAddressesAndBigNumberify(balancesA, addresses) as AssetOutcomeShortHand;
+    const allocationsA: Allocation[] = [];
+    Object.keys(balancesA).forEach(key =>
+      allocationsA.push({
+        destination: key,
+        amount: balancesA[key].toString(),
+        allocationType: isAllocation[0] ? AllocationType.simple : AllocationType.guarantee,
+        metadata: isAllocation[0] ? '0x' : encodeGuaranteeData(guaranteeData),
+      })
+    );
+    const outcomeA: Outcome = [
+      {
+        asset: ethers.constants.AddressZero,
+        assetMetadata: {assetType: 0, metadata: '0x'},
+        allocations: allocationsA,
+      },
+    ];
+
+    if (numAssets[0] === 2) {
+      outcomeA.push(outcomeA[0]);
     }
-      balancesA = replaceAddressesAndBigNumberify(balancesA, addresses) as AssetOutcomeShortHand;
-      const allocationsA: Allocation[] = [];
-      Object.keys(balancesA).forEach(key =>
-        allocationsA.push({
-          destination: key,
-          amount: balancesA[key].toString(),
-          allocationType: isAllocation[0] ? AllocationType.simple : AllocationType.guarantee,
-          metadata: isAllocation[0] ? '0x' : encodeGuaranteeData(guaranteeData),
-        })
-      );
-      const outcomeA: Outcome = [
-        {
-          asset: ethers.constants.AddressZero,
-          assetMetadata: {assetType: 0, metadata: '0x'},
-          allocations: allocationsA,
-        },
-      ];
+    let balancesB = tc.balancesB as AssetOutcomeShortHand;
+    balancesB = replaceAddressesAndBigNumberify(balancesB, addresses) as AssetOutcomeShortHand;
+    const allocationsB: Allocation[] = [];
 
-      if (numAssets[0] === 2) {
-        outcomeA.push(outcomeA[0]);
-      }
+    Object.keys(balancesB).forEach(key =>
+      allocationsB.push({
+        destination: key,
+        amount: balancesB[key].toString(),
+        allocationType: isAllocation[1] ? AllocationType.simple : AllocationType.guarantee,
+        metadata: isAllocation[1] ? '0x' : encodeGuaranteeData(guaranteeData),
+      })
+    );
 
-      balancesB = replaceAddressesAndBigNumberify(balancesB, addresses) as AssetOutcomeShortHand;
-      const allocationsB: Allocation[] = [];
+    const outcomeB: Outcome = [
+      {
+        asset: ethers.constants.AddressZero,
+        assetMetadata: {assetType: 0, metadata: '0x'},
+        allocations: allocationsB,
+      },
+    ];
 
-      Object.keys(balancesB).forEach(key =>
-        allocationsB.push({
-          destination: key,
-          amount: balancesB[key].toString(),
-          allocationType: isAllocation[1] ? AllocationType.simple : AllocationType.guarantee,
-          metadata: isAllocation[1] ? '0x' : encodeGuaranteeData(guaranteeData),
-        })
-      );
-
-      const outcomeB: Outcome = [
-        {
-          asset: ethers.constants.AddressZero,
-          assetMetadata: {assetType: 0, metadata: '0x'},
-          allocations: allocationsB,
-        },
-      ];
-
-      if (numAssets[1] === 2) {
-        outcomeB.push(outcomeB[0]);
-      }
-
-      const states: State[] = [
-        {
-          turnNum: turnNums[0],
-          isFinal: false,
-          channelNonce,
-          participants,
-          challengeDuration,
-          outcome: outcomeA,
-          appData: HashZero,
-          appDefinition: singleAssetPayments.address,
-        },
-        {
-          turnNum: turnNums[1],
-          isFinal: false,
-          channelNonce,
-          participants,
-          challengeDuration,
-          outcome: outcomeB,
-          appData: HashZero,
-          appDefinition: singleAssetPayments.address,
-        },
-      ];
-      const fixedPart = getFixedPart(states[0]);
-      const variableParts = states.map(s => getVariablePart(s));
-
-      // Sign the states
-      const signatures = await signStates(states, wallets, whoSignedWhat);
-      const recoveredVariableParts = bindSignaturesWithSignedByBitfield(
-        variableParts,
-        signatures,
-        whoSignedWhat
-      );
-
-      const {proof, candidate} = separateProofAndCandidate(recoveredVariableParts);
-
-      if (reason) {
-        await expectRevert(
-          () => singleAssetPayments.stateIsSupported(fixedPart, proof, candidate),
-          reason
-        );
-      } else {
-        await expectSupportedState(() =>
-          singleAssetPayments.stateIsSupported(fixedPart, proof, candidate)
-        );
-      }
+    if (numAssets[1] === 2) {
+      outcomeB.push(outcomeB[0]);
     }
-  );
+
+    const states: State[] = [
+      {
+        turnNum: turnNums[0],
+        isFinal: false,
+        channelNonce,
+        participants,
+        challengeDuration,
+        outcome: outcomeA,
+        appData: HashZero,
+        appDefinition: singleAssetPayments.address,
+      },
+      {
+        turnNum: turnNums[1],
+        isFinal: false,
+        channelNonce,
+        participants,
+        challengeDuration,
+        outcome: outcomeB,
+        appData: HashZero,
+        appDefinition: singleAssetPayments.address,
+      },
+    ];
+    const fixedPart = getFixedPart(states[0]);
+    const variableParts = states.map(s => getVariablePart(s));
+
+    // Sign the states
+    const signatures = await signStates(states, wallets, whoSignedWhat);
+    const recoveredVariableParts = bindSignaturesWithSignedByBitfield(
+      variableParts,
+      signatures,
+      whoSignedWhat
+    );
+
+    const {proof, candidate} = separateProofAndCandidate(recoveredVariableParts);
+
+    if (reason) {
+      await expectRevert(
+        () => singleAssetPayments.stateIsSupported(fixedPart, proof, candidate),
+        reason
+      );
+    } else {
+      await expectSupportedState(() =>
+        singleAssetPayments.stateIsSupported(fixedPart, proof, candidate)
+      );
+    }
+  });
 });

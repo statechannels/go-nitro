@@ -1,5 +1,5 @@
 import {expectRevert} from '@statechannels/devtools';
-import {BigNumber, BigNumberish, constants, Contract} from 'ethers';
+import {BigNumber, constants, Contract} from 'ethers';
 import {it} from '@jest/globals';
 import {Allocation, AllocationType} from '@statechannels/exit-format';
 
@@ -15,14 +15,14 @@ import {TESTNitroAdjudicator} from '../../../typechain-types/TESTNitroAdjudicato
 import TESTNitroAdjudicatorArtifact from '../../../artifacts/contracts/test/TESTNitroAdjudicator.sol/TESTNitroAdjudicator.json';
 import {channelDataToStatus, isExternalDestination} from '../../../src';
 import {MAGIC_ADDRESS_INDICATING_ETH} from '../../../src/transactions';
-import {AssetOutcomeShortHand, OutcomeShortHand, replaceAddressesAndBigNumberify} from '../../../src/helpers';
+import {AssetOutcomeShortHand, replaceAddressesAndBigNumberify} from '../../../src/helpers';
 
 const testProvider = getTestProvider();
 
 const testNitroAdjudicator = setupContract(
   testProvider,
   TESTNitroAdjudicatorArtifact,
-  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS ||""
+  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS || ''
 ) as unknown as TESTNitroAdjudicator & Contract;
 
 const addresses = {
@@ -64,16 +64,15 @@ describe('transfer', () => {
     ${'17. guarantee allocationType'}      | ${{c: 1}}  | ${false} | ${{A: 1}}             | ${[0]}       | ${{A: 0}}             | ${{}}           | ${{A: 1}}       | ${reason3}
   `(
     `$name: isSimple: $isSimple, heldBefore: $heldBefore, setOutcome: $setOutcome, newOutcome: $newOutcome, heldAfter: $heldAfter, payouts: $payouts`,
-    async (tc) => {
-      
-        let heldBefore = tc.heldBefore as AssetOutcomeShortHand
-        let isSimple = tc.isSimple as boolean;
-        let setOutcome = tc.setOutcome   as AssetOutcomeShortHand
-        let indices = tc.indices as number[];
-        let newOutcome = tc.newOutcome  as AssetOutcomeShortHand
-        let heldAfter = tc.heldAfter  as AssetOutcomeShortHand
-        let payouts = tc.payouts  as AssetOutcomeShortHand
-        let reason = tc.reason as string;
+    async tc => {
+      let heldBefore = tc.heldBefore as AssetOutcomeShortHand;
+      const isSimple = tc.isSimple as boolean;
+      let setOutcome = tc.setOutcome as AssetOutcomeShortHand;
+      const indices = tc.indices as number[];
+      let newOutcome = tc.newOutcome as AssetOutcomeShortHand;
+      let heldAfter = tc.heldAfter as AssetOutcomeShortHand;
+      let payouts = tc.payouts as AssetOutcomeShortHand;
+      const reason = tc.reason as string;
       // Compute channelId
       addresses.c = randomChannelId();
       const channelId = addresses.c;

@@ -41,7 +41,7 @@ const outcome: Outcome = [{asset, allocations: [], assetMetadata: {assetType: 0,
 let appDefinition: string;
 
 beforeAll(async () => {
-  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS ||"");
+  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS || '');
   appDefinition = getCountingAppContractAddress();
 });
 
@@ -84,9 +84,15 @@ describe('conclude', () => {
     ${reverts2} | ${HashZero}         | ${false} | ${turnNumRecord - 1} | ${oneState} | ${NONFINAL_STATE}
   `(
     '$description', // For the purposes of this test, participants are fixed, making channelId 1-1 with channelNonce
-    async (tc) => {
-
-        const {initialFingerprint, isFinal, largestTurnNum, support, reasonString} = tc as unknown as {initialFingerprint: string, isFinal: boolean, largestTurnNum: number, support: any, reasonString: string | undefined}
+    async tc => {
+      const {initialFingerprint, isFinal, largestTurnNum, support, reasonString} =
+        tc as unknown as {
+          initialFingerprint: string;
+          isFinal: boolean;
+          largestTurnNum: number;
+          support: any;
+          reasonString: string | undefined;
+        };
       const {appData, whoSignedWhat} = support;
       const numStates = appData.length;
 
