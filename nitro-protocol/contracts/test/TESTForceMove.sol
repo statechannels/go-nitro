@@ -16,11 +16,10 @@ contract TESTForceMove is ForceMove {
      * @param addresses A line-up of possible perpetrators.
      * @return true if the address is in the array, false otherwise
      */
-    function isAddressInArray(address suspect, address[] memory addresses)
-        public
-        pure
-        returns (bool)
-    {
+    function isAddressInArray(
+        address suspect,
+        address[] memory addresses
+    ) public pure returns (bool) {
         return _isAddressInArray(suspect, addresses);
     }
 
@@ -55,11 +54,9 @@ contract TESTForceMove is ForceMove {
      * @dev Wrapper for otherwise internal function. Hashes the input data and formats it for on chain storage.
      * @param channelData ChannelData data.
      */
-    function generateStatus(ChannelData memory channelData)
-        public
-        pure
-        returns (bytes32 newStatus)
-    {
+    function generateStatus(
+        ChannelData memory channelData
+    ) public pure returns (bytes32 newStatus) {
         return _generateStatus(channelData);
     }
 

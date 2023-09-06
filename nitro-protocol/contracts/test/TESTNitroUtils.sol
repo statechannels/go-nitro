@@ -15,11 +15,10 @@ contract TESTNitroUtils {
      * @param sig ethereum digital signature
      * @return signer
      */
-    function recoverSigner(bytes32 _d, INitroTypes.Signature memory sig)
-        public
-        pure
-        returns (address)
-    {
+    function recoverSigner(
+        bytes32 _d,
+        INitroTypes.Signature memory sig
+    ) public pure returns (address) {
         return NitroUtils.recoverSigner(_d, sig);
     }
 
@@ -29,11 +28,10 @@ contract TESTNitroUtils {
      * @param signedBy Bit mask field to check.
      * @param participantIndex Bit to check.
      */
-    function isClaimedSignedBy(uint256 signedBy, uint8 participantIndex)
-        public
-        pure
-        returns (bool)
-    {
+    function isClaimedSignedBy(
+        uint256 signedBy,
+        uint8 participantIndex
+    ) public pure returns (bool) {
         return NitroUtils.isClaimedSignedBy(signedBy, participantIndex);
     }
 
@@ -43,11 +41,10 @@ contract TESTNitroUtils {
      * @param signedBy Bit mask field to check.
      * @param participantIndex Bit to check.
      */
-    function isClaimedSignedOnlyBy(uint256 signedBy, uint8 participantIndex)
-        public
-        pure
-        returns (bool)
-    {
+    function isClaimedSignedOnlyBy(
+        uint256 signedBy,
+        uint8 participantIndex
+    ) public pure returns (bool) {
         return NitroUtils.isClaimedSignedOnlyBy(signedBy, participantIndex);
     }
 

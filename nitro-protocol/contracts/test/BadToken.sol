@@ -7,11 +7,7 @@ pragma solidity 0.8.17;
  * @dev Copy-pasted from Openzeppelin ERC20 contract, but with the inheritance from IERC20 interface removed and no return value for transferFrom.
  */
 contract BadToken {
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public virtual {
+    function transferFrom(address from, address to, uint256 amount) public virtual {
         address spender = msg.sender;
         _spendAllowance(from, spender, amount);
         _transfer(from, to, amount);
@@ -57,11 +53,7 @@ contract BadToken {
         return true;
     }
 
-    function _transfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {
+    function _transfer(address from, address to, uint256 amount) internal virtual {
         require(from != address(0), 'ERC20: transfer from the zero address');
         require(to != address(0), 'ERC20: transfer to the zero address');
         _beforeTokenTransfer(from, to, amount);
@@ -84,22 +76,14 @@ contract BadToken {
         _afterTokenTransfer(address(0), account, amount);
     }
 
-    function _approve(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal virtual {
+    function _approve(address owner, address spender, uint256 amount) internal virtual {
         require(owner != address(0), 'ERC20: approve from the zero address');
         require(spender != address(0), 'ERC20: approve to the zero address');
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }
 
-    function _spendAllowance(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal virtual {
+    function _spendAllowance(address owner, address spender, uint256 amount) internal virtual {
         uint256 currentAllowance = allowance(owner, spender);
         if (currentAllowance != type(uint256).max) {
             require(currentAllowance >= amount, 'ERC20: insufficient allowance');
@@ -109,15 +93,7 @@ contract BadToken {
         }
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {}
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual {}
 
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {}
+    function _afterTokenTransfer(address from, address to, uint256 amount) internal virtual {}
 }

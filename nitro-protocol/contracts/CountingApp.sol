@@ -74,10 +74,10 @@ contract CountingApp is IForceMoveApp {
      * @param a First RecoveredVariablePart.
      * @param b Second RecoveredVariablePart.
      */
-    function _requireEqualOutcomes(RecoveredVariablePart memory a, RecoveredVariablePart memory b)
-        internal
-        pure
-    {
+    function _requireEqualOutcomes(
+        RecoveredVariablePart memory a,
+        RecoveredVariablePart memory b
+    ) internal pure {
         require(
             Outcome.exitsEqual(a.variablePart.outcome, b.variablePart.outcome),
             'Outcome must not change'

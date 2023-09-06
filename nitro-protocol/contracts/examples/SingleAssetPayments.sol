@@ -52,10 +52,10 @@ contract SingleAssetPayments is IForceMoveApp {
      * @param nParticipants Number of participants in a channel.
      * @param outcome Outcome to check.
      */
-    function _requireValidOutcome(uint256 nParticipants, Outcome.SingleAssetExit[] memory outcome)
-        internal
-        pure
-    {
+    function _requireValidOutcome(
+        uint256 nParticipants,
+        Outcome.SingleAssetExit[] memory outcome
+    ) internal pure {
         // Throws if more than one asset
         require(outcome.length == 1, 'outcome: Only one asset allowed');
 

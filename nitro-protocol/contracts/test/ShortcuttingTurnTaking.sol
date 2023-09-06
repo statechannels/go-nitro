@@ -161,6 +161,6 @@ library ShortcuttingTurnTaking {
         require(hasTwoSigs == 0, 'Excess sigs from one participant');
         signedSoFar |= candidate.signedBy;
 
-        require(signedSoFar == 2**nParticipants - 1, 'Lacking participant signature');
+        require(signedSoFar == 2 ** nParticipants - 1, 'Lacking participant signature');
     }
 }
