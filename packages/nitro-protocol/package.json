@@ -25,6 +25,7 @@
     "test:contracts": "yarn hardhat compile && jest -c ./config/jest/jest.contracts.config.js",
     "lint:check": "yarn eslint \"./\" --cache && yarn prettier:check",
     "lint:write": "yarn eslint \"./\" --fix && yarn prettier:write",
+    "lint": "yarn lint:check",
     "prepack": "yarn hardhat compile && yarn build:typescript",
     "solhint:check": "yarn solhint -w 0 './contracts/**/*.sol'",
     "solhint:write": "echo 'This command does not seem to work. Use yarn prettier:write ' && yarn solhint --fix './contracts/**/*.sol'",
