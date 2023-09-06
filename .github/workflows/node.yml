@@ -18,13 +18,13 @@ jobs:
         with:
           node-version: "18.15.0"
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: yarn
       - name: Compile contracts
-        run: npx hardhat compile
+        run: yarn hardhat compile
       - name: Run eslint (including prettier)
-        run: npm run lint:check
+        run: yarn lint:check
       - name: Run gas benchmarks
-        run: npm run benchmark:diff
+        run: yarn benchmark:diff
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v2
@@ -32,7 +32,7 @@ jobs:
           name: logs
           path: ./**/*.log
       - name: Run tests
-        run: npm test
+        run: yarn test
       - name: Notify slack fail
         if: ${{ failure() && github.ref == 'refs/heads/main'}}
         env:
