@@ -29,7 +29,7 @@ jobs:
       - name: Install nitro-protocol dependencies
         run: |
           cd ./nitro-protocol
-          npm ci --legacy-peer-deps
+          yarn
 
       - name: make bin folder
         run: |

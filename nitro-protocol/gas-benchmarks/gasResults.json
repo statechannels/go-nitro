@@ -1,72 +1,72 @@
 {
   "deployInfrastructureContracts": {
     "satp": {
-      "NitroAdjudicator": 3423501
+      "NitroAdjudicator": 3428703
     }
   },
   "directlyFundAChannelWithETHFirst": {
-    "satp": 46504
+    "satp": 46496
   },
   "directlyFundAChannelWithETHSecond": {
-    "satp": 29416
+    "satp": 29408
   },
   "batchFundChannelsWithETHFirst": {
     "satp": {
-      "1": 60308,
-      "5": 192140,
-      "10": 356915,
-      "20": 686429,
-      "50": 1675055,
-      "100": 3322661
+      "1": 60300,
+      "5": 192100,
+      "10": 356835,
+      "20": 686269,
+      "50": 1674655,
+      "100": 3321861
     }
   },
   "batchFundChannelsWithETHSecond": {
     "satp": {
-      "1": 43220,
-      "5": 106700,
-      "10": 186035,
-      "20": 344669,
-      "50": 820655,
-      "100": 1613861
+      "1": 43212,
+      "5": 106660,
+      "10": 185955,
+      "20": 344509,
+      "50": 820255,
+      "100": 1613061
     }
   },
   "batchFundChannelsWithERCFirst": {
     "satp": {
-      "1": 105745,
-      "5": 222633,
-      "10": 385436,
-      "20": 711054,
-      "50": 1687896,
-      "100": 3315938
+      "1": 105476,
+      "5": 221717,
+      "10": 383795,
+      "20": 707963,
+      "50": 1680455,
+      "100": 3301247
     }
   },
   "batchFundChannelsWithERCSecond": {
     "satp": {
-      "1": 92075,
-      "5": 141595,
-      "10": 214556,
-      "20": 369294,
-      "50": 833496,
-      "100": 1607138
+      "1": 91806,
+      "5": 140862,
+      "10": 212915,
+      "20": 366203,
+      "50": 826055,
+      "100": 1592447
     }
   },
   "directlyFundAChannelWithERC20First": {
     "satp": {
-      "approve": 46218,
-      "deposit": 70011
+      "approve": 46193,
+      "deposit": 69866
     }
   },
   "directlyFundAChannelWithERC20Second": {
     "satp": {
-      "approve": 46218,
-      "deposit": 52923
+      "approve": 46193,
+      "deposit": 52778
     }
   },
   "ETHexit": {
     "satp": 111514
   },
   "ERC20exit": {
-    "satp": 112800
+    "satp": 112690
   },
   "ETHexitSad": {
     "satp": {
@@ -99,7 +99,7 @@
       "challengeResponseX": 96482,
       "checkpointL": 69558,
       "challengeResponseL": 89655,
-      "challengeResponseV": 106679
+      "challengeResponseV": 0
     }
   }
 }

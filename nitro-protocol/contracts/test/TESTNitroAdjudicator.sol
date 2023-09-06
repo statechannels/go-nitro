@@ -14,11 +14,7 @@ contract TESTNitroAdjudicator is NitroAdjudicator, TESTForceMove {
      * @param channelId Unique identifier for a state channel.
      * @param amount The number of assets that should now be "escrowed: against channelId
      */
-    function setHoldings(
-        address asset,
-        bytes32 channelId,
-        uint256 amount
-    ) external {
+    function setHoldings(address asset, bytes32 channelId, uint256 amount) external {
         holdings[asset][channelId] = amount;
     }
 

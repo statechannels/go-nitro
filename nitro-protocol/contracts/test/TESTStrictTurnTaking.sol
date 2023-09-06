@@ -44,11 +44,10 @@ contract TESTStrictTurnTaking {
      * @param turnNum State turn number.
      * @return address Moving partitipant address.
      */
-    function moverAddress(address[] memory participants, uint48 turnNum)
-        public
-        pure
-        returns (address)
-    {
+    function moverAddress(
+        address[] memory participants,
+        uint48 turnNum
+    ) public pure returns (address) {
         return StrictTurnTaking._moverAddress(participants, turnNum);
     }
 

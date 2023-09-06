@@ -82,11 +82,9 @@ contract HashLockedSwap is IForceMoveApp {
         return (true, '');
     }
 
-    function decode2PartyAllocation(Outcome.SingleAssetExit[] memory outcome)
-        private
-        pure
-        returns (Outcome.Allocation[] memory allocations)
-    {
+    function decode2PartyAllocation(
+        Outcome.SingleAssetExit[] memory outcome
+    ) private pure returns (Outcome.Allocation[] memory allocations) {
         Outcome.SingleAssetExit memory assetOutcome = outcome[0];
 
         allocations = assetOutcome.allocations; // TODO should we check each allocation is a "simple" one?

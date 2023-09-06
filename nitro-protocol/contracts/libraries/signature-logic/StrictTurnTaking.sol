@@ -60,10 +60,10 @@ library StrictTurnTaking {
      * @param variablePart Variable part to check turn number of.
      * @param turnNum Turn number to compare with.
      */
-    function requireHasTurnNum(INitroTypes.VariablePart memory variablePart, uint48 turnNum)
-        internal
-        pure
-    {
+    function requireHasTurnNum(
+        INitroTypes.VariablePart memory variablePart,
+        uint48 turnNum
+    ) internal pure {
         require(variablePart.turnNum == turnNum, 'Wrong variablePart.turnNum');
     }
 
@@ -74,11 +74,10 @@ library StrictTurnTaking {
      * @param turnNum State turn number.
      * @return address Moving partitipant address.
      */
-    function _moverAddress(address[] memory participants, uint48 turnNum)
-        internal
-        pure
-        returns (address)
-    {
+    function _moverAddress(
+        address[] memory participants,
+        uint48 turnNum
+    ) internal pure returns (address) {
         return participants[turnNum % participants.length];
     }
 

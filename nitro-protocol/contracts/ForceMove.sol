@@ -24,15 +24,9 @@ contract ForceMove is IForceMove, StatusManager {
      * @return finalizesAt The unix timestamp when `channelId` will finalize.
      * @return fingerprint The last 160 bits of kecca256(stateHash, outcomeHash)
      */
-    function unpackStatus(bytes32 channelId)
-        external
-        view
-        returns (
-            uint48 turnNumRecord,
-            uint48 finalizesAt,
-            uint160 fingerprint
-        )
-    {
+    function unpackStatus(
+        bytes32 channelId
+    ) external view returns (uint48 turnNumRecord, uint48 finalizesAt, uint160 fingerprint) {
         (turnNumRecord, finalizesAt, fingerprint) = _unpackStatus(channelId);
     }
 
@@ -121,11 +115,10 @@ contract ForceMove is IForceMove, StatusManager {
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param candidate A struct, that can be signed by any number of participants, describing the properties of the state channel to change to.
      */
-    function conclude(FixedPart memory fixedPart, SignedVariablePart memory candidate)
-        external
-        virtual
-        override
-    {
+    function conclude(
+        FixedPart memory fixedPart,
+        SignedVariablePart memory candidate
+    ) external virtual override {
         _conclude(fixedPart, candidate);
     }
 
@@ -135,10 +128,10 @@ contract ForceMove is IForceMove, StatusManager {
      * @param fixedPart Data describing properties of the state channel that do not change with state updates.
      * @param candidate A struct, that can be signed by any number of participants, describing the properties of the state channel to change to.
      */
-    function _conclude(FixedPart memory fixedPart, SignedVariablePart memory candidate)
-        internal
-        returns (bytes32 channelId)
-    {
+    function _conclude(
+        FixedPart memory fixedPart,
+        SignedVariablePart memory candidate
+    ) internal returns (bytes32 channelId) {
         channelId = NitroUtils.getChannelId(fixedPart);
 
         // checks
@@ -197,11 +190,10 @@ contract ForceMove is IForceMove, StatusManager {
      * @param addresses A line-up of possible perpetrators.
      * @return true if the address is in the array, false otherwise
      */
-    function _isAddressInArray(address suspect, address[] memory addresses)
-        internal
-        pure
-        returns (bool)
-    {
+    function _isAddressInArray(
+        address suspect,
+        address[] memory addresses
+    ) internal pure returns (bool) {
         for (uint256 i = 0; i < addresses.length; i++) {
             if (suspect == addresses[i]) {
                 return true;
@@ -274,7 +266,7 @@ contract ForceMove is IForceMove, StatusManager {
             // Check each participant to see if they signed it
             for (uint256 i = 0; i < fixedPart.participants.length; i++) {
                 if (signer == fixedPart.participants[i]) {
-                    rvp.signedBy |= 2**i;
+                    rvp.signedBy |= 2 ** i;
                     break; // Once we have found a match, assuming distinct participants, no-one else signed it
                 }
             }
@@ -312,10 +304,10 @@ contract ForceMove is IForceMove, StatusManager {
      * @param channelId Unique identifier for a channel.
      * @param newTurnNumRecord New turnNumRecord intended to overwrite existing value
      */
-    function _requireNonDecreasedTurnNumber(bytes32 channelId, uint48 newTurnNumRecord)
-        internal
-        view
-    {
+    function _requireNonDecreasedTurnNumber(
+        bytes32 channelId,
+        uint48 newTurnNumRecord
+    ) internal view {
         (uint48 turnNumRecord, , ) = _unpackStatus(channelId);
         require(newTurnNumRecord >= turnNumRecord, 'turnNumRecord decreased.');
     }

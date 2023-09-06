@@ -32,11 +32,10 @@ library NitroUtils {
      * @param participantIndex Bit to check.
      * @return true if supplied partitipationIndex bit is set to 1 in signedBy bit mask.
      */
-    function isClaimedSignedBy(uint256 signedBy, uint8 participantIndex)
-        internal
-        pure
-        returns (bool)
-    {
+    function isClaimedSignedBy(
+        uint256 signedBy,
+        uint8 participantIndex
+    ) internal pure returns (bool) {
         return ((signedBy >> participantIndex) % 2 == 1);
     }
 
@@ -47,12 +46,11 @@ library NitroUtils {
      * @param participantIndex Bit to check.
      * @return true if supplied partitipationIndex bit is the only bit set to 1 in signedBy bit mask.
      */
-    function isClaimedSignedOnlyBy(uint256 signedBy, uint8 participantIndex)
-        internal
-        pure
-        returns (bool)
-    {
-        return (signedBy == (2**participantIndex));
+    function isClaimedSignedOnlyBy(
+        uint256 signedBy,
+        uint8 participantIndex
+    ) internal pure returns (bool) {
+        return (signedBy == (2 ** participantIndex));
     }
 
     /**
@@ -62,11 +60,10 @@ library NitroUtils {
      * @param sig ethereum digital signature.
      * @return signer
      */
-    function recoverSigner(bytes32 _d, INitroTypes.Signature memory sig)
-        internal
-        pure
-        returns (address)
-    {
+    function recoverSigner(
+        bytes32 _d,
+        INitroTypes.Signature memory sig
+    ) internal pure returns (address) {
         bytes32 prefixedHash = keccak256(abi.encodePacked('\x19Ethereum Signed Message:\n32', _d));
         address a = ecrecover(prefixedHash, sig.v, sig.r, sig.s);
         require(a != address(0), 'Invalid signature');
@@ -122,11 +119,9 @@ library NitroUtils {
      * @param fixedPart Part of the state that does not change
      * @return channelId
      */
-    function getChannelId(INitroTypes.FixedPart memory fixedPart)
-        internal
-        pure
-        returns (bytes32 channelId)
-    {
+    function getChannelId(
+        INitroTypes.FixedPart memory fixedPart
+    ) internal pure returns (bytes32 channelId) {
         channelId = keccak256(
             abi.encode(
                 fixedPart.participants,
@@ -168,11 +163,10 @@ library NitroUtils {
      * @param vp The VariablePart of the state
      * @return The stateHash
      */
-    function hashState(INitroTypes.FixedPart memory fp, INitroTypes.VariablePart memory vp)
-        internal
-        pure
-        returns (bytes32)
-    {
+    function hashState(
+        INitroTypes.FixedPart memory fp,
+        INitroTypes.VariablePart memory vp
+    ) internal pure returns (bytes32) {
         return
             keccak256(abi.encode(getChannelId(fp), vp.appData, vp.outcome, vp.turnNum, vp.isFinal));
     }
@@ -198,11 +192,10 @@ library NitroUtils {
      * @param _postBytes The other bytes string
      * @return true if the bytes are identical, false otherwise.
      */
-    function bytesEqual(bytes memory _preBytes, bytes memory _postBytes)
-        internal
-        pure
-        returns (bool)
-    {
+    function bytesEqual(
+        bytes memory _preBytes,
+        bytes memory _postBytes
+    ) internal pure returns (bool) {
         // copied from https://www.npmjs.com/package/solidity-bytes-utils/v/0.1.1
         bool success = true;
 
