@@ -302,9 +302,15 @@ The adjudicator smart contract will recover the signer from each signature on a 
 === "Go"
 
     ```Go
-        // not yet implemented
-    ```
+    // INitroTypesRecoveredVariablePart is an auto generated low-level Go binding around an user-defined struct.
+    type INitroTypesRecoveredVariablePart struct {
+        VariablePart INitroTypesVariablePart
+        SignedBy \*big.Int
+    }
+
+```
 
 before being passed to the application execution rules (which do not need to do any signature recovery of their own).
 
 For example, if a channel has three participants and they all signed the state in question, we would have `signedBy = 0b111 = 7`. If only participant with index `0` had signed, we would have `signedBy = 0b001 = 1`.
+```
