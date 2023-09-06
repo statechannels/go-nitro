@@ -14,7 +14,8 @@ describe('outcome', () => {
     it.each`
       description     | encodeFunction         | decodeFunction         | data
       ${description0} | ${encodeGuaranteeData} | ${decodeGuaranteeData} | ${guarantee}
-    `('$description', ({encodeFunction, decodeFunction, data}) => {
+    `('$description', (tc) => {
+        const {encodeFunction, decodeFunction, data} = tc as { encodeFunction:Function, decodeFunction:Function, data:Guarantee };
       const encodedData = encodeFunction(data);
       const decodedData = decodeFunction(encodedData);
       expect(decodedData).toEqual(data);

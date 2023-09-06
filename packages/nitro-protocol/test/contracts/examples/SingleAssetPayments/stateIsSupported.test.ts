@@ -47,7 +47,7 @@ beforeAll(async () => {
   singleAssetPayments = setupContract(
     provider,
     SingleAssetPaymentsArtifact,
-    process.env.SINGLE_ASSET_PAYMENTS_ADDRESS
+    process.env.SINGLE_ASSET_PAYMENTS_ADDRESS || ""
   );
 });
 
@@ -72,7 +72,8 @@ describe('stateIsSupported', () => {
     ${[2, 2]} | ${[true, true]}   | ${{A: 1, B: 1}} | ${[3, 4]} | ${{A: 2, B: 0}} | ${whoSignedWhatA} | ${reason4}   | ${'More than one asset'}
   `(
     '$description',
-    async ({
+    async (tc)=>{
+        let {
       isAllocation,
       numAssets,
       balancesA,
@@ -80,7 +81,7 @@ describe('stateIsSupported', () => {
       balancesB,
       whoSignedWhat,
       reason,
-    }: {
+    } = tc as unknown as  {
       isAllocation: boolean[];
       numAssets: number[];
       balancesA: AssetOutcomeShortHand;
@@ -88,7 +89,7 @@ describe('stateIsSupported', () => {
       balancesB: AssetOutcomeShortHand;
       whoSignedWhat: number[];
       reason?: string;
-    }) => {
+    }
       balancesA = replaceAddressesAndBigNumberify(balancesA, addresses) as AssetOutcomeShortHand;
       const allocationsA: Allocation[] = [];
       Object.keys(balancesA).forEach(key =>

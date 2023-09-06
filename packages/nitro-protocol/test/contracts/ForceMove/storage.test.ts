@@ -3,13 +3,13 @@ import {Contract, ethers} from 'ethers';
 import {it} from '@jest/globals';
 
 import ForceMoveArtifact from '../../../artifacts/contracts//test/TESTForceMove.sol/TESTForceMove.json';
-import {channelDataToStatus, parseStatus} from '../../../src/contract/channel-storage';
+import {ChannelData, channelDataToStatus, parseStatus} from '../../../src/contract/channel-storage';
 import {getTestProvider, randomChannelId, setupContract} from '../../test-helpers';
 
 const provider = getTestProvider();
 let ForceMove: Contract;
 beforeAll(async () => {
-  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
+  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS||"");
 });
 
 const zeroData = {
@@ -24,7 +24,8 @@ describe('storage', () => {
   `('Statusing and data retrieval', async storage => {
     const blockchainStorage = {...storage, ...zeroData};
     const blockchainStatus = await ForceMove.generateStatus(blockchainStorage);
-    const clientStatus = channelDataToStatus(storage);
+
+    const clientStatus = channelDataToStatus(storage as unknown as ChannelData);
 
     const expected = {...storage, fingerprint: '0x' + clientStatus.slice(2 + 24)};
 
@@ -72,7 +73,7 @@ describe('_requireChannelOpen', () => {
       const blockchainStorage = {turnNumRecord, finalizesAt, ...zeroData};
 
       await (await ForceMove.setStatusFromChannelData(channelId, blockchainStorage)).wait();
-      expect(await ForceMove.statusOf(channelId)).toEqual(channelDataToStatus(blockchainStorage));
+      expect(await ForceMove.statusOf(channelId)).toEqual(channelDataToStatus(blockchainStorage as ChannelData));
 
       const tx = ForceMove.requireChannelOpen(channelId);
       // eslint-disable-next-line no-unused-expressions

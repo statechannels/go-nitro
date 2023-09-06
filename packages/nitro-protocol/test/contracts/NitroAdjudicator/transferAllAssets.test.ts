@@ -30,13 +30,13 @@ import {replaceAddressesAndBigNumberify} from '../../../src/helpers';
 const testNitroAdjudicator = setupContract(
   getTestProvider(),
   TESTNitroAdjudicatorArtifact,
-  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS
+  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS ||""
 ) as unknown as TESTNitroAdjudicator & Contract;
 
 const token = setupContract(
   getTestProvider(),
   TokenArtifact,
-  process.env.TEST_TOKEN_ADDRESS
+  process.env.TEST_TOKEN_ADDRESS ||""
 ) as unknown as Token & Contract;
 
 const addresses = {
@@ -72,27 +72,25 @@ describe('transferAllAssets', () => {
     ${description} | ${{ETH: {A: 1}, ERC20: {A: 2}}} | ${{ETH: {c: 1}, ERC20: {c: 2}}} | ${{}}      | ${{ETH: {c: 0}, ERC20: {c: 0}}} | ${{ETH: {A: 1}, ERC20: {A: 2}}} | ${undefined}
   `(
     '$description', // For the purposes of this test, participants are fixed, making channelId 1-1 with channelNonce
-    async ({
-      setOutcome,
-      heldBefore,
-      newOutcome,
-      heldAfter,
-      payouts,
-      reasonString,
-    }: {
-      setOutcome: OutcomeShortHand;
-      heldBefore: OutcomeShortHand;
-      newOutcome: OutcomeShortHand;
-      heldAfter: OutcomeShortHand;
-      payouts: OutcomeShortHand;
-      reasonString: string;
-    }) => {
+    async (tc) => {
       const channelId = getChannelId({
         channelNonce,
         participants,
         appDefinition,
         challengeDuration,
       });
+
+
+      let {
+      setOutcome,
+      heldBefore,
+      newOutcome,
+      heldAfter,
+      payouts,
+      reasonString,
+    } = tc as unknown as {setOutcome: OutcomeShortHand, heldBefore: OutcomeShortHand,newOutcome: OutcomeShortHand, heldAfter: OutcomeShortHand, payouts: OutcomeShortHand, reasonString: string | undefined
+    }
+
       addresses.c = channelId;
 
       // Transform input data (unpack addresses and BigNumberify amounts)

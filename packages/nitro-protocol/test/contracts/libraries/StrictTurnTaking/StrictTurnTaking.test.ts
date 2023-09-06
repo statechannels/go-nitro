@@ -41,7 +41,7 @@ beforeAll(async () => {
   StrictTurnTaking = setupContract(
     provider,
     testStrictTurnTakingArtifact,
-    process.env.TEST_STRICT_TURN_TAKING_ADDRESS
+    process.env.TEST_STRICT_TURN_TAKING_ADDRESS ||""
   ) as Contract & TESTStrictTurnTaking;
 });
 
@@ -59,7 +59,10 @@ describe('isSignedByMover', () => {
     ${accepts1} | ${3}    | ${[0]}    | ${undefined}
     ${reverts1} | ${3}    | ${[2]}    | ${INVALID_SIGNED_BY}
     ${reverts2} | ${3}    | ${[0, 1]} | ${INVALID_SIGNED_BY}
-  `('$description', async ({turnNum, signedBy, reason}) => {
+  `('$description', async (tc) => {
+
+    const {turnNum, signedBy, reason } = tc as unknown as {turnNum: number, signedBy: number[], reason: string | undefined}
+    
     const state: State = {
       turnNum,
       isFinal: false,
@@ -100,13 +103,10 @@ describe('moverAddress', () => {
     ${accepts2} | ${7}    | ${1}
   `(
     '$description',
-    async ({
-      turnNum,
-      expectedParticipantIdx,
-    }: {
-      turnNum: number;
-      expectedParticipantIdx: number;
-    }) => {
+    async (tc) => {
+       const {turnNum, expectedParticipantIdx} = tc as unknown as {turnNum: number, expectedParticipantIdx:number}
+    
+
       expect(await StrictTurnTaking.moverAddress(participants, turnNum)).toEqual(
         wallets[expectedParticipantIdx].address
       );
@@ -132,16 +132,10 @@ describe('requireValidInput', () => {
     ${reverts4} | ${256}        | ${255}   | ${TOO_MANY_PARTICIPANTS}
   `(
     '$description',
-    async ({
-      nParticipants,
-      numProof,
-      reason,
-    }: {
-      description: string;
-      nParticipants: number;
-      numProof: number;
-      reason: undefined | string;
-    }) => {
+    async (tc) => {
+        const nParticipants = tc.nParticipants as number;
+        const numProof = tc.numProof as number;
+        const reason = tc.reason as undefined | string;
       if (reason) {
         await expectRevert(
           () => StrictTurnTaking.requireValidInput(nParticipants, numProof),
@@ -179,13 +173,10 @@ describe('requireValidTurnTaking', () => {
     ${reverts6} | ${new Map([[0, [0]], [2, [1]], [3, [2]]])}           | ${WRONG_TURN_NUM}
   `(
     '$description',
-    async ({
-      turnNumToShortenedVariablePart,
-      reason,
-    }: {
-      turnNumToShortenedVariablePart: TurnNumToShortenedVariablePart;
-      reason: undefined | string;
-    }) => {
+    async (tc) => {
+      const {reason, turnNumToShortenedVariablePart} = tc as unknown as {reason: string|undefined, turnNumToShortenedVariablePart:TurnNumToShortenedVariablePart}
+
+        
       const state: State = {
         turnNum: 0,
         isFinal: false,
