@@ -47,7 +47,7 @@ beforeAll(async () => {
   singleAssetPayments = setupContract(
     provider,
     SingleAssetPaymentsArtifact,
-    process.env.SINGLE_ASSET_PAYMENTS_ADDRESS || ''
+    process.env.SINGLE_ASSET_PAYMENTS_ADDRESS
   );
 });
 

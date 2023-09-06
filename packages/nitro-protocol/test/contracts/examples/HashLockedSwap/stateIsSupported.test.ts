@@ -58,11 +58,7 @@ const challengeDuration = 0x100;
 const whoSignedWhat = [1, 0];
 
 beforeAll(async () => {
-  hashTimeLock = setupContract(
-    provider,
-    HashLockedSwapArtifact,
-    process.env.HASH_LOCK_ADDRESS || ''
-  );
+  hashTimeLock = setupContract(provider, HashLockedSwapArtifact, process.env.HASH_LOCK_ADDRESS);
 });
 
 const preImage = '0xdeadbeef';

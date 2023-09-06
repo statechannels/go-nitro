@@ -41,7 +41,7 @@ beforeAll(async () => {
   StrictTurnTaking = setupContract(
     provider,
     testStrictTurnTakingArtifact,
-    process.env.TEST_STRICT_TURN_TAKING_ADDRESS || ''
+    process.env.TEST_STRICT_TURN_TAKING_ADDRESS
   ) as Contract & TESTStrictTurnTaking;
 });
 

@@ -9,7 +9,7 @@ import {getTestProvider, randomChannelId, setupContract} from '../../test-helper
 const provider = getTestProvider();
 let ForceMove: Contract;
 beforeAll(async () => {
-  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS || '');
+  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
 });
 
 const zeroData = {

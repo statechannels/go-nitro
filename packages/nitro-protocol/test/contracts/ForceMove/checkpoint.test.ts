@@ -46,7 +46,7 @@ const defaultOutcome: Outcome = [
 let appDefinition: string;
 
 beforeAll(async () => {
-  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS || '');
+  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
   appDefinition = getCountingAppContractAddress();
 });
 

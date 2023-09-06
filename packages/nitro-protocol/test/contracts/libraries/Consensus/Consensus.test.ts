@@ -35,7 +35,7 @@ beforeAll(async () => {
   Consensus = setupContract(
     provider,
     testConsensusArtifact,
-    process.env.TEST_CONSENSUS_ADDRESS || ''
+    process.env.TEST_CONSENSUS_ADDRESS
   ) as Contract & TESTConsensus;
 });
 
@@ -65,7 +65,7 @@ describe('requireConsensus', () => {
       channelNonce,
       challengeDuration,
       outcome: defaultOutcome,
-      appDefinition: appDefinition || '',
+      appDefinition: appDefinition,
       appData: '0x',
     };
 

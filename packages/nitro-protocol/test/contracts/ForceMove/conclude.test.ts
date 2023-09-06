@@ -41,7 +41,7 @@ const outcome: Outcome = [{asset, allocations: [], assetMetadata: {assetType: 0,
 let appDefinition: string;
 
 beforeAll(async () => {
-  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS || '');
+  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS);
   appDefinition = getCountingAppContractAddress();
 });
 

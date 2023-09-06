@@ -16,19 +16,19 @@ const provider = getTestProvider();
 const testNitroAdjudicator = setupContract(
   provider,
   TESTNitroAdjudicatorArtifact,
-  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS || ''
+  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS
 ) as unknown as TESTNitroAdjudicator & Contract;
 
 const token = setupContract(
   provider,
   TokenArtifact,
-  process.env.TEST_TOKEN_ADDRESS || ''
+  process.env.TEST_TOKEN_ADDRESS
 ) as unknown as Token & Contract;
 
 const badToken = setupContract(
   provider,
   BadTokenArtifact,
-  process.env.BAD_TOKEN_ADDRESS || ''
+  process.env.BAD_TOKEN_ADDRESS
 ) as unknown as BadToken & Contract;
 
 const signer0 = getTestProvider().getSigner(0); // Convention matches setupContract function
