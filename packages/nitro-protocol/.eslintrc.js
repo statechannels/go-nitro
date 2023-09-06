@@ -1,6 +1,7 @@
 /* global module */
 module.exports = {
   extends: ['../../.eslintrc.js'],
+  ignorePatterns: ['.prettierrc.js', '**/*.config.js', '**/scripts'],
   rules: {
     'no-self-compare': 'error',
     'import/order': [
