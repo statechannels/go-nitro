@@ -30,13 +30,13 @@ import {replaceAddressesAndBigNumberify} from '../../../src/helpers';
 const testNitroAdjudicator = setupContract(
   getTestProvider(),
   TESTNitroAdjudicatorArtifact,
-  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS ||""
+  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS || ''
 ) as unknown as TESTNitroAdjudicator & Contract;
 
 const token = setupContract(
   getTestProvider(),
   TokenArtifact,
-  process.env.TEST_TOKEN_ADDRESS ||""
+  process.env.TEST_TOKEN_ADDRESS || ''
 ) as unknown as Token & Contract;
 
 const addresses = {
@@ -66,13 +66,21 @@ const description =
   'testNitroAdjudicator accepts a transferAllAssets tx for a finalized channel, and 2x Asset types transferred';
 const channelNonce = getRandomNonce('transferAllAssets');
 
+type testParams = {
+  setOutcome: OutcomeShortHand;
+  heldBefore: OutcomeShortHand;
+  newOutcome: OutcomeShortHand;
+  heldAfter: OutcomeShortHand;
+  payouts: OutcomeShortHand;
+  reasonString: string | undefined;
+};
 describe('transferAllAssets', () => {
   it.each`
     description    | setOutcome                      | heldBefore                      | newOutcome | heldAfter                       | payouts                         | reasonString
     ${description} | ${{ETH: {A: 1}, ERC20: {A: 2}}} | ${{ETH: {c: 1}, ERC20: {c: 2}}} | ${{}}      | ${{ETH: {c: 0}, ERC20: {c: 0}}} | ${{ETH: {A: 1}, ERC20: {A: 2}}} | ${undefined}
   `(
     '$description', // For the purposes of this test, participants are fixed, making channelId 1-1 with channelNonce
-    async (tc) => {
+    async tc => {
       const channelId = getChannelId({
         channelNonce,
         participants,
@@ -80,16 +88,8 @@ describe('transferAllAssets', () => {
         challengeDuration,
       });
 
-
-      let {
-      setOutcome,
-      heldBefore,
-      newOutcome,
-      heldAfter,
-      payouts,
-      reasonString,
-    } = tc as unknown as {setOutcome: OutcomeShortHand, heldBefore: OutcomeShortHand,newOutcome: OutcomeShortHand, heldAfter: OutcomeShortHand, payouts: OutcomeShortHand, reasonString: string | undefined
-    }
+      let {setOutcome, heldBefore, newOutcome, heldAfter, payouts} = tc as unknown as testParams;
+      const {reasonString} = tc as unknown as testParams;
 
       addresses.c = channelId;
 

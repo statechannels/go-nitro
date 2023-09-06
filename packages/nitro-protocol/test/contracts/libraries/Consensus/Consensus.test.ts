@@ -11,7 +11,6 @@ import {
   Outcome,
   shortenedToRecoveredVariableParts,
   State,
-  TurnNumToShortenedVariablePart,
 } from '../../../../src';
 import {
   NOT_UNANIMOUS,
@@ -36,7 +35,7 @@ beforeAll(async () => {
   Consensus = setupContract(
     provider,
     testConsensusArtifact,
-    process.env.TEST_CONSENSUS_ADDRESS ||""
+    process.env.TEST_CONSENSUS_ADDRESS || ''
   ) as Contract & TESTConsensus;
 });
 
@@ -58,35 +57,29 @@ describe('requireConsensus', () => {
     ${reverts1} | ${new Map([[0, [0, 1]]])}              | ${NOT_UNANIMOUS}
     ${reverts2} | ${new Map([[0, []]])}                  | ${NOT_UNANIMOUS}
     ${reverts3} | ${new Map([[0, [0]], [1, [0, 1, 2]]])} | ${PROOF_SUPPLIED}
-  `(
-    '$description',
-    async ({
-      turnNumToShortenedVariablePart,
-      reason,
-    }: any) => {
-      const state: State = {
-        turnNum: 0,
-        isFinal: false,
-        participants,
-        channelNonce,
-        challengeDuration,
-        outcome: defaultOutcome,
-        appDefinition: appDefinition ||"",
-        appData: '0x',
-      };
+  `('$description', async ({turnNumToShortenedVariablePart, reason}: any) => {
+    const state: State = {
+      turnNum: 0,
+      isFinal: false,
+      participants,
+      channelNonce,
+      challengeDuration,
+      outcome: defaultOutcome,
+      appDefinition: appDefinition || '',
+      appData: '0x',
+    };
 
-      const fixedPart = getFixedPart(state);
+    const fixedPart = getFixedPart(state);
 
-      const recoveredVP = shortenedToRecoveredVariableParts(turnNumToShortenedVariablePart);
-      const {proof, candidate} = separateProofAndCandidate(recoveredVP);
+    const recoveredVP = shortenedToRecoveredVariableParts(turnNumToShortenedVariablePart);
+    const {proof, candidate} = separateProofAndCandidate(recoveredVP);
 
-      if (reason) {
-        await expectRevert(() => Consensus.requireConsensus(fixedPart, proof, candidate));
-      } else {
-        await expectSucceedWithNoReturnValues(() =>
-          Consensus.requireConsensus(fixedPart, proof, candidate)
-        );
-      }
+    if (reason) {
+      await expectRevert(() => Consensus.requireConsensus(fixedPart, proof, candidate));
+    } else {
+      await expectSucceedWithNoReturnValues(() =>
+        Consensus.requireConsensus(fixedPart, proof, candidate)
+      );
     }
-  );
+  });
 });

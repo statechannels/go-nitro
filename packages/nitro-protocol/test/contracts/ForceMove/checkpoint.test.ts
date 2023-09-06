@@ -46,7 +46,7 @@ const defaultOutcome: Outcome = [
 let appDefinition: string;
 
 beforeAll(async () => {
-  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS ||"");
+  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS || '');
   appDefinition = getCountingAppContractAddress();
 });
 
@@ -102,8 +102,8 @@ describe('checkpoint', () => {
     ${reverts5} | ${turnNumRecord + 1}                   | ${invalidTransition} | ${future}    | ${COUNTING_APP_INVALID_TRANSITION}
     ${reverts6} | ${turnNumRecord + 1}                   | ${unsupported}       | ${future}    | ${INVALID_SIGNED_BY}
     ${reverts7} | ${turnNumRecord + 1}                   | ${valid}             | ${past}      | ${CHANNEL_FINALIZED}
-  `('$description', async (tc) => {
-    const{largestTurnNum, support, finalizesAt, reason} = tc as unknown as testParams;
+  `('$description', async tc => {
+    const {largestTurnNum, support, finalizesAt, reason} = tc as unknown as testParams;
     const {appDatas, whoSignedWhat} = support;
 
     const states: State[] = appDatas.map((data, idx) => ({

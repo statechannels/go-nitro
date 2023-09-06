@@ -35,13 +35,13 @@ import {
 const testNitroAdjudicator = setupContract(
   getTestProvider(),
   TESTNitroAdjudicatorArtifact,
-  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS ||""
+  process.env.TEST_NITRO_ADJUDICATOR_ADDRESS || ''
 ) as unknown as TESTNitroAdjudicator & Contract;
 
 const token = setupContract(
   getTestProvider(),
   TokenArtifact,
-  process.env.TEST_TOKEN_ADDRESS ||""
+  process.env.TEST_TOKEN_ADDRESS || ''
 ) as unknown as Token & Contract;
 
 const provider = getTestProvider();
@@ -129,15 +129,13 @@ describe('concludeAndTransferAllAssets', () => {
     ${accepts8}  | ${oneHundredPayouts}       | ${{ERC20: {c: 100}}} | ${{ERC20: {c: 0}}} | ${{}}      | ${oneHundredPayouts}       | ${undefined}
   `(
     '$description', // For the purposes of this test, participants are fixed, making channelId 1-1 with channelNonce
-    async (tc) => {
-        
-        let outcomeShortHand = tc.outcomeShortHand as OutcomeShortHand;
-        let heldBefore = tc.heldBefore as OutcomeShortHand;
-        let heldAfter = tc.heldAfter as OutcomeShortHand;
-        let newOutcome = tc.newOutcome as OutcomeShortHand;
-        let payouts = tc.payouts as OutcomeShortHand;
-        const reasonString = tc.reasonString as string | undefined;
-        
+    async tc => {
+      let outcomeShortHand = tc.outcomeShortHand as OutcomeShortHand;
+      let heldBefore = tc.heldBefore as OutcomeShortHand;
+      let heldAfter = tc.heldAfter as OutcomeShortHand;
+      let newOutcome = tc.newOutcome as OutcomeShortHand;
+      let payouts = tc.payouts as OutcomeShortHand;
+      const reasonString = tc.reasonString as string | undefined;
 
       const fixedPart: FixedPart = {
         participants,

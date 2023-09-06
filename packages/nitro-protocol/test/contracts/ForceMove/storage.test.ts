@@ -9,7 +9,7 @@ import {getTestProvider, randomChannelId, setupContract} from '../../test-helper
 const provider = getTestProvider();
 let ForceMove: Contract;
 beforeAll(async () => {
-  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS||"");
+  ForceMove = setupContract(provider, ForceMoveArtifact, process.env.TEST_FORCE_MOVE_ADDRESS || '');
 });
 
 const zeroData = {
@@ -73,7 +73,9 @@ describe('_requireChannelOpen', () => {
       const blockchainStorage = {turnNumRecord, finalizesAt, ...zeroData};
 
       await (await ForceMove.setStatusFromChannelData(channelId, blockchainStorage)).wait();
-      expect(await ForceMove.statusOf(channelId)).toEqual(channelDataToStatus(blockchainStorage as ChannelData));
+      expect(await ForceMove.statusOf(channelId)).toEqual(
+        channelDataToStatus(blockchainStorage as ChannelData)
+      );
 
       const tx = ForceMove.requireChannelOpen(channelId);
       // eslint-disable-next-line no-unused-expressions
