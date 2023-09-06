@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "baseUrl": "src",
+    "baseUrl": ".",
     "target": "es2018",
     "module": "commonjs",
     "strict": true,
@@ -10,5 +10,5 @@
     "declaration": true,
     "skipLibCheck": true
   },
-  "include": ["src/index.ts", "addresses.json"]
+  "include": ["src/index.ts", "addresses.json", "../test/@types/environment.d.ts"]
 }
