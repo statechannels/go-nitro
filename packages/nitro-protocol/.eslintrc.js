@@ -1,19 +1,6 @@
 /* global module */
 module.exports = {
-  parser: '@typescript-eslint/parser',
-  plugins: [
-    '@typescript-eslint',
-    'prettier',
-    // We enforce certain rules on how imports are handled
-    'import',
-  ],
-  extends: [
-    'eslint:recommended',
-    'plugin:prettier/recommended',
-    'plugin:import/errors',
-    'plugin:import/warnings',
-    'plugin:import/typescript',
-  ],
+  extends: ['../../.eslintrc.js'],
   rules: {
     'no-self-compare': 'error',
     'import/order': [
