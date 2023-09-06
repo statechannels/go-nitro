@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./nitro-protocol
+        working-directory: packages/nitro-protocol
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
