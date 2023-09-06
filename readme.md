@@ -31,7 +31,7 @@ Architectural decision records may be viewed [here](./.adr/0000-adrs.md).
 
 ## On-chain code
 
-The on-chain component of Nitro (i.e. the solidity contracts) are housed in the [`nitro-protocol`](./nitro-protocol/readme.md) directory. This directory contains an npm package with a hardhat / typechain / jest toolchain.
+The on-chain component of Nitro (i.e. the solidity contracts) are housed in the [`nitro-protocol`](./packages.nitro-protocol/readme.md) directory. This directory contains an yarn workspace with a hardhat / typechain / jest toolchain.
 
 ## License
 
