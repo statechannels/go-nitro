@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    paths: ["nitro-protocol/**", ".github/workflows/node.yml"]
+    paths: ["packages/nitro-protocol/**", ".github/workflows/node.yml"]
 
 jobs:
   build:
