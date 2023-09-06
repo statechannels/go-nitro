@@ -1,7 +1,6 @@
 package chainservice
 
 import (
-	"container/heap"
 	"context"
 	"fmt"
 	"log/slog"
@@ -126,18 +125,18 @@ func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.
 
 	// Prevent go routines from processing events before checkForMissedEvents completes
 	ecs.eventTracker.mu.Lock()
-	{
-		ecs.wg.Add(3)
-		go ecs.listenForEventLogs(errChan, eventSub, eventChan, eventQuery)
-		go ecs.listenForNewBlocks(errChan, newBlockSub, newBlockChan)
-		go ecs.listenForErrors(errChan)
 
-		// Search for any missed events emitted while this node was offline
-		err = ecs.checkForMissedEvents(startBlock)
-		if err != nil {
-			return nil, err
-		}
+	ecs.wg.Add(3)
+	go ecs.listenForEventLogs(errChan, eventSub, eventChan, eventQuery)
+	go ecs.listenForNewBlocks(errChan, newBlockSub, newBlockChan)
+	go ecs.listenForErrors(errChan)
+
+	// Search for any missed events emitted while this node was offline
+	err = ecs.checkForMissedEvents(startBlock)
+	if err != nil {
+		return nil, err
 	}
+
 	ecs.eventTracker.mu.Unlock()
 
 	return &ecs, nil
@@ -166,7 +165,7 @@ func (ecs *EthChainService) checkForMissedEvents(startBlock uint64) error {
 	ecs.logger.Info("finished checking for missed chain events", "numMissedEvents", len(missedEvents))
 
 	for _, event := range missedEvents {
-		heap.Push(&ecs.eventTracker.events, event)
+		ecs.eventTracker.Push(event)
 	}
 	return nil
 }
@@ -409,13 +408,13 @@ func (ecs *EthChainService) updateEventTracker(errorChan chan<- error, blockNumb
 		ecs.eventTracker.latestBlockNum = *blockNumber
 	}
 	if chainEvent != nil {
-		heap.Push(&ecs.eventTracker.events, *chainEvent)
+		ecs.eventTracker.Push(*chainEvent)
 		ecs.logger.Debug("event added to queue", "updated-queue-length", ecs.eventTracker.events.Len())
 	}
 
 	eventsToDispatch := []ethTypes.Log{}
 	for ecs.eventTracker.events.Len() > 0 && ecs.eventTracker.latestBlockNum >= (ecs.eventTracker.events)[0].BlockNumber+REQUIRED_BLOCK_CONFIRMATIONS {
-		chainEvent := heap.Pop(&ecs.eventTracker.events).(ethTypes.Log)
+		chainEvent := ecs.eventTracker.Pop()
 		eventsToDispatch = append(eventsToDispatch, chainEvent)
 		ecs.logger.Debug("event popped from queue", "updated-queue-length", ecs.eventTracker.events.Len())
 

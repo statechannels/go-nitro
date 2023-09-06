@@ -19,6 +19,14 @@ func NewEventTracker(startBlock uint64) *eventTracker {
 	return &eventTracker{latestBlockNum: startBlock, events: eventQueue}
 }
 
+func (eT *eventTracker) Push(l types.Log) {
+	heap.Push(&eT.events, (l))
+}
+
+func (eT *eventTracker) Pop() types.Log {
+	return heap.Pop(&eT.events).(types.Log)
+}
+
 type eventQueue []types.Log
 
 func (q eventQueue) Len() int { return len(q) }
