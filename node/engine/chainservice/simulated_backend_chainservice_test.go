@@ -188,11 +188,11 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	}
 
 	// Check latest confirmed block number recognized by each chainservice
-	blockNum := cs.GetLatestConfirmedBlockNum()
+	blockNum := cs.GetLastConfirmedBlockNum()
 	if blockNum != concludeBlockNum {
 		t.Fatalf("cs.GetLatestConfirmedBlockNum does not match expected: got %v wanted %v", blockNum, concludeBlockNum)
 	}
-	blockNum2 := cs2.GetLatestConfirmedBlockNum()
+	blockNum2 := cs2.GetLastConfirmedBlockNum()
 	if blockNum2 != concludeBlockNum {
 		t.Fatalf("cs2.GetLatestConfirmedBlockNum does not match expected: got %v wanted %v", blockNum2, concludeBlockNum)
 	}

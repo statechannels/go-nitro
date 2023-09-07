@@ -470,7 +470,7 @@ func (ecs *EthChainService) GetChainId() (*big.Int, error) {
 	return ecs.chain.ChainID(ecs.ctx)
 }
 
-func (ecs *EthChainService) GetLatestConfirmedBlockNum() uint64 {
+func (ecs *EthChainService) GetLastConfirmedBlockNum() uint64 {
 	var confirmedBlockNum uint64
 
 	ecs.eventTracker.mu.Lock()

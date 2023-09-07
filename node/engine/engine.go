@@ -192,7 +192,7 @@ func (e *Engine) run(ctx context.Context) {
 		case proposal := <-e.fromLedger:
 			res, err = e.handleProposal(proposal)
 		case <-blockTicker.C:
-			blockNum := e.chain.GetLatestConfirmedBlockNum()
+			blockNum := e.chain.GetLastConfirmedBlockNum()
 			err = e.store.SetLastBlockNumSeen(blockNum)
 		case <-ctx.Done():
 			e.wg.Done()

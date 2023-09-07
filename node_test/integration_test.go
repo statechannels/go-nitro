@@ -1,6 +1,7 @@
 package node_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/node"
+	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/node/engine/messageservice"
 	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/node/query"
@@ -210,6 +212,33 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 		if tc.NumOfHops == 2 {
 			closeLedgerChannel(t, intermediaries[1], clientB, bobLedgers[1])
 			checkLedgerChannel(t, bobLedgers[1], finalBobLedger(*intermediaries[1].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, clientB)
+		}
+
+		var chainLastConfirmedBlockNum uint64
+		if infra.mockChain != nil {
+			chainLastConfirmedBlockNum = infra.mockChain.BlockNum
+		} else if infra.simulatedChain != nil {
+			latestBlock, err := infra.simulatedChain.BlockByNumber(context.Background(), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			chainLastConfirmedBlockNum = latestBlock.NumberU64() - chainservice.REQUIRED_BLOCK_CONFIRMATIONS
+		}
+
+		lastBlockNumA, err := clientA.GetLastBlockNum()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if lastBlockNumA != chainLastConfirmedBlockNum {
+			t.Fatalf("clientA.GetLastBlockNumSeen: expected %d, got %d", chainLastConfirmedBlockNum, lastBlockNumA)
+		}
+
+		lastBlockNumB, err := clientB.GetLastBlockNum()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if lastBlockNumB != chainLastConfirmedBlockNum {
+			t.Fatalf("clientB.GetLastBlockNumSeen: expected %d, got %d", chainLastConfirmedBlockNum, lastBlockNumB)
 		}
 	})
 }
