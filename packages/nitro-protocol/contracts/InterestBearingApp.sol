@@ -2,7 +2,6 @@
 pragma solidity 0.8.17;
 
 import {IForceMoveApp} from './interfaces/IForceMoveApp.sol';
-import {NitroUtils} from './libraries/NitroUtils.sol';
 import {Consensus} from './libraries/signature-logic/Consensus.sol';
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 

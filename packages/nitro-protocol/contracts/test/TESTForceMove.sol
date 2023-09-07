@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-import '../ForceMove.sol';
+import {ForceMove} from '../ForceMove.sol';
 
 /**
  * @dev This contract extends the ForceMove contract to enable it to be more easily unit-tested. It exposes public or external functions that set storage variables or wrap otherwise internal functions. It should not be deployed in a production environment.
