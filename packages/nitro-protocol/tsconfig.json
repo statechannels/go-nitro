@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "target": "es2018",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "outDir": "dist",
+    "declaration": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/index.ts", "addresses.json", "../test/@types/environment.d.ts"]
+}

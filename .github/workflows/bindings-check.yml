@@ -6,7 +6,7 @@ on:
   pull_request:
     paths:
       [
-        "nitro-protocol/contracts/**",
+        "packages/nitro-protocol/contracts/**",
         "generate-adjudicator-bindings.sh",
         ".github/workflows/bindings-check.yml",
         "node/engine/chainservice/adjudicator/NitroAdjudicator.go",
@@ -28,7 +28,7 @@ jobs:
 
       - name: Install nitro-protocol dependencies
         run: |
-          cd ./nitro-protocol
+          cd ./packages/nitro-protocol
           yarn
 
       - name: make bin folder
