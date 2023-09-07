@@ -407,6 +407,7 @@ func (ecs *EthChainService) updateEventTracker(errorChan chan<- error, blockNumb
 	if blockNumber != nil && *blockNumber > ecs.eventTracker.latestBlockNum {
 		ecs.eventTracker.latestBlockNum = *blockNumber
 	}
+
 	if chainEvent != nil {
 		ecs.eventTracker.Push(*chainEvent)
 		ecs.logger.Debug("event added to queue", "updated-queue-length", ecs.eventTracker.events.Len())
@@ -467,6 +468,23 @@ func (ecs *EthChainService) GetVirtualPaymentAppAddress() types.Address {
 
 func (ecs *EthChainService) GetChainId() (*big.Int, error) {
 	return ecs.chain.ChainID(ecs.ctx)
+}
+
+func (ecs *EthChainService) GetLatestConfirmedBlockNum() uint64 {
+	var confirmedBlockNum uint64
+
+	ecs.eventTracker.mu.Lock()
+
+	// Check for potential underflow
+	if ecs.eventTracker.latestBlockNum >= REQUIRED_BLOCK_CONFIRMATIONS {
+		confirmedBlockNum = ecs.eventTracker.latestBlockNum - REQUIRED_BLOCK_CONFIRMATIONS
+	} else {
+		confirmedBlockNum = 0
+	}
+
+	ecs.eventTracker.mu.Unlock()
+
+	return confirmedBlockNum
 }
 
 func (ecs *EthChainService) Close() error {
