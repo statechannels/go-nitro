@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
-import './interfaces/IForceMoveApp.sol';
-import './libraries/NitroUtils.sol';
-import './interfaces/INitroTypes.sol';
+import {IForceMoveApp} from './interfaces/IForceMoveApp.sol';
+import {NitroUtils} from './libraries/NitroUtils.sol';
+import {INitroTypes} from './interfaces/INitroTypes.sol';
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 
 /**

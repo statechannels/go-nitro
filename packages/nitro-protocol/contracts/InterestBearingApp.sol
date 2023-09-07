@@ -1,9 +1,9 @@
+// SPDX-License-Identifier: MIT 
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
-import './interfaces/IForceMoveApp.sol';
-import './libraries/NitroUtils.sol';
-import './libraries/signature-logic/Consensus.sol';
+import {IForceMoveApp} from './interfaces/IForceMoveApp.sol';
+import {NitroUtils} from './libraries/NitroUtils.sol';
+import {Consensus} from './libraries/signature-logic/Consensus.sol';
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 
 // InterestBearingApp is a ForceMoveApp that allows a lender to earn interest

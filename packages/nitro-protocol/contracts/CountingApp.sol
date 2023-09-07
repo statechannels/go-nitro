@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
-import './libraries/signature-logic/StrictTurnTaking.sol';
-import './interfaces/IForceMoveApp.sol';
+import {StrictTurnTaking} from './libraries/signature-logic/StrictTurnTaking.sol';
+import {IForceMoveApp} from './interfaces/IForceMoveApp.sol';
 
 /**
  * @dev The CountingApp contract complies with the ForceMoveApp interface and strict turn taking logic and allows only for a simple counter to be incremented. Used for testing purposes.

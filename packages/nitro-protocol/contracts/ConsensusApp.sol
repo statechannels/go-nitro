@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
-import './interfaces/IForceMoveApp.sol';
-import './libraries/signature-logic/Consensus.sol';
+import {IForceMoveApp} from './interfaces/IForceMoveApp.sol';
+import {Consensus} from './libraries/signature-logic/Consensus.sol';
 
 /**
  * @dev The ConsensusApp contracts complies with the ForceMoveApp interface and uses consensus signatures logic.

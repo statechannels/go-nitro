@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
-import './INitroTypes.sol';
+import {INitroTypes} from './INitroTypes.sol';
 
 /**
  * @dev The IForceMoveApp interface calls for its children to implement an application-specific stateIsSupported function, defining the state machine of a ForceMove state channel DApp.

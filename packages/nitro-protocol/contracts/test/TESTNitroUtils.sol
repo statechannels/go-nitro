@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
 import '../interfaces/INitroTypes.sol';
 import {NitroUtils} from '../libraries/NitroUtils.sol';

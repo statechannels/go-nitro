@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
-import './interfaces/IForceMoveApp.sol';
+import {IForceMoveApp} from './interfaces/IForceMoveApp.sol';
 
 /**
  * @dev The TrivialApp contracts complies with the ForceMoveApp interface and allows all transitions, regardless of the data. Used for testing purposes.

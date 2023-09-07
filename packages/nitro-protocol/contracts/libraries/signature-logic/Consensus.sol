@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
-import '../NitroUtils.sol';
-import '../../interfaces/INitroTypes.sol';
+import {NitroUtils} from '../NitroUtils.sol';
+import {INitroTypes} from '../../interfaces/INitroTypes.sol';
 
 /**
  * @dev Library for consensus signatures logic, which implies that all participants have signed the candidate state, while supplying proof as empty.

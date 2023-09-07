@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 import {StrictTurnTaking} from '../libraries/signature-logic/StrictTurnTaking.sol';
-import '../interfaces/IForceMoveApp.sol';
+import {IForceMoveApp} from '../interfaces/IForceMoveApp.sol';
 
 /**
  * @dev The HashLockedSwap contract complies with the ForceMoveApp interface, uses strict turn taking logic and implements a HashLockedSwapped payment.

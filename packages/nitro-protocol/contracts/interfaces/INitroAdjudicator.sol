@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
-import './IMultiAssetHolder.sol';
-import './IForceMove.sol';
+import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
+import {IMultiAssetHolder} from './IMultiAssetHolder.sol';
+import {IForceMove} from './IForceMove.sol';
 
 /**
  * @dev The INitroAdjudicator defines an interface for a contract that adjudicates state channels. It is based on IMultiAssetHolder and IForceMove, extending them with some functions.
