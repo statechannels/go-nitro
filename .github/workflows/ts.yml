@@ -1,4 +1,4 @@
-name: Check Bindings and Lockfile
+name: Typescript, Solidity and cross-language tests
 
 on:
   push:
