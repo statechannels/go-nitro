@@ -22,6 +22,9 @@ var (
 	CHALLENGE_DURATION = uint32(1000) // 1000 seconds. Much longer than the duration of the test
 	Alice              = testactors.Alice
 	Bob                = testactors.Bob
+	challengeBlockNum  = uint64(2)
+	depositBlockNum    = uint64(5)
+	concludeBlockNum   = uint64(8)
 )
 
 var concludeOutcome = outcome.Exit{
@@ -101,7 +104,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	// Check that the received events matches the expected event
 	receivedEvent = <-out
 	crEvent := receivedEvent.(ChallengeRegisteredEvent)
-	expectedChallengeRegisteredEvent := NewChallengeRegisteredEvent(concludeState.ChannelId(), 2, crEvent.candidate, crEvent.candidateSignatures)
+	expectedChallengeRegisteredEvent := NewChallengeRegisteredEvent(concludeState.ChannelId(), challengeBlockNum, crEvent.candidate, crEvent.candidateSignatures)
 	if diff := cmp.Diff(expectedChallengeRegisteredEvent, crEvent, cmp.AllowUnexported(ChallengeRegisteredEvent{}, commonEvent{}, big.Int{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
@@ -110,10 +113,10 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		common.HexToAddress("0x00"): three,
 		bindings.Token.Address:      one,
 	}
-	testTx := protocols.NewDepositTransaction(concludeState.ChannelId(), testDeposit)
+	depositTx := protocols.NewDepositTransaction(concludeState.ChannelId(), testDeposit)
 
 	// Submit transaction
-	err = cs.SendTransaction(testTx)
+	err = cs.SendTransaction(depositTx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +125,7 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		receivedEvent = <-out
 		dEvent := receivedEvent.(DepositedEvent)
-		expectedDepositEvent := NewDepositedEvent(concludeState.ChannelId(), 5, dEvent.Asset, testDeposit[dEvent.Asset])
+		expectedDepositEvent := NewDepositedEvent(concludeState.ChannelId(), depositBlockNum, dEvent.Asset, testDeposit[dEvent.Asset])
 		if diff := cmp.Diff(expectedDepositEvent, dEvent, cmp.AllowUnexported(DepositedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 			t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 		}
@@ -160,14 +163,14 @@ func TestSimulatedBackendChainService(t *testing.T) {
 
 	// Check that the recieved event matches the expected event
 	concludedEvent := <-out
-	expectedConcludedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: 8}}
+	expectedConcludedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: concludeBlockNum}}
 	if diff := cmp.Diff(expectedConcludedEvent, concludedEvent, cmp.AllowUnexported(ConcludedEvent{}, commonEvent{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
 	// Check that the recieved event matches the expected event
 	allocationUpdatedEvent := <-out
-	expectedAllocationUpdatedEvent := NewAllocationUpdatedEvent(cId, 8, common.Address{}, new(big.Int).SetInt64(1))
+	expectedAllocationUpdatedEvent := NewAllocationUpdatedEvent(cId, concludeBlockNum, common.Address{}, new(big.Int).SetInt64(1))
 	if diff := cmp.Diff(expectedAllocationUpdatedEvent, allocationUpdatedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
@@ -184,10 +187,20 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		t.Fatalf("Adjudicator not updated as expected, got %v wanted %v", common.Bytes2Hex(statusOnChain[:]), common.Bytes2Hex(emptyBytes[:]))
 	}
 
+	// Check latest confirmed block number recognized by each chainservice
+	blockNum := cs.GetLastConfirmedBlockNum()
+	if blockNum != concludeBlockNum {
+		t.Fatalf("cs.GetLatestConfirmedBlockNum does not match expected: got %v wanted %v", blockNum, concludeBlockNum)
+	}
+	blockNum2 := cs2.GetLastConfirmedBlockNum()
+	if blockNum2 != concludeBlockNum {
+		t.Fatalf("cs2.GetLatestConfirmedBlockNum does not match expected: got %v wanted %v", blockNum2, concludeBlockNum)
+	}
+
 	// Check events from cs2 to ensure they match the expected values
 	receivedEvent = <-cs2.EventFeed()
 	crEvent = receivedEvent.(ChallengeRegisteredEvent)
-	expectedChallengeRegisteredEvent = NewChallengeRegisteredEvent(concludeState.ChannelId(), 2, crEvent.candidate, crEvent.candidateSignatures)
+	expectedChallengeRegisteredEvent = NewChallengeRegisteredEvent(concludeState.ChannelId(), challengeBlockNum, crEvent.candidate, crEvent.candidateSignatures)
 	if diff := cmp.Diff(expectedChallengeRegisteredEvent, crEvent, cmp.AllowUnexported(ChallengeRegisteredEvent{}, commonEvent{}, big.Int{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}

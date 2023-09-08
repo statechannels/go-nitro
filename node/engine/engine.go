@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
@@ -176,6 +177,8 @@ func (e *Engine) run(ctx context.Context) {
 		var res EngineEvent
 		var err error
 
+		blockTicker := time.NewTicker(15 * time.Second)
+
 		select {
 
 		case or := <-e.ObjectiveRequestsFromAPI:
@@ -183,13 +186,14 @@ func (e *Engine) run(ctx context.Context) {
 		case pr := <-e.PaymentRequestsFromAPI:
 			res, err = e.handlePaymentRequest(pr)
 		case chainEvent := <-e.fromChain:
-			err = e.store.SetLastBlockNumSeen(chainEvent.BlockNum())
-			e.checkError(err)
 			res, err = e.handleChainEvent(chainEvent)
 		case message := <-e.fromMsg:
 			res, err = e.handleMessage(message)
 		case proposal := <-e.fromLedger:
 			res, err = e.handleProposal(proposal)
+		case <-blockTicker.C:
+			blockNum := e.chain.GetLastConfirmedBlockNum()
+			err = e.store.SetLastBlockNumSeen(blockNum)
 		case <-ctx.Done():
 			e.wg.Done()
 			return
@@ -395,6 +399,11 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 //   - attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, error) {
 	e.logger.Info("Handling chain event", "event", chainEvent)
+	err := e.store.SetLastBlockNumSeen(chainEvent.BlockNum())
+	if err != nil {
+		return EngineEvent{}, err
+	}
+
 	c, ok := e.store.GetChannelById(chainEvent.ChannelID())
 	if !ok {
 		// TODO: Right now the chain service returns chain events for ALL channels even those we aren't involved in

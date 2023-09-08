@@ -13,7 +13,7 @@ import (
 // MockChain mimics the Ethereum blockchain by keeping track of block numbers and account balances in memory.
 // MockChain accepts transactions and broadcasts events.
 type MockChain struct {
-	blockNum uint64
+	BlockNum uint64
 	// holdings tracks funds for each channel.
 	holdings map[types.Destination]types.Funds
 	// out maps addresses to an Event channel. Given that MockChainServices only subscribe
@@ -26,7 +26,7 @@ type MockChain struct {
 // NewMockChain creates a new MockChain
 func NewMockChain() *MockChain {
 	chain := MockChain{}
-	chain.blockNum = 1
+	chain.BlockNum = 1
 	chain.holdings = map[types.Destination]types.Funds{}
 	chain.out = safesync.Map[chan Event]{}
 	return &chain
@@ -37,7 +37,7 @@ func NewMockChain() *MockChain {
 func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
 	eventsToBroadcast := []Event{}
 	mc.txMutex.Lock()
-	mc.blockNum++
+	mc.BlockNum++
 	h := mc.holdings[tx.ChannelId()] // ignore `ok` because the returned zero-value is what we want
 	switch tx := tx.(type) {
 	case protocols.DepositTransaction:
@@ -46,12 +46,12 @@ func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
 		}
 
 		for address := range tx.Deposit {
-			event := NewDepositedEvent(tx.ChannelId(), mc.blockNum, address, h.Add(tx.Deposit)[address])
+			event := NewDepositedEvent(tx.ChannelId(), mc.BlockNum, address, h.Add(tx.Deposit)[address])
 			eventsToBroadcast = append(eventsToBroadcast, event)
 		}
 	case protocols.WithdrawAllTransaction:
 		for assetAddress := range h {
-			event := NewAllocationUpdatedEvent(tx.ChannelId(), mc.blockNum, assetAddress, common.Big0)
+			event := NewAllocationUpdatedEvent(tx.ChannelId(), mc.BlockNum, assetAddress, common.Big0)
 			eventsToBroadcast = append(eventsToBroadcast, event)
 		}
 		mc.holdings[tx.ChannelId()] = types.Funds{}

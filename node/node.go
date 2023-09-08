@@ -270,6 +270,11 @@ func (n *Node) GetAllLedgerChannels() ([]query.LedgerChannelInfo, error) {
 	return query.GetAllLedgerChannels(n.store, n.engine.GetConsensusAppAddress())
 }
 
+// GetLastBlockNum returns last confirmed blockNum read from store
+func (n *Node) GetLastBlockNum() (uint64, error) {
+	return n.store.GetLastBlockNumSeen()
+}
+
 // GetLedgerChannel returns the ledger channel with the given id.
 // If no ledger channel exists with the given id an error is returned.
 func (n *Node) GetLedgerChannel(id types.Destination) (query.LedgerChannelInfo, error) {
