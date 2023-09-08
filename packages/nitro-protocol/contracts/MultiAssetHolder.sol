@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
+
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
-import './ForceMove.sol';
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import './interfaces/IMultiAssetHolder.sol';
+import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import {IMultiAssetHolder} from './interfaces/IMultiAssetHolder.sol';
+import {StatusManager} from './StatusManager.sol';
 
 /**
 @dev An implementation of the IMultiAssetHolder interface. The AssetHolder contract escrows ETH or tokens against state channels. It allows assets to be internally accounted for, and ultimately prepared for transfer from one channel to other channels and/or external destinations, as well as for guarantees to be reclaimed.

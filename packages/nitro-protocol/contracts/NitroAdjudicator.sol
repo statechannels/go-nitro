@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
 import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 import {NitroUtils} from './libraries/NitroUtils.sol';
-import './interfaces/INitroAdjudicator.sol';
-import './ForceMove.sol';
-import './MultiAssetHolder.sol';
+import {INitroAdjudicator} from './interfaces/INitroAdjudicator.sol';
+import {ForceMove} from './ForceMove.sol';
+import {IForceMoveApp} from './interfaces/IForceMoveApp.sol';
+import {MultiAssetHolder} from './MultiAssetHolder.sol';
 
 /**
  * @dev The NitroAdjudicator contract extends MultiAssetHolder and ForceMove

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
-import '../interfaces/INitroTypes.sol';
+import {INitroTypes} from '../interfaces/INitroTypes.sol';
+import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 
 library NitroUtils {
     // *****************

@@ -2,10 +2,11 @@
   "go.formatTool": "gofumpt",
   "go.lintTool": "golangci-lint",
   "go.lintOnSave": "workspace",
-"gopls": {
-	"formatting.gofumpt": true,
-},
+  "gopls": {
+    "formatting.gofumpt": true
+  },
   "yaml.schemas": {
     "https://squidfunk.github.io/mkdocs-material/schema.json": "mkdocs.yml"
-  }
+  },
+  "solidity.compileUsingRemoteVersion": "v0.8.17+commit.8df45f5f"
 }

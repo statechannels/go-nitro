@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
-import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 import {NitroUtils} from './libraries/NitroUtils.sol';
-import './interfaces/IForceMove.sol';
-import './interfaces/IForceMoveApp.sol';
-import './StatusManager.sol';
+import {IForceMove} from './interfaces/IForceMove.sol';
+import {IForceMoveApp} from './interfaces/IForceMoveApp.sol';
+import {StatusManager} from './StatusManager.sol';
 
 /**
  * @dev An implementation of ForceMove protocol, which allows state channels to be adjudicated and finalized.

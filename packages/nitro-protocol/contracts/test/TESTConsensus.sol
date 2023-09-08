@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
-import '../libraries/NitroUtils.sol';
 import {Consensus} from '../libraries/signature-logic/Consensus.sol';
+import {INitroTypes} from '../interfaces/INitroTypes.sol';
 
 /**
  * @dev This contract uses the Consensus library to make it more easily unit-tested. It exposes public or external functions which call into internal functions. It should not be deployed in a production environment.

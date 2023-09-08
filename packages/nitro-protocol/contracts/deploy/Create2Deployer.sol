@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.17;
 
-import '@openzeppelin/contracts/utils/Create2.sol';
+import {Create2} from '@openzeppelin/contracts/utils/Create2.sol';
 
 contract Create2Deployer {
     function deploy(uint256 value, bytes32 salt, bytes memory code) public {

@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
-import {ExitFormat as Outcome} from '@statechannels/exit-format/contracts/ExitFormat.sol';
 import {NitroUtils} from '../NitroUtils.sol';
-import '../../interfaces/INitroTypes.sol';
+import {INitroTypes} from '../../interfaces/INitroTypes.sol';
 
 library StrictTurnTaking {
     /**

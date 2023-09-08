@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-import './interfaces/IStatusManager.sol';
+import {IStatusManager} from './interfaces/IStatusManager.sol';
 
 /**
  * @dev The StatusManager is responsible for on-chain storage of the status of active channels

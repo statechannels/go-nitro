@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
-pragma experimental ABIEncoderV2;
 
-import '../NitroAdjudicator.sol';
-import './TESTForceMove.sol';
+import {NitroAdjudicator} from '../NitroAdjudicator.sol';
+import {TESTForceMove} from './TESTForceMove.sol';
 
 /**
  * @dev This contract extends the NitroAdjudicator contract to enable it to be more easily unit-tested. It exposes public or external functions that set storage variables or wrap otherwise internal functions. It should not be deployed in a production environment.
