@@ -20,8 +20,8 @@ import (
 )
 
 type blockData struct {
-	lastBlockNumSeen uint64
-	mu               sync.Mutex
+	blockNum uint64
+	mu       sync.Mutex
 }
 
 type MemStore struct {
@@ -30,7 +30,7 @@ type MemStore struct {
 	consensusChannels  safesync.Map[[]byte]
 	channelToObjective safesync.Map[protocols.ObjectiveId]
 	vouchers           safesync.Map[[]byte]
-	blocks             blockData
+	lastBlockSeen      blockData
 
 	key     string // the signing key of the store's engine
 	address string // the (Ethereum) address associated to the signing key
@@ -46,7 +46,7 @@ func NewMemStore(key []byte) Store {
 	ms.consensusChannels = safesync.Map[[]byte]{}
 	ms.channelToObjective = safesync.Map[protocols.ObjectiveId]{}
 	ms.vouchers = safesync.Map[[]byte]{}
-	ms.blocks = blockData{}
+	ms.lastBlockSeen = blockData{}
 	return &ms
 }
 
@@ -135,17 +135,17 @@ func (ms *MemStore) SetObjective(obj protocols.Objective) error {
 
 // SetLastBlockNumSeen
 func (ms *MemStore) SetLastBlockNumSeen(blockNumber uint64) error {
-	ms.blocks.mu.Lock()
-	ms.blocks.lastBlockNumSeen = blockNumber
-	ms.blocks.mu.Unlock()
+	ms.lastBlockSeen.mu.Lock()
+	ms.lastBlockSeen.blockNum = blockNumber
+	ms.lastBlockSeen.mu.Unlock()
 	return nil
 }
 
 // GetLastBlockNumSeen
 func (ms *MemStore) GetLastBlockNumSeen() (uint64, error) {
-	ms.blocks.mu.Lock()
-	lastBlockNumSeen := ms.blocks.lastBlockNumSeen
-	ms.blocks.mu.Unlock()
+	ms.lastBlockSeen.mu.Lock()
+	lastBlockNumSeen := ms.lastBlockSeen.blockNum
+	ms.lastBlockSeen.mu.Unlock()
 	return lastBlockNumSeen, nil
 }
 
