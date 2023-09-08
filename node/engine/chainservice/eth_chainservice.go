@@ -125,6 +125,7 @@ func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.
 
 	// Prevent go routines from processing events before checkForMissedEvents completes
 	ecs.eventTracker.mu.Lock()
+	defer ecs.eventTracker.mu.Unlock()
 
 	ecs.wg.Add(3)
 	go ecs.listenForEventLogs(errChan, eventSub, eventChan, eventQuery)
@@ -136,8 +137,6 @@ func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.
 	if err != nil {
 		return nil, err
 	}
-
-	ecs.eventTracker.mu.Unlock()
 
 	return &ecs, nil
 }
@@ -160,6 +159,11 @@ func (ecs *EthChainService) checkForMissedEvents(startBlock uint64) error {
 	missedEvents, err := ecs.chain.FilterLogs(ecs.ctx, query)
 	if err != nil {
 		ecs.logger.Error("failed to retrieve old chain logs: %v", err)
+
+		errorMsg := "*** To avoid this error, consider increasing the chainstartblock value in your configuration before restarting the node."
+		errorMsg += " Note that this may cause your node to miss chain events emitted prior to the chainstartblock."
+		ecs.logger.Error(errorMsg)
+
 		return err
 	}
 	ecs.logger.Info("finished checking for missed chain events", "numMissedEvents", len(missedEvents))
@@ -352,7 +356,7 @@ out:
 				errorChan <- fmt.Errorf("subscribeFilterLogs failed on resubscribe: %w", err)
 				break out
 			}
-			ecs.logger.Log(context.Background(), logging.LevelTrace, "resubscribed to filtered event logs")
+			ecs.logger.Log(ecs.ctx, logging.LevelTrace, "resubscribed to filtered event logs")
 
 		case <-time.After(RESUB_INTERVAL):
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
@@ -389,11 +393,11 @@ out:
 				errorChan <- fmt.Errorf("subscribeNewHead failed on resubscribe: %w", sErr)
 				break out
 			}
-			ecs.logger.Log(context.Background(), logging.LevelTrace, "resubscribed to new blocks")
+			ecs.logger.Log(ecs.ctx, logging.LevelTrace, "resubscribed to new blocks")
 
 		case newBlock := <-newBlockChan:
 			newBlockNum := newBlock.Number.Uint64()
-			ecs.logger.Log(context.Background(), logging.LevelTrace, "detected new block", "block-num", newBlockNum)
+			ecs.logger.Log(ecs.ctx, logging.LevelTrace, "detected new block", "block-num", newBlockNum)
 			ecs.updateEventTracker(errorChan, &newBlockNum, nil)
 		}
 	}
@@ -474,6 +478,7 @@ func (ecs *EthChainService) GetLastConfirmedBlockNum() uint64 {
 	var confirmedBlockNum uint64
 
 	ecs.eventTracker.mu.Lock()
+	defer ecs.eventTracker.mu.Unlock()
 
 	// Check for potential underflow
 	if ecs.eventTracker.latestBlockNum >= REQUIRED_BLOCK_CONFIRMATIONS {
@@ -481,8 +486,6 @@ func (ecs *EthChainService) GetLastConfirmedBlockNum() uint64 {
 	} else {
 		confirmedBlockNum = 0
 	}
-
-	ecs.eventTracker.mu.Unlock()
 
 	return confirmedBlockNum
 }

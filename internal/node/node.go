@@ -41,7 +41,7 @@ func InitializeNode(pkString string, chainOpts chain.ChainOpts,
 		chainOpts.ChainStartBlock = storeBlockNum
 	}
 
-	slog.Info("Initializing chain service and connecting to " + chainOpts.ChainUrl + "...")
+	slog.Info("Initializing chain service...")
 	ourChain, err := chainservice.NewEthChainService(chainOpts)
 	if err != nil {
 		return nil, nil, nil, nil, err
