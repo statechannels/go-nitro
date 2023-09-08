@@ -49,7 +49,7 @@ func blockUntilHttpServerIsReady(rpcPort int) error {
 
 	numAttempts := 10
 	for i := 0; i < numAttempts; i++ {
-		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/health", rpcPort))
+		resp, err := http.Get(fmt.Sprintf("http://:%d/health", rpcPort))
 		if err != nil {
 			waitForServer()
 			continue
