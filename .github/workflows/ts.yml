@@ -1,0 +1,118 @@
+name: Check Bindings and Lockfile
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      [
+        "packages/nitro-protocol/contracts/**",
+        "generate-adjudicator-bindings.sh",
+        ".github/workflows/bindings-check.yml",
+        "node/engine/chainservice/adjudicator/NitroAdjudicator.go",
+        "node/engine/chainservice/consensusapp/ConsensusApp.go",
+        "node/engine/chainservice/erc20/Token.go",
+        "node/engine/chainservice/virtualpaymentapp/VirtualPaymentApp.go",
+      ]
+jobs:
+  install-and-bootstrap-ts-monorepo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.15.0"
+          run: yarn
+
+  install-abigen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install go-ethereum (includes abigen)
+        run: go install github.com/ethereum/go-ethereum
+
+  install-solc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: make bin folder
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/bin
+          echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
+
+      - name: Install solc
+        run: |
+          curl -o solc https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.17+commit.8df45f5f
+          mv solc $GITHUB_WORKSPACE/bin
+          sudo chmod +x $GITHUB_WORKSPACE/bin/solc
+
+  install-foundry:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+  make-gui:
+    runs-on: ubuntu-latest
+    needs: install-and-bootstrap-ts-monorepo
+    steps:
+      - name: Build UI
+        run: make ui/build
+
+  regenerate-bindings-and-check:
+    needs: [install-solc, install-abigen]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Regenerate contract bindings
+        run: sh ./generate-adjudicator-bindings.sh
+
+      - name: check git tree is clean
+        # This will fail the job if any previous step (re)generated a file
+        # that doesn't match what you checked in (or forgot to check in)
+        run: git diff --exit-code
+
+  lint-ts:
+    runs-on: ubuntu-latest
+    needs: install-and-bootstrap-ts-monorepo
+    steps:
+      - name: Lint all packages
+        run: yarn run lint
+
+  test-ts:
+    runs-on: ubuntu-latest
+    needs: install-and-bootstrap-ts-monorepo
+    steps:
+      - name: Lint all packages
+        run: yarn run test
+
+  compile-contracts:
+    runs-on: ubuntu-latest
+    needs: install-and-bootstrap-ts-monorepo
+    steps:
+      - name: Compile contracts
+        run: yarn hardhat compile
+
+  test-contracts:
+    runs-on: ubuntu-latest
+    needs: compile-contracts
+    steps:
+      - name: Run contract tests
+        run: yarn test:contracts
+
+  ts-rpc-interop:
+    runs-on: ubuntu-latest
+    needs: [install-and-bootstrap-ts-monorepo, install-foundry, make-gui]
+    steps:
+      - name: Run go-nitro RPC servers with GUI
+        run: go run ./cmd/start-rpc-servers -ui=true &> output.log &
+
+      - name: Run Create Channels script
+        # TODO: We could write a test specific script that creates channels and checks the results
+        run: npx ts-node ./scripts/client-runner.ts create-channels -w 300000 &> output.log
+        working-directory: packages/nitro-rpc-client
+
+      - name: Archive logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs
+          path: ./**/*.log
