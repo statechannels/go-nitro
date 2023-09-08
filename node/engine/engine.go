@@ -398,7 +398,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 //   - generates an updated objective, and
 //   - attempts progress.
 func (e *Engine) handleChainEvent(chainEvent chainservice.Event) (EngineEvent, error) {
-	e.logger.Info("Handling chain event", "event", chainEvent)
+	e.logger.Info("Handling chain event", "blockNum", chainEvent.BlockNum(), "event", chainEvent)
 	err := e.store.SetLastBlockNumSeen(chainEvent.BlockNum())
 	if err != nil {
 		return EngineEvent{}, err
