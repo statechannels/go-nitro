@@ -78,6 +78,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: add bin folder to path
+        run: echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
       - name: Regenerate contract bindings
         run: sh ./generate-adjudicator-bindings.sh
 
