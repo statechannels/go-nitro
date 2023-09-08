@@ -34,7 +34,7 @@ jobs:
         with:
           node-version: "18.15.0"
       - name: bootstrap
-        run: yarn bootsrap
+        run: yarn bootstrap
 
   install-abigen:
     runs-on: ubuntu-latest
