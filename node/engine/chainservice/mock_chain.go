@@ -13,7 +13,8 @@ import (
 // MockChain mimics the Ethereum blockchain by keeping track of block numbers and account balances in memory.
 // MockChain accepts transactions and broadcasts events.
 type MockChain struct {
-	BlockNum uint64
+	BlockNum   uint64
+	BlockNumMu sync.Mutex
 	// holdings tracks funds for each channel.
 	holdings map[types.Destination]types.Funds
 	// out maps addresses to an Event channel. Given that MockChainServices only subscribe
@@ -37,6 +38,7 @@ func NewMockChain() *MockChain {
 func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
 	eventsToBroadcast := []Event{}
 	mc.txMutex.Lock()
+	mc.BlockNumMu.Lock()
 	mc.BlockNum++
 	h := mc.holdings[tx.ChannelId()] // ignore `ok` because the returned zero-value is what we want
 	switch tx := tx.(type) {
@@ -59,6 +61,7 @@ func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
 		return fmt.Errorf("unexpected transaction type %T", tx)
 	}
 	mc.txMutex.Unlock()
+	mc.BlockNumMu.Unlock()
 	for _, event := range eventsToBroadcast {
 		mc.broadcastEvent(event)
 	}
