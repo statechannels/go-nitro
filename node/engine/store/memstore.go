@@ -3,6 +3,7 @@ package store
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel"
@@ -18,13 +19,18 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
+type blockData struct {
+	blockNum uint64
+	mu       sync.Mutex
+}
+
 type MemStore struct {
 	objectives         safesync.Map[[]byte]
 	channels           safesync.Map[[]byte]
 	consensusChannels  safesync.Map[[]byte]
 	channelToObjective safesync.Map[protocols.ObjectiveId]
 	vouchers           safesync.Map[[]byte]
-	lastBlockNumSeen   uint64
+	lastBlockSeen      blockData
 
 	key     string // the signing key of the store's engine
 	address string // the (Ethereum) address associated to the signing key
@@ -40,7 +46,7 @@ func NewMemStore(key []byte) Store {
 	ms.consensusChannels = safesync.Map[[]byte]{}
 	ms.channelToObjective = safesync.Map[protocols.ObjectiveId]{}
 	ms.vouchers = safesync.Map[[]byte]{}
-	ms.lastBlockNumSeen = 0
+	ms.lastBlockSeen = blockData{}
 	return &ms
 }
 
@@ -129,13 +135,18 @@ func (ms *MemStore) SetObjective(obj protocols.Objective) error {
 
 // SetLastBlockNumSeen
 func (ms *MemStore) SetLastBlockNumSeen(blockNumber uint64) error {
-	ms.lastBlockNumSeen = blockNumber
+	ms.lastBlockSeen.mu.Lock()
+	ms.lastBlockSeen.blockNum = blockNumber
+	ms.lastBlockSeen.mu.Unlock()
 	return nil
 }
 
 // GetLastBlockNumSeen
 func (ms *MemStore) GetLastBlockNumSeen() (uint64, error) {
-	return ms.lastBlockNumSeen, nil
+	ms.lastBlockSeen.mu.Lock()
+	lastBlockNumSeen := ms.lastBlockSeen.blockNum
+	ms.lastBlockSeen.mu.Unlock()
+	return lastBlockNumSeen, nil
 }
 
 // SetChannel sets the channel in the store.
