@@ -15,7 +15,7 @@ on:
         "node/engine/chainservice/virtualpaymentapp/VirtualPaymentApp.go",
       ]
 jobs:
-  install-and-bootstrap-ts-monorepo:
+  install-ts-monorepo:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -24,6 +24,16 @@ jobs:
           node-version: "18.15.0"
       - name: yarn
         run: yarn
+
+  bootstrap-ts-monorepo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.15.0"
+      - name: bootstrap
+        run: yarn bootsrap
 
   install-abigen:
     runs-on: ubuntu-latest
@@ -57,7 +67,7 @@ jobs:
 
   make-gui:
     runs-on: ubuntu-latest
-    needs: install-and-bootstrap-ts-monorepo
+    needs: bootstrap-ts-monorepo
     steps:
       - name: Build UI
         run: make ui/build
@@ -77,35 +87,28 @@ jobs:
 
   lint-ts:
     runs-on: ubuntu-latest
-    needs: install-and-bootstrap-ts-monorepo
+    needs: install-ts-monorepo
     steps:
       - name: Lint all packages
         run: yarn run lint
 
   test-ts:
     runs-on: ubuntu-latest
-    needs: install-and-bootstrap-ts-monorepo
+    needs: install-ts-monorepo
     steps:
-      - name: Lint all packages
+      - name: test all packages
         run: yarn run test
-
-  compile-contracts:
-    runs-on: ubuntu-latest
-    needs: install-and-bootstrap-ts-monorepo
-    steps:
-      - name: Compile contracts
-        run: yarn hardhat compile
 
   test-contracts:
     runs-on: ubuntu-latest
-    needs: compile-contracts
+    needs: bootstrap-ts-monorepo
     steps:
       - name: Run contract tests
         run: yarn test:contracts
 
   ts-rpc-interop:
     runs-on: ubuntu-latest
-    needs: [install-and-bootstrap-ts-monorepo, install-foundry, make-gui]
+    needs: [bootstrap-ts-monorepo, install-foundry, make-gui]
     steps:
       - name: Run go-nitro RPC servers with GUI
         run: go run ./cmd/start-rpc-servers -ui=true &> output.log &
