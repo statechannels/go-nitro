@@ -67,7 +67,7 @@ func NewHttpTransportAsServer(port string) (*serverHttpTransport, error) {
 func (t *serverHttpTransport) serveHttp() {
 	defer t.wg.Done()
 
-	err := t.httpServer.ListenAndServe()
+	err := t.httpServer.ListenAndServeTLS("../statechannels.org+3.pem", "../statechannels.org+3-key.pem")
 
 	if err != nil && errors.Is(err, http.ErrServerClosed) {
 		return
