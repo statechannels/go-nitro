@@ -22,11 +22,15 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18.15.0"
-          run: yarn
+      - name: yarn
+        run: yarn
 
   install-abigen:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: "1.21.0"
       - name: Install go-ethereum (includes abigen)
         run: go install github.com/ethereum/go-ethereum
 
