@@ -92,6 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: install-ts-monorepo
     steps:
+      - uses: actions/checkout@v3
       - name: Lint all packages
         run: yarn run lint
 
@@ -99,6 +100,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: install-ts-monorepo
     steps:
+      - uses: actions/checkout@v3
       - name: test all packages
         run: yarn run test
 
