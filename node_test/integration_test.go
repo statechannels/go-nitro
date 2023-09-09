@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/internal/testactors"
@@ -225,20 +226,31 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 			chainLastConfirmedBlockNum = latestBlock.NumberU64() - chainservice.REQUIRED_BLOCK_CONFIRMATIONS
 		}
 
-		lastBlockNumA, err := clientA.GetLastBlockNum()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if lastBlockNumA != chainLastConfirmedBlockNum {
-			t.Fatalf("clientA.GetLastBlockNumSeen: expected %d, got %d", chainLastConfirmedBlockNum, lastBlockNumA)
-		}
-
-		lastBlockNumB, err := clientB.GetLastBlockNum()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if lastBlockNumB != chainLastConfirmedBlockNum {
-			t.Fatalf("clientB.GetLastBlockNumSeen: expected %d, got %d", chainLastConfirmedBlockNum, lastBlockNumB)
-		}
+		waitForClientBlockNum(t, clientA, chainLastConfirmedBlockNum, 10*time.Second)
+		waitForClientBlockNum(t, clientB, chainLastConfirmedBlockNum, 10*time.Second)
 	})
+}
+
+func waitForClientBlockNum(t *testing.T, n node.Node, targetBlockNum uint64, timeout time.Duration) {
+	// Setup up a context with a timeout so we exit if we don't get the block num in time
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	lastBlockNum := uint64(0)
+	var err error
+	for {
+		select {
+		case <-ctx.Done():
+			t.Fatalf("expected block num of at least %d, got %d", targetBlockNum, lastBlockNum)
+		default:
+			lastBlockNum, err = n.GetLastBlockNum()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if lastBlockNum >= targetBlockNum {
+				return
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
 }
