@@ -116,7 +116,7 @@ func setupStore(tc TestCase, tp TestParticipant, si sharedTestInfrastructure, da
 }
 
 func setupIntegrationNode(tc TestCase, tp TestParticipant, si sharedTestInfrastructure, bootPeers []string, dataFolder string) (node.Node, messageservice.MessageService, string) {
-	logging.SetupDefaultFileLogger(tc.LogName+"_message_"+string(tp.Name)+".log", slog.LevelDebug)
+	logging.SetupDefaultFileLogger(tc.LogName+"_"+string(tp.Name)+".log", slog.LevelDebug)
 	messageService, multiAddr := setupMessageService(tc, tp, si, bootPeers)
 	cs := setupChainService(tc, tp, si)
 	store := setupStore(tc, tp, si, dataFolder)
