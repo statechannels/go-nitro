@@ -50,7 +50,7 @@ Signing a prefund state enables it.
 
 The rules of `VirtualPaymentApp` dictate that the prefund is supported when all participants have signed it (unanimous consensus):
 
-[go-nitro/VirtualPaymentApp.sol at 13919093b8b8db0d69b7d0007af3ee3b5fd12aaa · statechannels/go-nitro](https://github.com/statechannels/go-nitro/blob/13919093b8b8db0d69b7d0007af3ee3b5fd12aaa/nitro-protocol/contracts/VirtualPaymentApp.sol#L46-L50)
+[go-nitro/VirtualPaymentApp.sol at 13919093b8b8db0d69b7d0007af3ee3b5fd12aaa · statechannels/go-nitro](https://github.com/statechannels/go-nitro/blob/13919093b8b8db0d69b7d0007af3ee3b5fd12aaa/packages/nitro-protocol/contracts/VirtualPaymentApp.sol#L46-L50)
 
 This is shown in the diagram above as `n+2` check marks (one for each intermediary plus one from each of the payer and payee).
 
@@ -62,7 +62,7 @@ Next, a node will enable an update to one or two ledger channels `L_i` which wil
 
 If an update in `L_i` becomes finalizable, money may be moved from `V` back to `L_i` by finalising `L_i` and `V`, and calling `reclaim` on the Adjudicator.
 
-[go-nitro/MultiAssetHolder.sol at 13919093b8b8db0d69b7d0007af3ee3b5fd12aaa · statechannels/go-nitro](https://github.com/statechannels/go-nitro/blob/13919093b8b8db0d69b7d0007af3ee3b5fd12aaa/nitro-protocol/contracts/MultiAssetHolder.sol#L246)
+[go-nitro/MultiAssetHolder.sol at 13919093b8b8db0d69b7d0007af3ee3b5fd12aaa · statechannels/go-nitro](https://github.com/statechannels/go-nitro/blob/13919093b8b8db0d69b7d0007af3ee3b5fd12aaa/packages/nitro-protocol/contracts/MultiAssetHolder.sol#L246)
 
 At any point during this stage, each party can recover their fair amount of money by finalizing `V` with the prefund state and reclaiming up to 2 guarantees in their ledger channels. It is important that **no other** state for V may be finalized.
 
@@ -76,7 +76,7 @@ It is not necessarily useful to think of it as “a round”. Funding and Postfu
 
 The on chain rules stipulate that **Bob can force a transition with a voucher only from a fully countersigned post fund state:**
 
-[go-nitro/VirtualPaymentApp.sol at 13919093b8b8db0d69b7d0007af3ee3b5fd12aaa · statechannels/go-nitro](https://github.com/statechannels/go-nitro/blob/13919093b8b8db0d69b7d0007af3ee3b5fd12aaa/nitro-protocol/contracts/VirtualPaymentApp.sol#L60-L65)
+[go-nitro/VirtualPaymentApp.sol at 13919093b8b8db0d69b7d0007af3ee3b5fd12aaa · statechannels/go-nitro](https://github.com/statechannels/go-nitro/blob/13919093b8b8db0d69b7d0007af3ee3b5fd12aaa/packages/nitro-protocol/contracts/VirtualPaymentApp.sol#L60-L65)
 
 So by withholding a post fund signature, any intermediary can prevent the vouchers being redeemed by Bob and therefore prevent the vouchers being trusted by Alice and Bob. This is the current role of the post fund setup state. It’s important because intermediaries can lose money if vouchers are redeemable too early (see Epilogue below).
 

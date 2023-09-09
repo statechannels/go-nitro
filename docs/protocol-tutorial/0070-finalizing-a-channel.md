@@ -88,4 +88,4 @@ It is important to understand that a challenge may be "cleared" by another more 
 
 ## Extract info from Adjudicator Events
 
-You may have noticed that to respond, the challenge state itself must be (re)submitted to the chain. To save gas, information is only stored on chain in a hashed format. Clients should, therefore, cache information emitted in Events emitted by the adjudicator, in order to be able to respond to challenges.
+You may have noticed that to respond, the challenge state itself must be (re)submitted to the chain. To save gas, information is only stored on chain in a hashed format. Clients should, therefore, cache information from Events emitted by the adjudicator, in order to be able to respond to challenges.

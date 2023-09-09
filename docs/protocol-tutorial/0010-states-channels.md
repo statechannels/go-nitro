@@ -275,7 +275,7 @@ Signatures on a state hash by different participants are often bundled up with t
 
 A support proof is any bundle of information sufficient for the chain to verify that a given channel state is legitimate. They usually consist of [`FixedPart`](#states), plus a singular [`SignedVariablePart`](#signedvariableparts) named `candidate`, plus an array of [`SignedVariableParts`](#signedvariableparts) named `proof`.
 
-The trivial support proof is a state with `IsFinal: true` signed by every participant. For an intuition around more complicated support proofs, see [Putting the 'state' in state channels](https://blog.statechannels.org/putting-the-state-in-state-channels/).
+An basic example of a support proof would be a single state signed by every participant. For an intuition around more complicated support proofs, see [Putting the 'state' in state channels](https://blog.statechannels.org/putting-the-state-in-state-channels/).
 
 ### `RecoveredVariableParts`
 
@@ -302,9 +302,15 @@ The adjudicator smart contract will recover the signer from each signature on a 
 === "Go"
 
     ```Go
-        // not yet implemented
-    ```
+    // INitroTypesRecoveredVariablePart is an auto generated low-level Go binding around an user-defined struct.
+    type INitroTypesRecoveredVariablePart struct {
+        VariablePart INitroTypesVariablePart
+        SignedBy \*big.Int
+    }
+
+```
 
 before being passed to the application execution rules (which do not need to do any signature recovery of their own).
 
 For example, if a channel has three participants and they all signed the state in question, we would have `signedBy = 0b111 = 7`. If only participant with index `0` had signed, we would have `signedBy = 0b001 = 1`.
+```

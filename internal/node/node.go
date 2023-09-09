@@ -17,7 +17,7 @@ import (
 
 func InitializeNode(pkString string, chainOpts chain.ChainOpts,
 	useDurableStore bool, durableStoreFolder string, msgPort int, bootPeers []string,
-) (*node.Node, *store.Store, *p2pms.P2PMessageService, *chainservice.EthChainService, error) {
+) (*node.Node, *store.Store, *p2pms.P2PMessageService, chainservice.ChainService, error) {
 	if pkString == "" {
 		panic("pk must be set")
 	}
@@ -31,8 +31,18 @@ func InitializeNode(pkString string, chainOpts chain.ChainOpts,
 	slog.Info("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
 	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, bootPeers)
 
-	slog.Info("Initializing chain service and connecting to " + chainOpts.ChainUrl + "...")
-	ourChain, err := chain.InitializeEthChainService(chainOpts)
+	// Compare chainOpts.ChainStartBlock to lastBlockNum seen in store. The larger of the two
+	// gets passed as an argument when creating NewEthChainService
+	storeBlockNum, err := ourStore.GetLastBlockNumSeen()
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	if storeBlockNum > chainOpts.ChainStartBlock {
+		chainOpts.ChainStartBlock = storeBlockNum
+	}
+
+	slog.Info("Initializing chain service...")
+	ourChain, err := chainservice.NewEthChainService(chainOpts)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

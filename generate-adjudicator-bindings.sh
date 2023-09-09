@@ -1,7 +1,7 @@
 set -e
 
 GONITRO_DIR=$(pwd)
-NITRO_PROTOCOL_DIR=$GONITRO_DIR/nitro-protocol
+NITRO_PROTOCOL_DIR=$GONITRO_DIR/packages/nitro-protocol
 TEMP_DIR=$NITRO_PROTOCOL_DIR/tmp-build
 GETH_DIR=$(go list -m -f '{{.Dir}}' github.com/ethereum/go-ethereum)
 
@@ -14,9 +14,10 @@ echo "Deleted tmp-build directory."
 
 echo "Compiling contracts..."
 
-solc --base-path $NITRO_PROTOCOL_DIR \
-  @statechannels/exit-format/=node_modules/@statechannels/exit-format/ \
-  @openzeppelin/contracts/=node_modules/@openzeppelin/contracts/ \
+solc --include-path $GONITRO_DIR \
+  --base-path $NITRO_PROTOCOL_DIR \
+  @statechannels/exit-format/=../../node_modules/@statechannels/exit-format/ \
+  @openzeppelin/contracts=../../node_modules/@openzeppelin/contracts/ \
   $NITRO_PROTOCOL_DIR/contracts/NitroAdjudicator.sol \
   $NITRO_PROTOCOL_DIR/contracts/ConsensusApp.sol \
   $NITRO_PROTOCOL_DIR/contracts/Token.sol \

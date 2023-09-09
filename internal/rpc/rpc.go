@@ -7,8 +7,8 @@ import (
 	"github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/rpc/transport"
+	"github.com/statechannels/go-nitro/rpc/transport/http"
 	"github.com/statechannels/go-nitro/rpc/transport/nats"
-	"github.com/statechannels/go-nitro/rpc/transport/ws"
 )
 
 func InitializeRpcServer(node *node.Node, rpcPort int, useNats bool) (*rpc.RpcServer, error) {
@@ -19,8 +19,8 @@ func InitializeRpcServer(node *node.Node, rpcPort int, useNats bool) (*rpc.RpcSe
 		slog.Info("Initializing NATS RPC transport...")
 		transport, err = nats.NewNatsTransportAsServer(rpcPort)
 	} else {
-		slog.Info("Initializing websocket RPC transport...")
-		transport, err = ws.NewWebSocketTransportAsServer(fmt.Sprint(rpcPort))
+		slog.Info("Initializing Http RPC transport...")
+		transport, err = http.NewHttpTransportAsServer(fmt.Sprint(rpcPort))
 	}
 	if err != nil {
 		return nil, err
@@ -31,5 +31,6 @@ func InitializeRpcServer(node *node.Node, rpcPort int, useNats bool) (*rpc.RpcSe
 		return nil, err
 	}
 
+	slog.Info("Completed RPC server initialization")
 	return rpcServer, nil
 }

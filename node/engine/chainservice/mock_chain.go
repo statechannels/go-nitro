@@ -13,20 +13,19 @@ import (
 // MockChain mimics the Ethereum blockchain by keeping track of block numbers and account balances in memory.
 // MockChain accepts transactions and broadcasts events.
 type MockChain struct {
-	blockNum uint64
+	BlockNum   uint64
+	blockNumMu sync.Mutex
 	// holdings tracks funds for each channel.
 	holdings map[types.Destination]types.Funds
 	// out maps addresses to an Event channel. Given that MockChainServices only subscribe
 	// (and never unsubscribe) to events, this can be converted to a list.
 	out safesync.Map[chan Event]
-	// txMutex is locked when updating chain state
-	txMutex sync.Mutex
 }
 
 // NewMockChain creates a new MockChain
 func NewMockChain() *MockChain {
 	chain := MockChain{}
-	chain.blockNum = 1
+	chain.BlockNum = 1
 	chain.holdings = map[types.Destination]types.Funds{}
 	chain.out = safesync.Map[chan Event]{}
 	return &chain
@@ -36,8 +35,8 @@ func NewMockChain() *MockChain {
 // unlike an ethereum blockchain, MockChain accepts go-nitro protocols.ChainTransaction
 func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
 	eventsToBroadcast := []Event{}
-	mc.txMutex.Lock()
-	mc.blockNum++
+	mc.blockNumMu.Lock()
+	mc.BlockNum++
 	h := mc.holdings[tx.ChannelId()] // ignore `ok` because the returned zero-value is what we want
 	switch tx := tx.(type) {
 	case protocols.DepositTransaction:
@@ -46,19 +45,19 @@ func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
 		}
 
 		for address := range tx.Deposit {
-			event := NewDepositedEvent(tx.ChannelId(), mc.blockNum, address, h.Add(tx.Deposit)[address])
+			event := NewDepositedEvent(tx.ChannelId(), mc.BlockNum, address, h.Add(tx.Deposit)[address])
 			eventsToBroadcast = append(eventsToBroadcast, event)
 		}
 	case protocols.WithdrawAllTransaction:
 		for assetAddress := range h {
-			event := NewAllocationUpdatedEvent(tx.ChannelId(), mc.blockNum, assetAddress, common.Big0)
+			event := NewAllocationUpdatedEvent(tx.ChannelId(), mc.BlockNum, assetAddress, common.Big0)
 			eventsToBroadcast = append(eventsToBroadcast, event)
 		}
 		mc.holdings[tx.ChannelId()] = types.Funds{}
 	default:
 		return fmt.Errorf("unexpected transaction type %T", tx)
 	}
-	mc.txMutex.Unlock()
+	mc.blockNumMu.Unlock()
 	for _, event := range eventsToBroadcast {
 		mc.broadcastEvent(event)
 	}

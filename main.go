@@ -25,6 +25,7 @@ func main() {
 		CONNECTIVITY_CATEGORY = "Connectivity:"
 		USE_NATS              = "usenats"
 		CHAIN_URL             = "chainurl"
+		CHAIN_START_BLOCK     = "chainstartblock"
 		CHAIN_AUTH_TOKEN      = "chainauthtoken"
 		NA_ADDRESS            = "naaddress"
 		VPA_ADDRESS           = "vpaaddress"
@@ -46,6 +47,7 @@ func main() {
 	)
 	var pkString, chainUrl, chainAuthToken, naAddress, vpaAddress, caAddress, chainPk, durableStoreFolder, bootPeers string
 	var msgPort, rpcPort, guiPort int
+	var chainStartBlock uint64
 	var useNats, useDurableStore bool
 
 	// urfave default precedence for flag value sources (highest to lowest):
@@ -101,6 +103,13 @@ func main() {
 			Category:    KEYS_CATEGORY,
 			Destination: &chainPk,
 			EnvVars:     []string{"CHAIN_PK"},
+		}),
+		altsrc.NewUint64Flag(&cli.Uint64Flag{
+			Name:        CHAIN_START_BLOCK,
+			Usage:       "Specifies the block number to start looking for nitro adjudicator events.",
+			Value:       0,
+			Category:    CONNECTIVITY_CATEGORY,
+			Destination: &chainStartBlock,
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        NA_ADDRESS,
@@ -163,12 +172,13 @@ func main() {
 		Before: altsrc.InitInputSourceWithContext(flags, altsrc.NewTomlSourceFromFlagFunc(CONFIG)),
 		Action: func(cCtx *cli.Context) error {
 			chainOpts := chain.ChainOpts{
-				ChainUrl:       chainUrl,
-				ChainAuthToken: chainAuthToken,
-				ChainPk:        chainPk,
-				NaAddress:      common.HexToAddress(naAddress),
-				VpaAddress:     common.HexToAddress(vpaAddress),
-				CaAddress:      common.HexToAddress(caAddress),
+				ChainUrl:        chainUrl,
+				ChainStartBlock: chainStartBlock,
+				ChainAuthToken:  chainAuthToken,
+				ChainPk:         chainPk,
+				NaAddress:       common.HexToAddress(naAddress),
+				VpaAddress:      common.HexToAddress(vpaAddress),
+				CaAddress:       common.HexToAddress(caAddress),
 			}
 
 			var peerSlice []string

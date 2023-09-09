@@ -7,11 +7,10 @@ import (
 	"os/exec"
 	"time"
 
-	b "github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	ConsensusApp "github.com/statechannels/go-nitro/node/engine/chainservice/consensusapp"
 	chainutils "github.com/statechannels/go-nitro/node/engine/chainservice/utils"
@@ -20,28 +19,13 @@ import (
 )
 
 type ChainOpts struct {
-	ChainUrl       string
-	ChainAuthToken string
-	ChainPk        string
-	NaAddress      common.Address
-	VpaAddress     common.Address
-	CaAddress      common.Address
-}
-
-func InitializeEthChainService(chainOpts ChainOpts) (*chainservice.EthChainService, error) {
-	if chainOpts.ChainPk == "" {
-		return nil, fmt.Errorf("chainpk must be set")
-	}
-
-	fmt.Println("Initializing chain service and connecting to " + chainOpts.ChainUrl + "...")
-
-	return chainservice.NewEthChainService(
-		chainOpts.ChainUrl,
-		chainOpts.ChainAuthToken,
-		chainOpts.ChainPk,
-		chainOpts.NaAddress,
-		chainOpts.CaAddress,
-		chainOpts.VpaAddress)
+	ChainUrl        string
+	ChainStartBlock uint64
+	ChainAuthToken  string
+	ChainPk         string
+	NaAddress       common.Address
+	VpaAddress      common.Address
+	CaAddress       common.Address
 }
 
 func StartAnvil() (*exec.Cmd, error) {
@@ -87,17 +71,17 @@ type contractBackend interface {
 }
 
 // deployFunc is a function that deploys a contract and returns the contract address, backend, and transaction.
-type deployFunc[T contractBackend] func(auth *b.TransactOpts, backend b.ContractBackend) (common.Address, *ethTypes.Transaction, *T, error)
+type deployFunc[T contractBackend] func(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *ethTypes.Transaction, *T, error)
 
 // deployContract deploys a contract and waits for the transaction to be mined.
-func deployContract[T contractBackend](ctx context.Context, name string, ethClient *ethclient.Client, txSubmitter *b.TransactOpts, deploy deployFunc[T]) (types.Address, error) {
+func deployContract[T contractBackend](ctx context.Context, name string, ethClient *ethclient.Client, txSubmitter *bind.TransactOpts, deploy deployFunc[T]) (types.Address, error) {
 	a, tx, _, err := deploy(txSubmitter, ethClient)
 	if err != nil {
 		return types.Address{}, err
 	}
 
 	fmt.Printf("Waiting for %s deployment confirmation\n", name)
-	_, err = b.WaitMined(ctx, ethClient, tx)
+	_, err = bind.WaitMined(ctx, ethClient, tx)
 	if err != nil {
 		return types.Address{}, err
 	}

@@ -2,6 +2,7 @@ package chainservice
 
 import (
 	"bytes"
+	"log/slog"
 	"math/big"
 	"testing"
 
@@ -10,14 +11,20 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/testactors"
+	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
 
 var (
-	Alice = testactors.Alice
-	Bob   = testactors.Bob
+	CHALLENGE_DURATION = uint32(1000) // 1000 seconds. Much longer than the duration of the test
+	Alice              = testactors.Alice
+	Bob                = testactors.Bob
+	challengeBlockNum  = uint64(2)
+	depositBlockNum    = uint64(5)
+	concludeBlockNum   = uint64(8)
 )
 
 var concludeOutcome = outcome.Exit{
@@ -36,17 +43,15 @@ var concludeOutcome = outcome.Exit{
 	},
 }
 
-type NoopLogger struct{}
-
-func (l NoopLogger) Write(p []byte) (n int, err error) {
-	return 0, nil
-}
-
 func TestSimulatedBackendChainService(t *testing.T) {
+	logging.SetupDefaultFileLogger("simulatedBackendChainService.log", slog.LevelDebug)
+
 	one := big.NewInt(1)
 	three := big.NewInt(3)
 
-	sim, bindings, ethAccounts, err := SetupSimulatedBackend(1)
+	var receivedEvent Event
+
+	sim, bindings, ethAccounts, err := SetupSimulatedBackend(2)
 	defer closeSimulatedChain(t, sim)
 	if err != nil {
 		t.Fatal(err)
@@ -65,33 +70,63 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		},
 		ChannelNonce:      37140676580,
 		AppDefinition:     bindings.ConsensusApp.Address,
-		ChallengeDuration: 0,
+		ChallengeDuration: CHALLENGE_DURATION,
 		AppData:           []byte{},
 		Outcome:           concludeOutcome,
 		TurnNum:           uint64(2),
 		IsFinal:           true,
 	}
 
-	// Prepare test data to trigger EthChainService
-	testDeposit := types.Funds{
-		common.HexToAddress("0x00"): three,
-		bindings.Token.Address:      one,
+	challengerSig, err := NitroAdjudicator.SignChallengeMessage(concludeState, Alice.PrivateKey)
+	if err != nil {
+		t.Fatal(err)
 	}
-	testTx := protocols.NewDepositTransaction(concludeState.ChannelId(), testDeposit)
+	concludeSignedState := state.NewSignedState(concludeState)
+	aSig, err := concludeState.Sign(Alice.PrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bSig, err := concludeState.Sign(Bob.PrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = concludeSignedState.AddSignature(aSig)
+	_ = concludeSignedState.AddSignature(bSig)
+
+	challengeTx := protocols.NewChallengeTransaction(concludeState.ChannelId(), concludeSignedState, make([]state.SignedState, 0), challengerSig)
 
 	out := cs.EventFeed()
-	// Submit transaction
-	err = cs.SendTransaction(testTx)
+	err = cs.SendTransaction(challengeTx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Check that the received events matches the expected event
+	receivedEvent = <-out
+	crEvent := receivedEvent.(ChallengeRegisteredEvent)
+	expectedChallengeRegisteredEvent := NewChallengeRegisteredEvent(concludeState.ChannelId(), challengeBlockNum, crEvent.candidate, crEvent.candidateSignatures)
+	if diff := cmp.Diff(expectedChallengeRegisteredEvent, crEvent, cmp.AllowUnexported(ChallengeRegisteredEvent{}, commonEvent{}, big.Int{})); diff != "" {
+		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
+	}
+
+	testDeposit := types.Funds{
+		common.HexToAddress("0x00"): three,
+		bindings.Token.Address:      one,
+	}
+	depositTx := protocols.NewDepositTransaction(concludeState.ChannelId(), testDeposit)
+
+	// Submit transaction
+	err = cs.SendTransaction(depositTx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check that the received events match the expected events
 	for i := 0; i < 2; i++ {
-		receivedEvent := <-out
+		receivedEvent = <-out
 		dEvent := receivedEvent.(DepositedEvent)
-		expectedEvent := NewDepositedEvent(concludeState.ChannelId(), 2, dEvent.Asset, testDeposit[dEvent.Asset])
-		if diff := cmp.Diff(expectedEvent, dEvent, cmp.AllowUnexported(DepositedEvent{}, commonEvent{}, big.Int{})); diff != "" {
+		expectedDepositEvent := NewDepositedEvent(concludeState.ChannelId(), depositBlockNum, dEvent.Asset, testDeposit[dEvent.Asset])
+		if diff := cmp.Diff(expectedDepositEvent, dEvent, cmp.AllowUnexported(DepositedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 			t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 		}
 		delete(testDeposit, dEvent.Asset)
@@ -100,10 +135,6 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	if len(testDeposit) != 0 {
 		t.Fatalf("Mismatch between the deposit transaction and the received events")
 	}
-
-	// Generate Signatures
-	aSig, _ := concludeState.Sign(Alice.PrivateKey)
-	bSig, _ := concludeState.Sign(Bob.PrivateKey)
 
 	cId := concludeState.ChannelId()
 
@@ -116,23 +147,31 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Start new chain service. It should detect old chain events that were emitted while it was offline
+	cs2, err := NewSimulatedBackendChainService(sim, bindings, ethAccounts[1])
+	defer closeChainService(t, cs2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	concludeTx := protocols.NewWithdrawAllTransaction(cId, signedConcludeState)
 	err = cs.SendTransaction(concludeTx)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// Check that the recieved event matches the expected event
 	concludedEvent := <-out
-	expectedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: 5}}
-	if diff := cmp.Diff(expectedEvent, concludedEvent, cmp.AllowUnexported(ConcludedEvent{}, commonEvent{})); diff != "" {
+	expectedConcludedEvent := ConcludedEvent{commonEvent: commonEvent{channelID: cId, blockNum: concludeBlockNum}}
+	if diff := cmp.Diff(expectedConcludedEvent, concludedEvent, cmp.AllowUnexported(ConcludedEvent{}, commonEvent{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
 	// Check that the recieved event matches the expected event
 	allocationUpdatedEvent := <-out
-	expectedEvent2 := NewAllocationUpdatedEvent(cId, 5, common.Address{}, new(big.Int).SetInt64(1))
-
-	if diff := cmp.Diff(expectedEvent2, allocationUpdatedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
+	expectedAllocationUpdatedEvent := NewAllocationUpdatedEvent(cId, concludeBlockNum, common.Address{}, new(big.Int).SetInt64(1))
+	if diff := cmp.Diff(expectedAllocationUpdatedEvent, allocationUpdatedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
 	}
 
@@ -146,6 +185,42 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	// Make assertion
 	if !bytes.Equal(statusOnChain[:], emptyBytes[:]) {
 		t.Fatalf("Adjudicator not updated as expected, got %v wanted %v", common.Bytes2Hex(statusOnChain[:]), common.Bytes2Hex(emptyBytes[:]))
+	}
+
+	// Check events from cs2 to ensure they match the expected values
+	receivedEvent = <-cs2.EventFeed()
+	crEvent = receivedEvent.(ChallengeRegisteredEvent)
+	expectedChallengeRegisteredEvent = NewChallengeRegisteredEvent(concludeState.ChannelId(), challengeBlockNum, crEvent.candidate, crEvent.candidateSignatures)
+	if diff := cmp.Diff(expectedChallengeRegisteredEvent, crEvent, cmp.AllowUnexported(ChallengeRegisteredEvent{}, commonEvent{}, big.Int{})); diff != "" {
+		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
+	}
+
+	for i := 0; i < 2; i++ {
+		receivedEvent = <-cs2.EventFeed()
+		_, ok := receivedEvent.(DepositedEvent)
+		if !ok {
+			t.Fatalf("Expected chain event to be DepositedEvent")
+		}
+	}
+
+	receivedEvent = <-cs2.EventFeed()
+	if diff := cmp.Diff(expectedConcludedEvent, receivedEvent, cmp.AllowUnexported(ConcludedEvent{}, commonEvent{})); diff != "" {
+		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
+	}
+
+	receivedEvent = <-cs2.EventFeed()
+	if diff := cmp.Diff(expectedAllocationUpdatedEvent, receivedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
+		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
+	}
+
+	// Check latest confirmed block number recognized by each chainservice
+	blockNum := cs.GetLastConfirmedBlockNum()
+	if blockNum != concludeBlockNum {
+		t.Fatalf("cs.GetLatestConfirmedBlockNum does not match expected: got %v wanted %v", blockNum, concludeBlockNum)
+	}
+	blockNum2 := cs2.GetLastConfirmedBlockNum()
+	if blockNum2 != concludeBlockNum {
+		t.Fatalf("cs2.GetLatestConfirmedBlockNum does not match expected: got %v wanted %v", blockNum2, concludeBlockNum)
 	}
 }
 

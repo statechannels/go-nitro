@@ -14,6 +14,13 @@ import {
 } from "../src/utils";
 
 const clientNames = ["alice", "irene", "bob", "ivan"] as const;
+const clientPortMap: Record<ClientNames, number> = {
+  alice: 4005,
+  irene: 4006,
+  bob: 4007,
+  ivan: 4008,
+};
+
 type ClientNames = (typeof clientNames)[number];
 type Clients = Map<ClientNames, NitroRpcClient>;
 
@@ -135,11 +142,11 @@ yargs(hideBin(process.argv))
     },
     async (yargs) => {
       if (yargs.waitduration > 0) {
-        await Promise.all([
-          waitForRPCServer(4005, yargs.waitduration),
-          waitForRPCServer(4006, yargs.waitduration),
-          waitForRPCServer(4007, yargs.waitduration),
-        ]);
+        await Promise.all(
+          Object.values(clientPortMap).map((port) =>
+            waitForRPCServer(port, yargs.waitduration)
+          )
+        );
       }
 
       const clients = await initializeClients();
@@ -318,7 +325,7 @@ async function isServerUp(port: number): Promise<boolean> {
   const url = new URL(`http://${getLocalRPCUrl(port)}`).toString();
 
   try {
-    const req = generateRequest("get_address", {});
+    const req = generateRequest("get_address", {}, "");
     result = await axios.post(url, JSON.stringify(req));
   } catch (e) {
     return false;

@@ -1,14 +1,17 @@
 package node_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/internal/testactors"
 	td "github.com/statechannels/go-nitro/internal/testdata"
 	"github.com/statechannels/go-nitro/internal/testhelpers"
 	"github.com/statechannels/go-nitro/node"
+	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/node/engine/messageservice"
 	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/node/query"
@@ -211,5 +214,43 @@ func RunIntegrationTestCase(tc TestCase, t *testing.T) {
 			closeLedgerChannel(t, intermediaries[1], clientB, bobLedgers[1])
 			checkLedgerChannel(t, bobLedgers[1], finalBobLedger(*intermediaries[1].Address, asset, tc.NumOfPayments, 1, tc.NumOfChannels), query.Complete, clientB)
 		}
+
+		var chainLastConfirmedBlockNum uint64
+		if infra.mockChain != nil {
+			chainLastConfirmedBlockNum = infra.mockChain.BlockNum
+		} else if infra.simulatedChain != nil {
+			latestBlock, err := infra.simulatedChain.BlockByNumber(context.Background(), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			chainLastConfirmedBlockNum = latestBlock.NumberU64() - chainservice.REQUIRED_BLOCK_CONFIRMATIONS
+		}
+
+		waitForClientBlockNum(t, clientA, chainLastConfirmedBlockNum, 10*time.Second)
+		waitForClientBlockNum(t, clientB, chainLastConfirmedBlockNum, 10*time.Second)
 	})
+}
+
+func waitForClientBlockNum(t *testing.T, n node.Node, targetBlockNum uint64, timeout time.Duration) {
+	// Setup up a context with a timeout so we exit if we don't get the block num in time
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	lastBlockNum := uint64(0)
+	var err error
+	for {
+		select {
+		case <-ctx.Done():
+			t.Fatalf("expected block num of at least %d, got %d", targetBlockNum, lastBlockNum)
+		default:
+			lastBlockNum, err = n.GetLastBlockNum()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if lastBlockNum >= targetBlockNum {
+				return
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
 }

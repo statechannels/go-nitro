@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"time"
@@ -18,13 +16,18 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-type participant string
+type participant struct {
+	color
+	url string
+}
+
+type name string
 
 const (
-	alice participant = "alice"
-	bob   participant = "bob"
-	irene participant = "irene"
-	ivan  participant = "ivan"
+	alice name = "alice"
+	bob   name = "bob"
+	irene name = "irene"
+	ivan  name = "ivan"
 )
 
 type color string
@@ -41,7 +44,12 @@ const (
 	gray    color = "[90m"
 )
 
-var participantColor = map[participant]color{alice: blue, irene: green, ivan: cyan, bob: yellow}
+var participants = map[name]participant{
+	alice: {blue, "http://127.0.0.1:4005/api/v1"},
+	irene: {green, "http://127.0.0.1:4006/api/v1"},
+	ivan:  {cyan, "http://127.0.0.1:4008/api/v1"},
+	bob:   {yellow, "http://127.0.0.1:4007/api/v1"},
+}
 
 const (
 	FUNDED_TEST_PK  = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
@@ -123,22 +131,23 @@ func main() {
 			hostUI := cCtx.Bool(HOST_UI)
 
 			// Setup Ivan first, he is the DHT boot peer
-			client, err := setupRPCServer(ivan, participantColor[ivan], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
+			client, err := setupRPCServer(ivan, participants[ivan].color, naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
 			if err != nil {
 				utils.StopCommands(running...)
 				panic(err)
 			}
 			running = append(running, client)
 
-			const IVAN_ADDRESS = "http://127.0.0.1:4008/api/v1"
-			err = waitForRpcClient(IVAN_ADDRESS, 500*time.Millisecond, 5*time.Minute)
+			err = utils.WaitForRpcClient(participants[ivan].url, 500*time.Millisecond, 5*time.Minute)
 			if err != nil {
 				utils.StopCommands(running...)
 				panic(err)
 			}
-			for _, p := range []participant{alice, bob, irene} {
 
-				client, err := setupRPCServer(p, participantColor[p], naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
+			for _, participantName := range []name{alice, bob, irene} {
+				p := participants[participantName]
+				fmt.Println("participantName: " + participantName)
+				client, err := setupRPCServer(participantName, p.color, naAddress, vpaAddress, caAddress, chainUrl, chainAuthToken, dataFolder, hostUI)
 				if err != nil {
 					utils.StopCommands(running...)
 					panic(err)
@@ -157,7 +166,7 @@ func main() {
 }
 
 // setupRPCServer starts up an RPC server for the given participant
-func setupRPCServer(p participant, c color, na, vpa, ca types.Address, chainUrl, chainAuthToken string, dataFolder string, hostUI bool) (*exec.Cmd, error) {
+func setupRPCServer(n name, c color, na, vpa, ca types.Address, chainUrl, chainAuthToken string, dataFolder string, hostUI bool) (*exec.Cmd, error) {
 	args := []string{"run"}
 
 	if hostUI {
@@ -174,7 +183,7 @@ func setupRPCServer(p participant, c color, na, vpa, ca types.Address, chainUrl,
 
 	args = append(args, "-durablestorefolder", dataFolder)
 
-	args = append(args, "-config", fmt.Sprintf("./cmd/test-configs/%s.toml", p))
+	args = append(args, "-config", fmt.Sprintf("./cmd/test-configs/%s.toml", n))
 
 	cmd := exec.Command("go", args...)
 	cmd.Stdout = newColorWriter(c, os.Stdout)
@@ -205,27 +214,5 @@ func newColorWriter(c color, w io.Writer) colorWriter {
 	return colorWriter{
 		writer: w,
 		color:  c,
-	}
-}
-
-// waitForRpcClient waits for an RPC to be available at the given url
-// It does this by performing a GET request to the url until it receives a response
-func waitForRpcClient(rpcClientUrl string, interval, timeout time.Duration) error {
-	timeoutTicker := time.NewTicker(timeout)
-	defer timeoutTicker.Stop()
-	intervalTicker := time.NewTicker(interval)
-	defer intervalTicker.Stop()
-
-	client := &http.Client{}
-	for {
-		select {
-		case <-timeoutTicker.C:
-			return errors.New("polling timed out")
-		case <-intervalTicker.C:
-			resp, _ := client.Get(rpcClientUrl)
-			if resp != nil {
-				return nil
-			}
-		}
 	}
 }

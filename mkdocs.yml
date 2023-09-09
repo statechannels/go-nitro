@@ -47,6 +47,6 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/statechannels/go-nitro
     - icon: fontawesome/brands/npm
-      link: https://www.npmjs.com/package/@statechannels/nitro-protocol
+      link: https://www.npmjs.com/package/@statechannels/packages/nitro-protocol
     - icon: fontawesome/solid/envelope
       link: mailto:contact@magmo.com

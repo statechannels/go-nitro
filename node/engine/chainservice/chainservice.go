@@ -150,6 +150,8 @@ type ChainService interface {
 	GetVirtualPaymentAppAddress() types.Address
 	// GetChainId returns the id of the chain the service is connected to
 	GetChainId() (*big.Int, error)
+	// GetLastConfirmedBlockNum returns the highest blockNum that satisfies the chainservice's REQUIRED_BLOCK_CONFIRMATIONS
+	GetLastConfirmedBlockNum() uint64
 	// Close closes the ChainService
 	Close() error
 }

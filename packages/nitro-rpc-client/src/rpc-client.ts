@@ -1,10 +1,10 @@
 import {
   DefundObjectiveRequest,
-  DirectFundParams,
+  DirectFundPayload,
   LedgerChannelInfo,
   PaymentChannelInfo,
-  PaymentParams,
-  VirtualFundParams,
+  PaymentPayload,
+  VirtualFundPayload,
   RequestMethod,
   RPCRequestAndResponses,
   ObjectiveResponse,
@@ -23,6 +23,8 @@ export class NitroRpcClient {
   // We fetch the address from the RPC server on first use
   private myAddress: string | undefined;
 
+  private authToken: string | undefined;
+
   public get Notifications() {
     return this.transport.Notifications;
   }
@@ -38,11 +40,15 @@ export class NitroRpcClient {
     channelId: string,
     amount: number
   ): Promise<Voucher> {
-    const params = {
+    const payload = {
       Amount: amount,
       Channel: channelId,
     };
-    const request = generateRequest("create_voucher", params);
+    const request = generateRequest(
+      "create_voucher",
+      payload,
+      this.authToken || ""
+    );
     const res = await this.transport.sendRequest<"create_voucher">(request);
     return getAndValidateResult(res, "create_voucher");
   }
@@ -53,7 +59,11 @@ export class NitroRpcClient {
    * @returns The total amount of the channel and the delta of the voucher
    */
   public async ReceiveVoucher(voucher: Voucher): Promise<ReceiveVoucherResult> {
-    const request = generateRequest("receive_voucher", voucher);
+    const request = generateRequest(
+      "receive_voucher",
+      voucher,
+      this.authToken || ""
+    );
     const res = await this.transport.sendRequest<"receive_voucher">(request);
     return getAndValidateResult(res, "receive_voucher");
   }
@@ -68,7 +78,7 @@ export class NitroRpcClient {
       this.transport.Notifications.on(
         "objective_completed",
         (params: ObjectiveCompleteNotification["params"]) => {
-          if (params === objectiveId) {
+          if (params["payload"] === objectiveId) {
             resolve();
           }
         }
@@ -87,7 +97,7 @@ export class NitroRpcClient {
     amount: number
   ): Promise<ObjectiveResponse> {
     const asset = `0x${"00".repeat(20)}`;
-    const params: DirectFundParams = {
+    const payload: DirectFundPayload = {
       CounterParty: counterParty,
       ChallengeDuration: 0,
       Outcome: createOutcome(
@@ -100,7 +110,7 @@ export class NitroRpcClient {
       AppData: "0x00",
       Nonce: Date.now(),
     };
-    return this.sendRequest("create_ledger_channel", params);
+    return this.sendRequest("create_ledger_channel", payload);
   }
 
   /**
@@ -116,7 +126,7 @@ export class NitroRpcClient {
     amount: number
   ): Promise<ObjectiveResponse> {
     const asset = `0x${"00".repeat(20)}`;
-    const params: VirtualFundParams = {
+    const payload: VirtualFundPayload = {
       CounterParty: counterParty,
       Intermediaries: intermediaries,
       ChallengeDuration: 0,
@@ -130,7 +140,7 @@ export class NitroRpcClient {
       Nonce: Date.now(),
     };
 
-    return this.sendRequest("create_payment_channel", params);
+    return this.sendRequest("create_payment_channel", payload);
   }
 
   /**
@@ -139,12 +149,12 @@ export class NitroRpcClient {
    * @param channelId - The ID of the payment channel to use
    * @param amount - The amount to pay
    */
-  public async Pay(channelId: string, amount: number): Promise<PaymentParams> {
-    const params = {
+  public async Pay(channelId: string, amount: number): Promise<PaymentPayload> {
+    const payload = {
       Amount: amount,
       Channel: channelId,
     };
-    const request = generateRequest("pay", params);
+    const request = generateRequest("pay", payload, this.authToken || "");
     const res = await this.transport.sendRequest<"pay">(request);
     return getAndValidateResult(res, "pay");
   }
@@ -156,8 +166,8 @@ export class NitroRpcClient {
    * @returns The ID of the objective that was created
    */
   public async CloseLedgerChannel(channelId: string): Promise<string> {
-    const params: DefundObjectiveRequest = { ChannelId: channelId };
-    return this.sendRequest("close_ledger_channel", params);
+    const payload: DefundObjectiveRequest = { ChannelId: channelId };
+    return this.sendRequest("close_ledger_channel", payload);
   }
   /**
    * ClosePaymentChannel defunds a virtually funded payment channel.
@@ -167,8 +177,8 @@ export class NitroRpcClient {
    */
 
   public async ClosePaymentChannel(channelId: string): Promise<string> {
-    const params: DefundObjectiveRequest = { ChannelId: channelId };
-    return this.sendRequest("close_payment_channel", params);
+    const payload: DefundObjectiveRequest = { ChannelId: channelId };
+    return this.sendRequest("close_payment_channel", payload);
   }
 
   /**
@@ -237,11 +247,15 @@ export class NitroRpcClient {
     });
   }
 
-  async sendRequest<K extends RequestMethod>(
+  private async getAuthToken(): Promise<string> {
+    return this.sendRequest("get_auth_token", {});
+  }
+
+  private async sendRequest<K extends RequestMethod>(
     method: K,
-    params: RPCRequestAndResponses[K][0]["params"]
+    payload: RPCRequestAndResponses[K][0]["params"]["payload"]
   ): Promise<RPCRequestAndResponses[K][1]["result"]> {
-    const request = generateRequest(method, params);
+    const request = generateRequest(method, payload, this.authToken || "");
     const res = await this.transport.sendRequest<K>(request);
     return getAndValidateResult(res, method);
   }
@@ -267,6 +281,8 @@ export class NitroRpcClient {
     url: string
   ): Promise<NitroRpcClient> {
     const transport = await HttpTransport.createTransport(url);
-    return new NitroRpcClient(transport);
+    const rpcClient = new NitroRpcClient(transport);
+    rpcClient.authToken = await rpcClient.getAuthToken();
+    return rpcClient;
   }
 }

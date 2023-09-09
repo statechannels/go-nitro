@@ -13,6 +13,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.3.2
+	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/libp2p/go-libp2p-kad-dht v0.24.2
 	github.com/tidwall/buntdb v1.2.10
 	github.com/urfave/cli/v2 v2.25.3

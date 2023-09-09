@@ -1,0 +1,105 @@
+{
+  "deployInfrastructureContracts": {
+    "satp": {
+      "NitroAdjudicator": 3428703
+    }
+  },
+  "directlyFundAChannelWithETHFirst": {
+    "satp": 46496
+  },
+  "directlyFundAChannelWithETHSecond": {
+    "satp": 29408
+  },
+  "batchFundChannelsWithETHFirst": {
+    "satp": {
+      "1": 60300,
+      "5": 192100,
+      "10": 356835,
+      "20": 686269,
+      "50": 1674655,
+      "100": 3321861
+    }
+  },
+  "batchFundChannelsWithETHSecond": {
+    "satp": {
+      "1": 43212,
+      "5": 106660,
+      "10": 185955,
+      "20": 344509,
+      "50": 820255,
+      "100": 1613061
+    }
+  },
+  "batchFundChannelsWithERCFirst": {
+    "satp": {
+      "1": 105476,
+      "5": 221717,
+      "10": 383795,
+      "20": 707963,
+      "50": 1680455,
+      "100": 3301247
+    }
+  },
+  "batchFundChannelsWithERCSecond": {
+    "satp": {
+      "1": 91806,
+      "5": 140862,
+      "10": 212915,
+      "20": 366203,
+      "50": 826055,
+      "100": 1592447
+    }
+  },
+  "directlyFundAChannelWithERC20First": {
+    "satp": {
+      "approve": 46193,
+      "deposit": 69866
+    }
+  },
+  "directlyFundAChannelWithERC20Second": {
+    "satp": {
+      "approve": 46193,
+      "deposit": 52778
+    }
+  },
+  "ETHexit": {
+    "satp": 111514
+  },
+  "ERC20exit": {
+    "satp": 112690
+  },
+  "ETHexitSad": {
+    "satp": {
+      "challenge": 113146,
+      "transferAllAssets": 82026,
+      "total": 195172
+    }
+  },
+  "ETHexitSadLedgerFunded": {
+    "satp": {
+      "challengeX": 113146,
+      "challengeL": 106283,
+      "transferAllAssetsL": 62113,
+      "transferAllAssetsX": 82026,
+      "total": 363568
+    }
+  },
+  "ETHexitSadVirtualFunded": {
+    "satp": {
+      "challengeL": 122389,
+      "challengeV": 172499,
+      "reclaimL": 61713,
+      "transferAllAssetsL": 113726,
+      "total": 470327
+    }
+  },
+  "ETHClearChallenge": {
+    "satp": {
+      "checkpointX": 73562,
+      "challengeResponseX": 96482,
+      "checkpointL": 69558,
+      "challengeResponseL": 89655,
+      "challengeResponseV": 0
+    }
+  }
+}
