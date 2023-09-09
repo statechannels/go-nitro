@@ -31,5 +31,6 @@ func InitializeRpcServer(node *node.Node, rpcPort int, useNats bool) (*rpc.RpcSe
 		return nil, err
 	}
 
+	slog.Info("Completed RPC server initialization")
 	return rpcServer, nil
 }

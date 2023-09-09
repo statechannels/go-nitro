@@ -187,16 +187,6 @@ func TestSimulatedBackendChainService(t *testing.T) {
 		t.Fatalf("Adjudicator not updated as expected, got %v wanted %v", common.Bytes2Hex(statusOnChain[:]), common.Bytes2Hex(emptyBytes[:]))
 	}
 
-	// Check latest confirmed block number recognized by each chainservice
-	blockNum := cs.GetLastConfirmedBlockNum()
-	if blockNum != concludeBlockNum {
-		t.Fatalf("cs.GetLatestConfirmedBlockNum does not match expected: got %v wanted %v", blockNum, concludeBlockNum)
-	}
-	blockNum2 := cs2.GetLastConfirmedBlockNum()
-	if blockNum2 != concludeBlockNum {
-		t.Fatalf("cs2.GetLatestConfirmedBlockNum does not match expected: got %v wanted %v", blockNum2, concludeBlockNum)
-	}
-
 	// Check events from cs2 to ensure they match the expected values
 	receivedEvent = <-cs2.EventFeed()
 	crEvent = receivedEvent.(ChallengeRegisteredEvent)
@@ -221,6 +211,16 @@ func TestSimulatedBackendChainService(t *testing.T) {
 	receivedEvent = <-cs2.EventFeed()
 	if diff := cmp.Diff(expectedAllocationUpdatedEvent, receivedEvent, cmp.AllowUnexported(AllocationUpdatedEvent{}, commonEvent{}, big.Int{})); diff != "" {
 		t.Fatalf("Received event did not match expectation; (-want +got):\n%s", diff)
+	}
+
+	// Check latest confirmed block number recognized by each chainservice
+	blockNum := cs.GetLastConfirmedBlockNum()
+	if blockNum != concludeBlockNum {
+		t.Fatalf("cs.GetLatestConfirmedBlockNum does not match expected: got %v wanted %v", blockNum, concludeBlockNum)
+	}
+	blockNum2 := cs2.GetLastConfirmedBlockNum()
+	if blockNum2 != concludeBlockNum {
+		t.Fatalf("cs2.GetLatestConfirmedBlockNum does not match expected: got %v wanted %v", blockNum2, concludeBlockNum)
 	}
 }
 

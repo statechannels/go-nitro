@@ -45,7 +45,11 @@ func (mc *MockChainService) GetChainId() (*big.Int, error) {
 }
 
 func (mc *MockChainService) GetLastConfirmedBlockNum() uint64 {
-	return mc.chain.BlockNum
+	mc.chain.blockNumMu.Lock()
+	blockNum := mc.chain.BlockNum
+	mc.chain.blockNumMu.Unlock()
+
+	return blockNum
 }
 
 func (mc *MockChainService) Close() error {
