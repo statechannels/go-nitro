@@ -25,16 +25,19 @@ To address these concerns, a nitro node should check for any chain events it mig
 
 There are a few decisions to make within this design:
 
-1. How does the node ensure it processes chain events idempotently (i.e. how does it ensure the same chain event does not make changes to a `Channel`'s data multiple times?). This situation could occur if the node restarts, scans through blocks for events during initialization, and detects events that it has already processed.
-2. When/how should the `lastBlockNum` be updated in the `store`? When the node is initialized it can read the `lastBlockNumSeen` from the `store`, and search for any chain events that occurred between that block and the current block. If the node uses a `memstore`, then the `lastBlockNumSeen` will always be set to `0` when the node is first initialized. By updating the `lastBlockNum` in `store`, the `chainservice` will not have to scan through as many old blocks when it first initializes and calls `checkForMissedEvents`.
+1. How does the node protect against race conditions that could caused missed chain events during initialization?
+2. How does the node ensure it processes chain events idempotently (i.e. how does it ensure the same chain event does not make changes to a `Channel`'s data multiple times?). This situation could occur if the node restarts, scans through blocks for events during initialization, and detects events that it has already processed.
+3. When/how should the `lastBlockNum` be updated in the `store`? When the node is initialized it can read the `lastBlockNumSeen` from the `store`, and search for any chain events that occurred between that block and the current block. If the node uses a `memstore`, then the `lastBlockNumSeen` will always be set to `0` when the node is first initialized. By updating the `lastBlockNum` in `store`, the `chainservice` will not have to scan through as many old blocks when it first initializes and calls `checkForMissedEvents`.
 
 ## Alternatives considered
 
-### 1. Put all `Channel` data protection logic in `chainservice`
+The alternative design choices listed below relate to the same numbered design decisions from the previous section.
+
+### [2] Put all `Channel` data protection logic in `chainservice`
 
 The node could trust the `chainservice` to always deliver `Channel` updates in order. However, putting data sanitation logic closer to the data itself is safer and less prone to duplicated code since `chainservice` is an interface that can have multiple implementations.
 
-### 2. Updating `lastBlockNum`: `chainservice` sends write on chan to `engine`
+### [3] Updating `lastBlockNum`: `chainservice` sends write on chan to `engine`
 
 If the `chainservice` sends a new `blockNum` on a chan the `engine` each time a new block is mined, the `engine` can trigger a write to store to update the `lastBlockNum`. However, in environments where blocks are mined fast, writing to the `store` for every block could have a performance impact especially if the `store` updates are part of the `engine`'s main `run` loop.
 
@@ -42,7 +45,7 @@ If the `chainservice` sends a new `blockNum` on a chan the `engine` each time a 
 
 After considering the aforementioned alternatives, the following design decisions were made.
 
-### Avoid init race conditions that would cause missed events
+### [1] Use eventTracker mutex
 
 To ensure no events are missed or processed out of order during the `chainservice` initialization, we can modify the `chainservice` init routine to acquire/release the `eventTracker`'s `mutex` as shown below:
 
@@ -66,7 +69,7 @@ To ensure no events are missed or processed out of order during the `chainservic
 
 The `listenForEventLogs` go routine also tries to acquire the `mutex` before updating the `eventTracker.events` queue but will be blocked until `checkForMissedEvents` completes. This means that `listenForEventLogs` will still be able to detect new chain events, but will not add them to the queue or trigger event processing until `checkForMissedEvents` finishes queueing old events.
 
-### 1. Put `Channel` data protection logic in `Channel` class
+### [2] Put `Channel` data protection logic in `Channel` class
 
 Add logic to the `Channel` class to protect its data from stale updates rather than relying on an external component (`chainservice`) to only feed it sanitized data. This seems less error-prone and it could be useful to add a `Channel.LastUpdated` struct in case a user wants to know when the channel was last changed. The `chainservice` will still be expected to feed chain events in order, but the added `Channel` logic will act as another layer of protection against faulty data updates.
 
@@ -103,7 +106,7 @@ func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, erro
 }
 ```
 
-### 2. Updating `lastBlockNum`: `engine` periodically reads from `chainservice`
+### [3] Updating `lastBlockNum`: `engine` periodically reads from `chainservice`
 
 Instead of the `chainservice` alerting the `engine`, the `engine` can request the block number from the `chainservice`. This means the `lastBlockNumSeen` wouldn't get updated every block, but that's not a major concern since the node
 
