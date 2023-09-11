@@ -73,7 +73,7 @@ func WaitForRpcClient(rpcClientUrl string, interval, timeout time.Duration) erro
 			return errors.New("polling timed out")
 		case <-intervalTicker.C:
 			resp, err := client.Get(rpcClientUrl)
-			if err != nil {
+			if err != nil && !errors.Is(err, syscall.ECONNREFUSED) {
 				panic(err)
 			}
 			if resp != nil {
