@@ -183,11 +183,8 @@ func (ecs *EthChainService) listenForErrors(errChan <-chan error) {
 			ecs.wg.Done()
 			return
 		case err := <-errChan:
-			fmt.Println(err) // Print to STDOUT in case we're using a noop logger
 			ecs.logger.Error("chain service error", "error", err)
-
-			// Manually panic in case we're using a logger that doesn't call exit(1)
-			panic(err)
+			panic(err) // Manually panic in case we're using a logger that doesn't call exit(1)
 		}
 	}
 }
@@ -344,18 +341,16 @@ out:
 
 		case err := <-eventSub.Err():
 			if err != nil {
-				errorChan <- fmt.Errorf("received error from event subscription channel: %w", err)
+				ecs.logger.Warn("error in chain event subscription: " + err.Error())
+				eventSub.Unsubscribe()
+			}
+
+			eventSub, err = ecs.chain.SubscribeFilterLogs(ecs.ctx, eventQuery, eventChan)
+			if err != nil {
+				errorChan <- fmt.Errorf("subscribeFilterLogs failed to resubscribe: " + err.Error())
 				break out
 			}
 
-			// If the error is nil then the subscription was closed and we need to re-subscribe.
-			// This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
-			var sErr error
-			eventSub, sErr = ecs.chain.SubscribeFilterLogs(ecs.ctx, eventQuery, eventChan)
-			if sErr != nil {
-				errorChan <- fmt.Errorf("subscribeFilterLogs failed on resubscribe: %w", err)
-				break out
-			}
 			ecs.logger.Log(ecs.ctx, logging.LevelTrace, "resubscribed to filtered event logs")
 
 		case <-time.After(RESUB_INTERVAL):
@@ -381,18 +376,16 @@ out:
 
 		case err := <-newBlockSub.Err():
 			if err != nil {
-				errorChan <- fmt.Errorf("received error from new block subscription channel: %w", err)
+				ecs.logger.Warn("error in chain new block subscription: " + err.Error())
+				newBlockSub.Unsubscribe()
+			}
+
+			newBlockSub, err = ecs.chain.SubscribeNewHead(ecs.ctx, newBlockChan)
+			if err != nil {
+				errorChan <- fmt.Errorf("subscribeNewHead failed to resubscribe: %w", err)
 				break out
 			}
 
-			// If the error is nil then the subscription was closed and we need to re-subscribe.
-			// This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
-			var sErr error
-			newBlockSub, sErr = ecs.chain.SubscribeNewHead(ecs.ctx, newBlockChan)
-			if sErr != nil {
-				errorChan <- fmt.Errorf("subscribeNewHead failed on resubscribe: %w", sErr)
-				break out
-			}
 			ecs.logger.Log(ecs.ctx, logging.LevelTrace, "resubscribed to new blocks")
 
 		case newBlock := <-newBlockChan:
