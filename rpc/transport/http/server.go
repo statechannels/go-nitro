@@ -46,7 +46,7 @@ func NewHttpTransportAsServer(port string) (*serverHttpTransport, error) {
 	var serveMux http.ServeMux
 
 	// Used to check if the server is ready
-	serveMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	serveMux.HandleFunc(path.Join(apiVersionPath, "health"), func(w http.ResponseWriter, r *http.Request) {
 		_, err := w.Write([]byte("OK"))
 		if err != nil {
 			panic(err)

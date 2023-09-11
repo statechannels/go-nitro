@@ -3,8 +3,6 @@ package rpc
 import (
 	"fmt"
 	"log/slog"
-	"net/http"
-	"time"
 
 	"github.com/statechannels/go-nitro/node"
 	"github.com/statechannels/go-nitro/rpc"
@@ -23,10 +21,6 @@ func InitializeRpcServer(node *node.Node, rpcPort int, useNats bool) (*rpc.RpcSe
 	} else {
 		slog.Info("Initializing Http RPC transport...")
 		transport, err = httpTransport.NewHttpTransportAsServer(fmt.Sprint(rpcPort))
-		if err != nil {
-			return nil, err
-		}
-		err = blockUntilHttpServerIsReady(rpcPort)
 	}
 	if err != nil {
 		return nil, err
@@ -39,27 +33,4 @@ func InitializeRpcServer(node *node.Node, rpcPort int, useNats bool) (*rpc.RpcSe
 
 	slog.Info("Completed RPC server initialization")
 	return rpcServer, nil
-}
-
-// blockUntilHttpServerIsReady pings the health endpoint until the server is ready
-func blockUntilHttpServerIsReady(rpcPort int) error {
-	waitForServer := func() {
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	numAttempts := 10
-	for i := 0; i < numAttempts; i++ {
-		resp, err := http.Get(fmt.Sprintf("http://:%d/health", rpcPort))
-		if err != nil {
-			waitForServer()
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode == http.StatusOK {
-			return nil
-		}
-		waitForServer()
-	}
-	return fmt.Errorf("http server not ready after %d attempts", numAttempts)
 }
