@@ -1,4 +1,4 @@
-package reverseproxy
+package paymentproxy
 
 import (
 	"context"
@@ -36,8 +36,8 @@ func createPaymentError(err error) error {
 	return fmt.Errorf("%w: %w", ErrPayment, err)
 }
 
-// ReversePaymentProxy is an HTTP proxy that charges for HTTP requests.
-type ReversePaymentProxy struct {
+// PaymentProxy is an HTTP proxy that charges for HTTP requests.
+type PaymentProxy struct {
 	server       *http.Server
 	nitroClient  rpc.RpcClientApi
 	costPerByte  uint64
@@ -46,8 +46,8 @@ type ReversePaymentProxy struct {
 	destinationUrl *url.URL
 }
 
-// NewReversePaymentProxy creates a new ReversePaymentProxy.
-func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, costPerByte uint64) *ReversePaymentProxy {
+// NewPaymentProxy creates a new PaymentProxy.
+func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, costPerByte uint64) *PaymentProxy {
 	server := &http.Server{Addr: proxyAddress}
 	nitroClient, err := rpc.NewHttpRpcClient(nitroEndpoint)
 	if err != nil {
@@ -58,7 +58,7 @@ func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinati
 		panic(err)
 	}
 
-	p := &ReversePaymentProxy{
+	p := &PaymentProxy{
 		server:         server,
 		nitroClient:    nitroClient,
 		costPerByte:    costPerByte,
@@ -76,10 +76,10 @@ func NewReversePaymentProxy(proxyAddress string, nitroEndpoint string, destinati
 	return p
 }
 
-// ServeHTTP is the main entry point for the reverse payment proxy server.
+// ServeHTTP is the main entry point for the payment proxy server.
 // It is responsible for parsing the voucher from the query params and moving it to the request header
 // It then delegates to the reverse proxy to handle rewriting the request and sending it to the destination
-func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (p *PaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w, r)
 	v, err := parseVoucher(r.URL.Query())
 	if err != nil {
@@ -99,7 +99,7 @@ func (p *ReversePaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 // It is responsible for parsing the voucher from the request header and redeeming it with the Nitro client
 // It will check the voucher amount against the cost (response size * cost per byte)
 // If the voucher amount is less than the cost, it will return a 402 Payment Required error instead of serving the content
-func (p *ReversePaymentProxy) handleDestinationResponse(r *http.Response) error {
+func (p *PaymentProxy) handleDestinationResponse(r *http.Response) error {
 	// Ignore OPTIONS requests as they are preflight requests
 	if r.Request.Method == "OPTIONS" {
 		return nil
@@ -134,7 +134,7 @@ func (p *ReversePaymentProxy) handleDestinationResponse(r *http.Response) error 
 }
 
 // handleError is responsible for logging the error and returning the appropriate HTTP status code
-func (p *ReversePaymentProxy) handleError(w http.ResponseWriter, r *http.Request, err error) {
+func (p *PaymentProxy) handleError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrPayment) {
 		http.Error(w, err.Error(), http.StatusPaymentRequired)
 	} else {
@@ -145,9 +145,9 @@ func (p *ReversePaymentProxy) handleError(w http.ResponseWriter, r *http.Request
 }
 
 // Start starts the proxy server in a goroutine.
-func (p *ReversePaymentProxy) Start() error {
+func (p *PaymentProxy) Start() error {
 	go func() {
-		slog.Info("Starting reverse payment proxy", "address", p.server.Addr)
+		slog.Info("Starting a payment proxy", "address", p.server.Addr)
 
 		if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
 			slog.Error("Error while listening", "error", err)
@@ -158,8 +158,8 @@ func (p *ReversePaymentProxy) Start() error {
 }
 
 // Stop stops the proxy server and closes everything.
-func (p *ReversePaymentProxy) Stop() error {
-	slog.Info("Stopping reverse payment proxy", "address", p.server.Addr)
+func (p *PaymentProxy) Stop() error {
+	slog.Info("Stopping a payment proxy", "address", p.server.Addr)
 
 	err := p.server.Shutdown(context.Background())
 	if err != nil {
