@@ -19,7 +19,7 @@ import (
 	"github.com/statechannels/go-nitro/internal/logging"
 	ta "github.com/statechannels/go-nitro/internal/testactors"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
-	"github.com/statechannels/go-nitro/reverseproxy"
+	"github.com/statechannels/go-nitro/paymentproxy"
 	"github.com/statechannels/go-nitro/rpc"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -34,7 +34,7 @@ const (
 	destPort                   = 6622
 	otherParam                 = "otherParam"
 	otherParamValue            = "2"
-	testFileContent            = "This a simple test file used in the reverse payment proxy"
+	testFileContent            = "This a simple test file used in the payment proxy"
 	testFileName               = "test_file.txt"
 	serverReadyMaxWait         = 2 * time.Second
 )
@@ -60,8 +60,8 @@ func setupTestFile(t *testing.T) func() {
 	}
 }
 
-func TestReversePaymentProxy(t *testing.T) {
-	logFile := "reverse_payment_proxy.log"
+func TestPaymentProxy(t *testing.T) {
+	logFile := "payment_proxy.log"
 
 	aliceClient, ireneClient, bobClient, cleanup := setupNitroClients(t, logFile)
 	defer cleanup()
@@ -76,8 +76,8 @@ func TestReversePaymentProxy(t *testing.T) {
 	cleanupData := setupTestFile(t)
 	defer cleanupData()
 
-	// Create a ReversePaymentProxy with the test destination server URL
-	proxy := reverseproxy.NewReversePaymentProxy(
+	// Create a PaymentProxy with the test destination server URL
+	proxy := paymentproxy.NewPaymentProxy(
 		proxyAddress,
 		bobRPCUrl,
 		destinationServerUrl,
@@ -321,7 +321,7 @@ func runDestinationServer(t *testing.T, port uint) (destUrl string, cleanup func
 
 		// Always check that the voucher params were stripped out of every request
 		for p := range params {
-			if p == reverseproxy.AMOUNT_VOUCHER_PARAM || p == reverseproxy.CHANNEL_ID_VOUCHER_PARAM || p == reverseproxy.SIGNATURE_VOUCHER_PARAM {
+			if p == paymentproxy.AMOUNT_VOUCHER_PARAM || p == paymentproxy.CHANNEL_ID_VOUCHER_PARAM || p == paymentproxy.SIGNATURE_VOUCHER_PARAM {
 				t.Fatalf("Expected no voucher information to be passed along, but got %s", p)
 			}
 		}

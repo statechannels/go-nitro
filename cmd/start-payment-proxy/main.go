@@ -7,7 +7,7 @@ import (
 
 	"github.com/statechannels/go-nitro/cmd/utils"
 	"github.com/statechannels/go-nitro/internal/logging"
-	"github.com/statechannels/go-nitro/reverseproxy"
+	"github.com/statechannels/go-nitro/paymentproxy"
 	"github.com/urfave/cli/v2"
 )
 
@@ -19,9 +19,9 @@ const (
 )
 
 func main() {
-	var rProxy *reverseproxy.ReversePaymentProxy
+	var proxy *paymentproxy.PaymentProxy
 	app := &cli.App{
-		Name:  "start-reverse-payment-proxy",
+		Name:  "start-payment-proxy",
 		Usage: "Runs an HTTP payment proxy that charges for HTTP requests",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
@@ -55,22 +55,22 @@ func main() {
 
 			logging.SetupDefaultLogger(os.Stdout, slog.LevelDebug)
 
-			rProxy = reverseproxy.NewReversePaymentProxy(
+			proxy = paymentproxy.NewPaymentProxy(
 				proxyEndpoint,
 				nitroEndpoint,
 				c.String(DESTINATION_URL),
 				c.Uint64(COST_PER_BYTE),
 			)
 
-			return rProxy.Start()
+			return proxy.Start()
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
 	utils.WaitForKillSignal()
-	if rProxy != nil {
-		err := rProxy.Stop()
+	if proxy != nil {
+		err := proxy.Stop()
 		if err != nil {
 			log.Fatal(err)
 		}
