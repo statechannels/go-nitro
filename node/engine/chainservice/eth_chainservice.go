@@ -345,6 +345,7 @@ out:
 				eventSub.Unsubscribe()
 			}
 
+			// Try to re-establish subscription once before failing
 			eventSub, err = ecs.chain.SubscribeFilterLogs(ecs.ctx, eventQuery, eventChan)
 			if err != nil {
 				errorChan <- fmt.Errorf("subscribeFilterLogs failed to resubscribe: " + err.Error())
@@ -380,6 +381,7 @@ out:
 				newBlockSub.Unsubscribe()
 			}
 
+			// Try to re-establish subscription once before failing
 			newBlockSub, err = ecs.chain.SubscribeNewHead(ecs.ctx, newBlockChan)
 			if err != nil {
 				errorChan <- fmt.Errorf("subscribeNewHead failed to resubscribe: %w", err)
