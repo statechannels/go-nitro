@@ -40,9 +40,9 @@ func TestChannel(t *testing.T) {
 		t.Error(err)
 	}
 
-	c, err2 := New(s, 0)
+	c, err2 := NewChannel(s, 0)
 
-	testNew := func(t *testing.T) {
+	testNewChannel := func(t *testing.T) {
 		if err2 != nil {
 			t.Error(err2)
 		}
@@ -159,7 +159,7 @@ func TestChannel(t *testing.T) {
 	}
 
 	testAddSignedState := func(t *testing.T) {
-		myC, _ := New(s, 0)
+		myC, _ := NewChannel(s, 0)
 
 		err = ss.AddSignature(sigA)
 		if err != nil {
@@ -287,7 +287,7 @@ func TestChannel(t *testing.T) {
 		}
 	}
 	testUpdateWithChallengeRegisteredEvent := func(t *testing.T) {
-		event := chainservice.NewChallengeRegisteredEvent(c.ChannelId(), 99999, state.TestState.VariablePart(), []state.Signature{sigA, sigB})
+		event := chainservice.NewChallengeRegisteredEvent(c.ChannelId(), 99999, 0, state.TestState.VariablePart(), []state.Signature{sigA, sigB})
 
 		_, err := c.UpdateWithChainEvent(event)
 		if err != nil {
@@ -311,8 +311,16 @@ func TestChannel(t *testing.T) {
 			t.Fatalf("mismatch (-want +got):\n%s", diff)
 		}
 	}
+	
+	testUpdateWithChainEventRejected := func(t *testing.T) {
+		event := chainservice.NewChallengeRegisteredEvent(c.ChannelId(), 99999, 0, state.TestState.VariablePart(), []state.Signature{sigA, sigB})
+		_, err := c.UpdateWithChainEvent(event)
+		if err == nil {
+			t.Fatal("chain event should be rejected when blockNum/txIndex is not higher than last update")
+		}
+	}
 
-	t.Run(`TestNew`, testNew)
+	t.Run(`TestNewChannel`, testNewChannel)
 	t.Run(`TestClone`, testClone)
 	t.Run(`TestPreFund`, testPreFund)
 	t.Run(`TestPostFund`, testPostFund)
@@ -326,6 +334,7 @@ func TestChannel(t *testing.T) {
 	t.Run(`TestAddStateWithSignature`, testAddStateWithSignature)
 	t.Run(`TestAddSignedState`, testAddSignedState)
 	t.Run(`TestUpdateWithChallengeRegisteredEvent`, testUpdateWithChallengeRegisteredEvent)
+	t.Run(`TestUpdateWithChainEventRejected`, testUpdateWithChainEventRejected)
 }
 
 func TestVirtualChannel(t *testing.T) {

@@ -32,10 +32,17 @@ type Channel struct {
 
 	OnChain  OnChainData
 	OffChain OffChainData
+
+	LastChainUpdate ChainUpdateData
 }
 
-// New constructs a new Channel from the supplied state.
-func New(s state.State, myIndex uint) (*Channel, error) {
+type ChainUpdateData struct {
+	BlockNum uint64
+	TxIndex  uint
+}
+
+// NewChannel constructs a new Channel from the supplied state.
+func NewChannel(s state.State, myIndex uint) (*Channel, error) {
 	c := Channel{}
 	var err error = s.Validate()
 
@@ -121,7 +128,7 @@ func (c *Channel) Clone() *Channel {
 	if c == nil {
 		return nil
 	}
-	d, _ := New(c.PreFundState().Clone(), c.MyIndex)
+	d, _ := NewChannel(c.PreFundState().Clone(), c.MyIndex)
 	d.OffChain.LatestSupportedStateTurnNum = c.OffChain.LatestSupportedStateTurnNum
 	for i, ss := range c.OffChain.SignedStateForTurnNum {
 		d.OffChain.SignedStateForTurnNum[i] = ss.Clone()
@@ -321,28 +328,37 @@ func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState,
 
 // UpdateWithChainEvent mutates the receiver with the supplied chain event, replacing the relevant data fields.
 func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, error) {
-	switch e := event.(type) {
-	case chainservice.AllocationUpdatedEvent:
-		c.OnChain.Holdings[e.AssetAddress] = e.AssetAmount
-		// TODO: update OnChain.StateHash and OnChain.Outcome
-	case chainservice.DepositedEvent:
-		c.OnChain.Holdings[e.Asset] = e.NowHeld
-	case chainservice.ConcludedEvent:
-		break // TODO: update OnChain.StateHash and OnChain.Outcome
-	case chainservice.ChallengeRegisteredEvent:
-		h, err := e.StateHash(c.FixedPart)
-		if err != nil {
-			return nil, err
+	if event.BlockNum() > c.LastChainUpdate.BlockNum ||
+		(event.BlockNum() == c.LastChainUpdate.BlockNum && event.TxIndex() > c.LastChainUpdate.TxIndex) {
+		// Process event
+		switch e := event.(type) {
+		case chainservice.AllocationUpdatedEvent:
+			c.OnChain.Holdings[e.AssetAddress] = e.AssetAmount
+			// TODO: update OnChain.StateHash and OnChain.Outcome
+		case chainservice.DepositedEvent:
+			c.OnChain.Holdings[e.Asset] = e.NowHeld
+		case chainservice.ConcludedEvent:
+			break // TODO: update OnChain.StateHash and OnChain.Outcome
+		case chainservice.ChallengeRegisteredEvent:
+			h, err := e.StateHash(c.FixedPart)
+			if err != nil {
+				return nil, err
+			}
+			c.OnChain.StateHash = h
+			c.OnChain.Outcome = e.Outcome()
+			ss, err := e.SignedState(c.FixedPart)
+			if err != nil {
+				return nil, err
+			}
+			c.AddSignedState(ss)
+		default:
+			return &Channel{}, fmt.Errorf("channel %+v cannot handle event %+v", c, event)
 		}
-		c.OnChain.StateHash = h
-		c.OnChain.Outcome = e.Outcome()
-		ss, err := e.SignedState(c.FixedPart)
-		if err != nil {
-			return nil, err
-		}
-		c.AddSignedState(ss)
-	default:
-		return &Channel{}, fmt.Errorf("channel %+v cannot handle event %+v", c, event)
+
+		// Update Channel.LastChainUpdate
+		c.LastChainUpdate.BlockNum = event.BlockNum()
+		c.LastChainUpdate.TxIndex = event.TxIndex()
+		return c, nil
 	}
-	return c, nil
+	return nil, fmt.Errorf("chain event older than channels last update")
 }

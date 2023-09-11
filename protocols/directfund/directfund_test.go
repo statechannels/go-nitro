@@ -69,7 +69,7 @@ func TestNew(t *testing.T) {
 	}
 
 	getByParticipantHasChannel := func(id types.Address) ([]*channel.Channel, error) {
-		c, _ := channel.New(testState, 0)
+		c, _ := channel.NewChannel(testState, 0)
 		return []*channel.Channel{c}, nil
 	}
 
@@ -158,7 +158,7 @@ func TestUpdate(t *testing.T) {
 	highBlockNum := uint64(200)
 	_, err = updated.C.UpdateWithChainEvent(
 		chainservice.NewDepositedEvent(
-			types.Destination{}, highBlockNum, common.Address{}, big.NewInt(3),
+			types.Destination{}, highBlockNum, 0, common.Address{}, big.NewInt(3),
 		),
 	)
 	if err != nil {

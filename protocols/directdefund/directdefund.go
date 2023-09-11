@@ -284,7 +284,7 @@ func IsDirectDefundObjective(id protocols.ObjectiveId) bool {
 
 // CreateChannelFromConsensusChannel creates a Channel with (an appropriate latest supported state) from the supplied ConsensusChannel.
 func CreateChannelFromConsensusChannel(cc consensus_channel.ConsensusChannel) (*channel.Channel, error) {
-	c, err := channel.New(cc.ConsensusVars().AsState(cc.SupportedSignedState().State().FixedPart()), uint(cc.MyIndex))
+	c, err := channel.NewChannel(cc.ConsensusVars().AsState(cc.SupportedSignedState().State().FixedPart()), uint(cc.MyIndex))
 	if err != nil {
 		return &channel.Channel{}, err
 	}

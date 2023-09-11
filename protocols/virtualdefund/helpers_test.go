@@ -43,7 +43,7 @@ func generateLedgers(myRole uint, vId types.Destination) (left, right *consensus
 func generateStoreGetters(myRole uint, vId types.Destination, vFinal state.State) (GetChannelByIdFunction, GetTwoPartyConsensusLedgerFunction) {
 	left, right := generateLedgers(myRole, vId)
 	fun1 := func(id types.Destination) (*channel.Channel, bool) {
-		c, err := channel.New(vFinal, myRole)
+		c, err := channel.NewChannel(vFinal, myRole)
 		if err != nil {
 			return &channel.Channel{}, false
 		}

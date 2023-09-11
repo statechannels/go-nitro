@@ -27,7 +27,7 @@ func NewVirtualChannel(s state.State, myIndex uint) (*VirtualChannel, error) {
 		}
 	}
 
-	c, err := New(s, myIndex)
+	c, err := NewChannel(s, myIndex)
 
 	return &VirtualChannel{*c}, err
 }
