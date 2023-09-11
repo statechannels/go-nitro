@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/ethereum/go-ethereum/common"
@@ -37,7 +38,7 @@ func main() {
 	logging.SetupDefaultFileLogger(LOG_FILE, slog.LevelDebug)
 
 	url := fmt.Sprintf(":%d/api/v1", participantOpts.RpcPort)
-	clientConnection, err := http.NewHttpTransportAsClient(url)
+	clientConnection, err := http.NewHttpTransportAsClient(url, 10*time.Millisecond)
 	if err != nil {
 		panic(err)
 	}

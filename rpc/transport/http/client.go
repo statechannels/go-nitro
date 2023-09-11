@@ -22,8 +22,9 @@ type clientHttpTransport struct {
 }
 
 // NewHttpTransportAsClient creates a transport that can be used to send http requests and a websocket connection for receiving notifications
-func NewHttpTransportAsClient(url string) (*clientHttpTransport, error) {
-	err := blockUntilHttpServerIsReady(url)
+// Initialization will block for 10 retries until the server endpoint is ready
+func NewHttpTransportAsClient(url string, retryTimeout time.Duration) (*clientHttpTransport, error) {
+	err := blockUntilHttpServerIsReady(url, retryTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -103,9 +104,9 @@ func httpUrl(url string) (string, error) {
 }
 
 // blockUntilHttpServerIsReady pings the health endpoint until the server is ready
-func blockUntilHttpServerIsReady(url string) error {
+func blockUntilHttpServerIsReady(url string, retryTimeout time.Duration) error {
 	waitForServer := func() {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(retryTimeout)
 	}
 
 	httpUrl, err := httpUrl(url)

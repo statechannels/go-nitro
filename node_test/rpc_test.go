@@ -437,7 +437,7 @@ func setupNitroNodeWithRPCClient(
 		}
 	case transport.Http:
 
-		clientConnection, err = http.NewHttpTransportAsClient(rpcServer.Url())
+		clientConnection, err = http.NewHttpTransportAsClient(rpcServer.Url(), 10*time.Millisecond)
 		if err != nil {
 			panic(err)
 		}

@@ -40,7 +40,7 @@ func createChannels() error {
 		logging.SetupDefaultFileLogger(LOG_FILE, slog.LevelDebug)
 
 		url := fmt.Sprintf(":%d/api/v1", participantOpts.RpcPort)
-		clientConnection, err := http.NewHttpTransportAsClient(url)
+		clientConnection, err := http.NewHttpTransportAsClient(url, 500*time.Millisecond)
 		if err != nil {
 			return err
 		}
@@ -49,10 +49,6 @@ func createChannels() error {
 			panic(err)
 		}
 
-		err = utils.WaitForRpcClient("http://"+url, 500*time.Millisecond, 5*time.Minute)
-		if err != nil {
-			panic(err)
-		}
 	}
 
 	alice, bob, irene := clients["alice"], clients["bob"], clients["irene"]
