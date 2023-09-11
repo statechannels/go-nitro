@@ -10,6 +10,10 @@ function ChannelDetails({
     <Table>
       <TableBody>
         <TableRow>
+          <TableCell>Channel Id</TableCell>
+          <TableCell>{info && info.ID}</TableCell>
+        </TableRow>
+        <TableRow>
           <TableCell>Paid so far</TableCell>
           <TableCell>
             {info &&
@@ -24,14 +28,6 @@ function ChannelDetails({
               // TODO: We shouldn't have to cast to a BigInt here, the client should return a BigInt
               BigInt(info?.Balance.RemainingFunds).toString(10)}
           </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell>Payee</TableCell>
-          <TableCell>{info && info.Balance.Payee}</TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell>Payer</TableCell>
-          <TableCell>{info && info.Balance.Payer}</TableCell>
         </TableRow>
       </TableBody>
     </Table>
