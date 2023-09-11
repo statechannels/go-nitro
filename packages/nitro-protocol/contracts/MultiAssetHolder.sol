@@ -407,7 +407,9 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             if (_isExternalDestination(destination)) {
                 _transferAsset(asset, _bytes32ToAddress(destination), amount);
             } else {
-                holdings[asset][destination] += amount;
+                uint256 nowHeld = holdings[asset][destination] + amount;
+                holdings[asset][destination] = nowHeld;
+                emit Deposited(destination, asset, nowHeld);
             }
         }
     }
