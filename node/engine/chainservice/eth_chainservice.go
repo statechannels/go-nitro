@@ -184,7 +184,7 @@ func (ecs *EthChainService) listenForErrors(errChan <-chan error) {
 			return
 		case err := <-errChan:
 			ecs.logger.Error("chain service error", "error", err)
-			panic(err) // Manually panic in case we're using a logger that doesn't call exit(1)
+			panic(err)
 		}
 	}
 }
