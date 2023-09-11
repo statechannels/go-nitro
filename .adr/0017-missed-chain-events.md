@@ -70,7 +70,7 @@ The `listenForEventLogs` go routine also tries to acquire the `mutex` before upd
 
 Add logic to the `Channel` class to protect its data from stale updates rather than relying on an external component (`chainservice`) to only feed it sanitized data. This seems less error-prone and it could be useful to add a `Channel.LastUpdated` struct in case a user wants to know when the channel was last changed. The `chainservice` will still be expected to feed chain events in order, but the added `Channel` logic will act as another layer of protection against faulty data updates.
 
-The `Channel` class should keep track of the `TxIndex` associated with each chain event in case there are multiple events related to a single channel within the same block. Also, an `ethereum.FilterQuery` cannot specify a `TxIndex` so it will be more computationally efficient to check the `TxIndex` in the `Channel` class rather than in the `chainservice` logic.
+The `Channel` class should keep track of the `TxIndex` associated with each chain event in case there are multiple events related to a single channel within the same block.
 
 ```go
 type Channel struct {
@@ -121,7 +121,3 @@ The benefit of this approach is simplicity and limited additional strain on the 
 			err = e.store.SetLastBlockNumSeen(blockNum)
 	}
 ```
-
-## Future considerations
-
-1. Is there any situation where an older chain event SHOULD be allowed to update a `Channel` (i.e. chain re-org)? We could allow a way to forcibly process an old chain event, or we could assume that the node is fully protected against any situation that would necessitate that action.
