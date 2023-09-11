@@ -2,13 +2,9 @@ import { ChangeEvent, useEffect, useState } from "react";
 import { NitroRpcClient } from "@statechannels/nitro-rpc-client";
 import { PaymentChannelInfo } from "@statechannels/nitro-rpc-client/src/types";
 import {
-  Select,
-  MenuItem,
-  SelectChangeEvent,
   Button,
   TextField,
   Box,
-  InputLabel,
   Checkbox,
   FormControlLabel,
   LinearProgress,
@@ -23,6 +19,7 @@ const provider = "0xbbb676f9cff8d242e9eac39d063848807d3d1d94";
 const hub = "0x111a00868581f73ab42feef67d235ca09ca1e8db";
 const defaultNitroRPCUrl = "localhost:4005/api/v1";
 const defaultFileUrl = "http://localhost:5511/test.txt";
+const defaultPaymentChannelAmount = 100_000;
 
 function App() {
   const url =
@@ -30,11 +27,9 @@ function App() {
     defaultNitroRPCUrl;
 
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
-  const [paymentChannels, setPaymentChannels] = useState<PaymentChannelInfo[]>(
-    []
-  );
-  const [selectedChannel, setSelectedChannel] = useState<string>("");
-  const [selectedChannelInfo, setSelectedChannelInfo] = useState<
+
+  const [paymentChannelId, setPaymentChannelId] = useState<string>("");
+  const [paymentChannelInfo, setPaymentChannelInfo] = useState<
     PaymentChannelInfo | undefined
   >();
 
@@ -55,33 +50,12 @@ function App() {
       });
   }, [url]);
 
-  // Fetch all the payment channels for the retrieval provider
-  useEffect(() => {
-    if (nitroClient) {
-      // TODO: We should consider adding a API function so this ins't as painful
-      nitroClient.GetAllLedgerChannels().then((ledgers) => {
-        for (const l of ledgers) {
-          if (l.Balance.Them != hub) continue;
-
-          nitroClient.GetPaymentChannelsByLedger(l.ID).then((payChs) => {
-            const withProvider = payChs.filter(
-              (p) => p.Balance.Payee == provider
-            );
-            setPaymentChannels(withProvider);
-          });
-        }
-      });
-    }
-  }, [nitroClient]);
-
   const updateChannelInfo = async (channelId: string) => {
+    if (channelId == "") {
+      throw new Error("Empty channel id provided");
+    }
     const paymentChannel = await nitroClient?.GetPaymentChannel(channelId);
-    setSelectedChannelInfo(paymentChannel);
-  };
-
-  const handleSelectedChannelChanged = async (event: SelectChangeEvent) => {
-    setSelectedChannel(event.target.value);
-    updateChannelInfo(event.target.value);
+    setPaymentChannelInfo(paymentChannel);
   };
 
   const proxyUrlChanged = (e: ChangeEvent<HTMLInputElement>) => {
@@ -100,6 +74,26 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
+  const createPaymentChannel = async () => {
+    if (!nitroClient) {
+      setErrorText("Nitro client not initialized");
+      return;
+    }
+    const result = await nitroClient.CreatePaymentChannel(
+      provider,
+      [hub],
+      defaultPaymentChannelAmount
+    );
+    console.log(result);
+    setPaymentChannelId(result.ChannelId);
+    updateChannelInfo(result.ChannelId);
+
+    // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
+    setTimeout(() => {
+      updateChannelInfo(result.ChannelId);
+    }, 1000);
+  };
+
   const fetchAndDownloadFile = async () => {
     setErrorText("");
 
@@ -107,8 +101,8 @@ function App() {
       setErrorText("Nitro client not initialized");
       return;
     }
-    if (!selectedChannel) {
-      setErrorText("Please select a channel");
+    if (!paymentChannelInfo) {
+      setErrorText("No payment channel to use");
       return;
     }
 
@@ -119,14 +113,14 @@ function App() {
             chunkSize,
             fileUrl,
             costPerByte,
-            selectedChannel,
+            paymentChannelInfo.ID,
             nitroClient,
             setMicroPaymentProgress
           )
         : await fetchFile(
             fileUrl,
             costPerByte * dataSize,
-            selectedChannel,
+            paymentChannelInfo.ID,
             nitroClient
           );
 
@@ -134,29 +128,31 @@ function App() {
 
       // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
       setTimeout(() => {
-        updateChannelInfo(selectedChannel);
+        updateChannelInfo(paymentChannelInfo.ID);
       }, 50);
     } catch (e: unknown) {
       setErrorText((e as Error).message);
     }
   };
 
+  // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
+  //   setInterval(() => {
+  //     updateChannelInfo(paymentChannelId);
+  //   }, 1000);
+
   return (
     <Box>
       <Box p={10} minHeight={200}>
-        <InputLabel id="select-channel">Select a payment channel</InputLabel>
-        <Select
-          onChange={handleSelectedChannelChanged}
-          value={selectedChannel}
-          inputProps={{
-            id: "select-channel",
+        <Button
+          id="createChannel"
+          onClick={() => {
+            createPaymentChannel();
           }}
+          disabled={paymentChannelId != ""}
         >
-          {...paymentChannels.map((p) => (
-            <MenuItem value={p.ID}>{p.ID}</MenuItem>
-          ))}
-        </Select>
-        <ChannelDetails info={selectedChannelInfo} />
+          Create Channel
+        </Button>
+        <ChannelDetails info={paymentChannelInfo} />
       </Box>
       <Box>
         <TextField
