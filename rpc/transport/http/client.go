@@ -2,11 +2,13 @@ package http
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	urlUtil "net/url"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -21,6 +23,11 @@ type clientHttpTransport struct {
 
 // NewHttpTransportAsClient creates a transport that can be used to send http requests and a websocket connection for receiving notifications
 func NewHttpTransportAsClient(url string) (*clientHttpTransport, error) {
+	err := blockUntilHttpServerIsReady(url)
+	if err != nil {
+		return nil, err
+	}
+
 	subscribeUrl, err := urlUtil.JoinPath("ws://", url, "subscribe")
 	if err != nil {
 		return nil, err
@@ -39,7 +46,7 @@ func NewHttpTransportAsClient(url string) (*clientHttpTransport, error) {
 }
 
 func (t *clientHttpTransport) Request(data []byte) ([]byte, error) {
-	requestUrl, err := urlUtil.JoinPath("http://", t.url)
+	requestUrl, err := httpUrl(t.url)
 	if err != nil {
 		return nil, err
 	}
@@ -84,4 +91,44 @@ func (t *clientHttpTransport) readMessages() {
 
 		t.notificationChan <- data
 	}
+}
+
+// httpUrl joins the http prefix with the server url
+func httpUrl(url string) (string, error) {
+	httpUrl, err := urlUtil.JoinPath("http://", url)
+	if err != nil {
+		return "", err
+	}
+	return httpUrl, nil
+}
+
+// blockUntilHttpServerIsReady pings the health endpoint until the server is ready
+func blockUntilHttpServerIsReady(url string) error {
+	waitForServer := func() {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	httpUrl, err := httpUrl(url)
+	if err != nil {
+		return err
+	}
+	healthUrl, err := urlUtil.JoinPath(httpUrl, "health")
+	if err != nil {
+		return err
+	}
+	numAttempts := 10
+	for i := 0; i < numAttempts; i++ {
+		resp, err := http.Get(healthUrl)
+		if err != nil {
+			waitForServer()
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			return nil
+		}
+		waitForServer()
+	}
+	return fmt.Errorf("http server not ready after %d attempts", numAttempts)
 }
