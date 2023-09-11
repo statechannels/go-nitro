@@ -43,8 +43,8 @@ func (c *natsTransport) Close() error {
 			return err
 		}
 	}
-	c.nc.Close()
-	return nil
+	// Using drain is a workaround for https://github.com/nats-io/nats.go/issues/1396
+	return c.nc.Drain()
 }
 
 // unsubscribeFromTopic will attempt to unsubscribe the supplied subscription. On error, it will retry up to retries times.
