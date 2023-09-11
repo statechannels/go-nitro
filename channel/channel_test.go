@@ -311,7 +311,7 @@ func TestChannel(t *testing.T) {
 			t.Fatalf("mismatch (-want +got):\n%s", diff)
 		}
 	}
-	
+
 	testUpdateWithChainEventRejected := func(t *testing.T) {
 		event := chainservice.NewChallengeRegisteredEvent(c.ChannelId(), 99999, 0, state.TestState.VariablePart(), []state.Signature{sigA, sigB})
 		_, err := c.UpdateWithChainEvent(event)
