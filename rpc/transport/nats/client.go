@@ -60,17 +60,7 @@ func (c *natsTransportClient) Subscribe() (<-chan []byte, error) {
 	return c.notificationChan, err
 }
 
-const unsubRetries = 3
-
 func (c *natsTransportClient) Close() error {
-	// TODO: This is a workaround for https://github.com/nats-io/nats.go/issues/1396
-	// See https://github.com/nats-io/nats.go/issues/1396#issuecomment-1714261643
-	for _, sub := range c.natsSubscriptions {
-		err := c.unsubscribeFromTopic(sub, unsubRetries)
-		if err != nil {
-			return err
-		}
-	}
 	err := c.natsTransport.Close()
 	if err != nil {
 		return err
