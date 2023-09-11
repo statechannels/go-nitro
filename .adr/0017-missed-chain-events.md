@@ -89,11 +89,12 @@ type Channel struct {
 
 type ChainUpdateData struct {
         BlockNum uint64
-        TxIndex uint64
+        TxIndex  uint
 }
 
 func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, error) {
-	if event.BlockNum() > c.LastChainUpdate.BlockNum && event.TxIndex() > c.LastChainUpdate.TxIndex {
+	if event.BlockNum() > c.LastChainUpdate.BlockNum ||
+		(event.BlockNum() == c.LastChainUpdate.BlockNum && event.TxIndex() > c.LastChainUpdate.TxIndex) {
 		// Process event
 		...
 
