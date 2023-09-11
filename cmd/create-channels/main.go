@@ -49,7 +49,7 @@ func createChannels() error {
 			panic(err)
 		}
 
-		err = utils.WaitForRpcClient(url, 500*time.Millisecond, 5*time.Minute)
+		err = utils.WaitForRpcClient("http://"+url, 500*time.Millisecond, 5*time.Minute)
 		if err != nil {
 			panic(err)
 		}
