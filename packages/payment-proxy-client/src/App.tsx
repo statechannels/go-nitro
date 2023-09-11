@@ -8,10 +8,6 @@ import {
   Button,
   TextField,
   Box,
-  Table,
-  TableRow,
-  TableCell,
-  TableBody,
   InputLabel,
   Checkbox,
   FormControlLabel,
@@ -22,6 +18,7 @@ const QUERY_KEY = "rpcUrl";
 
 import "./App.css";
 import { fetchFile, fetchFileInChunks } from "./file";
+import ChannelDetails from "./ChannelDetails";
 const provider = "0xbbb676f9cff8d242e9eac39d063848807d3d1d94";
 const hub = "0x111a00868581f73ab42feef67d235ca09ca1e8db";
 const defaultNitroRPCUrl = "localhost:4005/api/v1";
@@ -159,40 +156,7 @@ function App() {
             <MenuItem value={p.ID}>{p.ID}</MenuItem>
           ))}
         </Select>
-        <Table>
-          <TableBody>
-            <TableRow>
-              <TableCell>Paid so far</TableCell>
-              <TableCell>
-                {selectedChannelInfo &&
-                  // TODO: We shouldn't have to cast to a BigInt here, the client should return a BigInt
-                  BigInt(selectedChannelInfo?.Balance.PaidSoFar).toString(10)}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Remaining funds</TableCell>
-              <TableCell>
-                {selectedChannelInfo &&
-                  // TODO: We shouldn't have to cast to a BigInt here, the client should return a BigInt
-                  BigInt(selectedChannelInfo?.Balance.RemainingFunds).toString(
-                    10
-                  )}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Payee</TableCell>
-              <TableCell>
-                {selectedChannelInfo && selectedChannelInfo.Balance.Payee}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Payer</TableCell>
-              <TableCell>
-                {selectedChannelInfo && selectedChannelInfo.Balance.Payer}
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+        <ChannelDetails info={selectedChannelInfo} />
       </Box>
       <Box>
         <TextField
