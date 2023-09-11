@@ -53,18 +53,24 @@ func (c *natsTransportClient) Subscribe() (<-chan []byte, error) {
 	}
 	c.notificationChan = make(chan []byte)
 	subscription, err := c.nc.Subscribe(nitroNotificationTopic, func(msg *nats.Msg) {
-		// TODO: Currently NATS doesn't seem to guarantee that this function will not be called after the subscription is closed.
-		// To prevent sending on a closed channel, we check if the client is closed before sending.
-		if !c.natsTransport.nc.IsClosed() {
-			c.notificationChan <- msg.Data
-		}
+		c.notificationChan <- msg.Data
 	})
 	c.natsSubscriptions = append(c.natsSubscriptions, subscription)
 
 	return c.notificationChan, err
 }
 
+const unsubRetries = 3
+
 func (c *natsTransportClient) Close() error {
+	// TODO: This is a workaround for https://github.com/nats-io/nats.go/issues/1396
+	// See https://github.com/nats-io/nats.go/issues/1396#issuecomment-1714261643
+	for _, sub := range c.natsSubscriptions {
+		err := c.unsubscribeFromTopic(sub, unsubRetries)
+		if err != nil {
+			return err
+		}
+	}
 	err := c.natsTransport.Close()
 	if err != nil {
 		return err
