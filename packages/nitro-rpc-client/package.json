@@ -13,7 +13,7 @@
     "lint:eslint": "eslint . --cache --ext js,ts --max-warnings 0",
     "lint:fix": "bun lint:eslint --fix && bun lint:misc --write",
     "lint:misc": "prettier '**/*.json' '**/*.md' '!CHANGELOG.md' --ignore-path .gitignore",
-    "prepack": "bun build",
+    "prepack": "bun run build",
     "start": "npx ts-node src/cli.ts",
     "test": "jest"
   },
