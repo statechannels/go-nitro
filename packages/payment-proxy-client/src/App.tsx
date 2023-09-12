@@ -21,6 +21,7 @@ const defaultNitroRPCUrl = "localhost:4005/api/v1";
 const defaultFileUrl = "http://localhost:5511/test.txt";
 const defaultPaymentChannelAmount = 100_000;
 
+const costPerByte = 1;
 function App() {
   const url =
     new URLSearchParams(window.location.search).get(QUERY_KEY) ??
@@ -35,7 +36,6 @@ function App() {
 
   const [fileUrl, setFileUrl] = useState<string>(defaultFileUrl);
 
-  const [costPerByte, setCostPerByte] = useState<number>(1);
   const [dataSize, setDataSize] = useState<number>(12);
   const [totalCost, setTotalCost] = useState<number>(costPerByte * dataSize);
   const [errorText, setErrorText] = useState<string>("");
@@ -170,14 +170,6 @@ function App() {
       />
       <Box visibility={useMicroPayments ? "visible" : "hidden"}>
         <TextField
-          label="Cost Per Byte(wei)"
-          onChange={(e: ChangeEvent<HTMLInputElement>) => {
-            setCostPerByte(parseInt(e.target.value));
-          }}
-          value={costPerByte}
-          type="number"
-        ></TextField>
-        <TextField
           label="Chunk size(bytes)"
           onChange={(e: ChangeEvent<HTMLInputElement>) => {
             setChunkSize(parseInt(e.target.value));
@@ -187,15 +179,6 @@ function App() {
         ></TextField>
       </Box>
       <Box visibility={useMicroPayments ? "hidden" : "visible"}>
-        <TextField
-          label="Cost Per Byte(wei)"
-          onChange={(e: ChangeEvent<HTMLInputElement>) => {
-            setCostPerByte(parseInt(e.target.value));
-            setTotalCost(dataSize * parseInt(e.target.value));
-          }}
-          value={costPerByte}
-          type="number"
-        ></TextField>
         <TextField
           label="Data Size(bytes)"
           onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -213,7 +196,7 @@ function App() {
         ></TextField>
       </Box>
 
-      <Button onClick={fetchAndDownloadFile}>
+      <Button onClick={fetchAndDownloadFile} disabled={paymentChannelId == ""}>
         {useMicroPayments ? "Fetch with micropayments" : "Fetch"}
       </Button>
       <Box visibility={useMicroPayments ? "visible" : "hidden"}>
