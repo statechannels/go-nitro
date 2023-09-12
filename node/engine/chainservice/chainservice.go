@@ -16,12 +16,14 @@ import (
 type Event interface {
 	ChannelID() types.Destination
 	BlockNum() uint64
+	TxIndex() uint
 }
 
 // commonEvent declares fields shared by all chain events
 type commonEvent struct {
 	channelID types.Destination
 	blockNum  uint64
+	txIndex   uint
 }
 
 func (ce commonEvent) ChannelID() types.Destination {
@@ -30,6 +32,10 @@ func (ce commonEvent) ChannelID() types.Destination {
 
 func (ce commonEvent) BlockNum() uint64 {
 	return ce.blockNum
+}
+
+func (ce commonEvent) TxIndex() uint {
+	return ce.txIndex
 }
 
 type assetAndAmount struct {
@@ -82,11 +88,12 @@ type ChallengeRegisteredEvent struct {
 func NewChallengeRegisteredEvent(
 	channelId types.Destination,
 	blockNum uint64,
+	txIndex uint,
 	variablePart state.VariablePart,
 	sigs []state.Signature,
 ) ChallengeRegisteredEvent {
 	return ChallengeRegisteredEvent{
-		commonEvent: commonEvent{channelID: channelId, blockNum: blockNum},
+		commonEvent: commonEvent{channelID: channelId, blockNum: blockNum, txIndex: txIndex},
 		candidate: state.VariablePart{
 			AppData: variablePart.AppData,
 			Outcome: variablePart.Outcome,
@@ -123,12 +130,12 @@ func (cr ChallengeRegisteredEvent) String() string {
 	return "CHALLENGE registered for Channel " + cr.channelID.String() + " at Block " + fmt.Sprint(cr.blockNum)
 }
 
-func NewDepositedEvent(channelId types.Destination, blockNum uint64, assetAddress common.Address, nowHeld *big.Int) DepositedEvent {
-	return DepositedEvent{commonEvent{channelId, blockNum}, assetAddress, nowHeld}
+func NewDepositedEvent(channelId types.Destination, blockNum uint64, txIndex uint, assetAddress common.Address, nowHeld *big.Int) DepositedEvent {
+	return DepositedEvent{commonEvent{channelId, blockNum, txIndex}, assetAddress, nowHeld}
 }
 
-func NewAllocationUpdatedEvent(channelId types.Destination, blockNum uint64, assetAddress common.Address, assetAmount *big.Int) AllocationUpdatedEvent {
-	return AllocationUpdatedEvent{commonEvent{channelId, blockNum}, assetAndAmount{AssetAddress: assetAddress, AssetAmount: assetAmount}}
+func NewAllocationUpdatedEvent(channelId types.Destination, blockNum uint64, txIndex uint, assetAddress common.Address, assetAmount *big.Int) AllocationUpdatedEvent {
+	return AllocationUpdatedEvent{commonEvent{channelId, blockNum, txIndex}, assetAndAmount{AssetAddress: assetAddress, AssetAmount: assetAmount}}
 }
 
 // todo implement other event types

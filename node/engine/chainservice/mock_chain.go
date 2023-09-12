@@ -45,12 +45,12 @@ func (mc *MockChain) SubmitTransaction(tx protocols.ChainTransaction) error {
 		}
 
 		for address := range tx.Deposit {
-			event := NewDepositedEvent(tx.ChannelId(), mc.BlockNum, address, h.Add(tx.Deposit)[address])
+			event := NewDepositedEvent(tx.ChannelId(), mc.BlockNum, 0, address, h.Add(tx.Deposit)[address])
 			eventsToBroadcast = append(eventsToBroadcast, event)
 		}
 	case protocols.WithdrawAllTransaction:
 		for assetAddress := range h {
-			event := NewAllocationUpdatedEvent(tx.ChannelId(), mc.BlockNum, assetAddress, common.Big0)
+			event := NewAllocationUpdatedEvent(tx.ChannelId(), mc.BlockNum, 0, assetAddress, common.Big0)
 			eventsToBroadcast = append(eventsToBroadcast, event)
 		}
 		mc.holdings[tx.ChannelId()] = types.Funds{}

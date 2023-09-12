@@ -42,7 +42,7 @@ func TestChannel(t *testing.T) {
 
 	c, err2 := New(s, 0)
 
-	testNew := func(t *testing.T) {
+	testNewChannel := func(t *testing.T) {
 		if err2 != nil {
 			t.Error(err2)
 		}
@@ -287,7 +287,7 @@ func TestChannel(t *testing.T) {
 		}
 	}
 	testUpdateWithChallengeRegisteredEvent := func(t *testing.T) {
-		event := chainservice.NewChallengeRegisteredEvent(c.ChannelId(), 99999, state.TestState.VariablePart(), []state.Signature{sigA, sigB})
+		event := chainservice.NewChallengeRegisteredEvent(c.ChannelId(), 99999, 0, state.TestState.VariablePart(), []state.Signature{sigA, sigB})
 
 		_, err := c.UpdateWithChainEvent(event)
 		if err != nil {
@@ -312,7 +312,15 @@ func TestChannel(t *testing.T) {
 		}
 	}
 
-	t.Run(`TestNew`, testNew)
+	testUpdateWithChainEventRejected := func(t *testing.T) {
+		event := chainservice.NewChallengeRegisteredEvent(c.ChannelId(), 99999, 0, state.TestState.VariablePart(), []state.Signature{sigA, sigB})
+		_, err := c.UpdateWithChainEvent(event)
+		if err == nil {
+			t.Fatal("chain event should be rejected when blockNum/txIndex is not higher than last update")
+		}
+	}
+
+	t.Run(`TestNewChannel`, testNewChannel)
 	t.Run(`TestClone`, testClone)
 	t.Run(`TestPreFund`, testPreFund)
 	t.Run(`TestPostFund`, testPostFund)
@@ -326,6 +334,7 @@ func TestChannel(t *testing.T) {
 	t.Run(`TestAddStateWithSignature`, testAddStateWithSignature)
 	t.Run(`TestAddSignedState`, testAddSignedState)
 	t.Run(`TestUpdateWithChallengeRegisteredEvent`, testUpdateWithChallengeRegisteredEvent)
+	t.Run(`TestUpdateWithChainEventRejected`, testUpdateWithChainEventRejected)
 }
 
 func TestVirtualChannel(t *testing.T) {

@@ -271,7 +271,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 				return fmt.Errorf("error in ParseDeposited: %w", err)
 			}
 
-			event := NewDepositedEvent(nad.Destination, l.BlockNumber, nad.Asset, nad.DestinationHoldings)
+			event := NewDepositedEvent(nad.Destination, l.BlockNumber, l.TxIndex, nad.Asset, nad.DestinationHoldings)
 			ecs.out <- event
 
 		case allocationUpdatedTopic:
@@ -295,7 +295,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 			}
 			ecs.logger.Debug("assetAddress", "assetAddress", assetAddress)
 
-			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, assetAddress, au.FinalHoldings)
+			event := NewAllocationUpdatedEvent(au.ChannelId, l.BlockNumber, l.TxIndex, assetAddress, au.FinalHoldings)
 			ecs.out <- event
 
 		case concludedTopic:
@@ -313,7 +313,7 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 			if err != nil {
 				return fmt.Errorf("error in ParseChallengeRegistered: %w", err)
 			}
-			event := NewChallengeRegisteredEvent(cr.ChannelId, l.BlockNumber, state.VariablePart{
+			event := NewChallengeRegisteredEvent(cr.ChannelId, l.BlockNumber, l.TxIndex, state.VariablePart{
 				AppData: cr.Candidate.VariablePart.AppData,
 				Outcome: NitroAdjudicator.ConvertBindingsExitToExit(cr.Candidate.VariablePart.Outcome),
 				TurnNum: cr.Candidate.VariablePart.TurnNum.Uint64(),

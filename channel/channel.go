@@ -32,6 +32,19 @@ type Channel struct {
 
 	OnChain  OnChainData
 	OffChain OffChainData
+
+	LastChainUpdate ChainUpdateData
+}
+
+type ChainUpdateData struct {
+	BlockNum uint64
+	TxIndex  uint
+}
+
+// isNewChainEvent returns true if the event has a greater block number (or equal blocknumber but with greater tx index) than prior chain events process by the receiver.
+func (c *Channel) isNewChainEvent(event chainservice.Event) bool {
+	return event.BlockNum() > c.LastChainUpdate.BlockNum ||
+		(event.BlockNum() == c.LastChainUpdate.BlockNum && event.TxIndex() > c.LastChainUpdate.TxIndex)
 }
 
 // New constructs a new Channel from the supplied state.
@@ -321,6 +334,10 @@ func (c *Channel) SignAndAddState(s state.State, sk *[]byte) (state.SignedState,
 
 // UpdateWithChainEvent mutates the receiver with the supplied chain event, replacing the relevant data fields.
 func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, error) {
+	if !c.isNewChainEvent(event) {
+		return nil, fmt.Errorf("chain event older than channel's last update")
+	}
+	// Process event
 	switch e := event.(type) {
 	case chainservice.AllocationUpdatedEvent:
 		c.OnChain.Holdings[e.AssetAddress] = e.AssetAmount
@@ -344,5 +361,9 @@ func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, erro
 	default:
 		return &Channel{}, fmt.Errorf("channel %+v cannot handle event %+v", c, event)
 	}
+
+	// Update Channel.LastChainUpdate
+	c.LastChainUpdate.BlockNum = event.BlockNum()
+	c.LastChainUpdate.TxIndex = event.TxIndex()
 	return c, nil
 }
