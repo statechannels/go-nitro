@@ -34,4 +34,4 @@ docker/network/attach:
 
 ui/build:
 	cd packages/nitro-rpc-client && bun run prepack
-	cd ../nitro-gui && bun run build
+	cd packages/nitro-gui && bun run build
