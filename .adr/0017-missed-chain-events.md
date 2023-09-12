@@ -88,22 +88,26 @@ type Channel struct {
 }
 
 type ChainUpdateData struct {
-        BlockNum uint64
-        TxIndex  uint
+  BlockNum uint64
+  TxIndex  uint
+}
+
+func (c *Channel) isNewChainEvent(event chainservice.Event) bool {
+	return event.BlockNum() > c.LastChainUpdate.BlockNum ||
+		(event.BlockNum() == c.LastChainUpdate.BlockNum && event.TxIndex() > c.LastChainUpdate.TxIndex)
 }
 
 func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, error) {
-	if event.BlockNum() > c.LastChainUpdate.BlockNum ||
-		(event.BlockNum() == c.LastChainUpdate.BlockNum && event.TxIndex() > c.LastChainUpdate.TxIndex) {
-		// Process event
-		...
-
-		// Update Channel.LastChainUpdate
-		c.LastChainUpdate.BlockNum = event.BlockNum()
-		c.LastChainUpdate.TxIndex  = event.TxIndex()
-		return c, nil
+	if !c.isNewChainEvent(event) {
+		return nil, fmt.Errorf("chain event older than channel's last update")
 	}
-	return nil, fmt.Errorf("chain event older than channels last update")
+	// Process event
+	...
+
+	// Update Channel.LastChainUpdate
+	c.LastChainUpdate.BlockNum = event.BlockNum()
+	c.LastChainUpdate.TxIndex  = event.TxIndex()
+	return c, nil
 }
 ```
 
