@@ -40,7 +40,7 @@ function App() {
   const [totalCost, setTotalCost] = useState<number>(costPerByte * dataSize);
   const [errorText, setErrorText] = useState<string>("");
   const [chunkSize, setChunkSize] = useState<number>(100);
-  const [useMicroPayments, setUseMicroPayments] = useState<boolean>(false);
+  const [useMicroPayments, setUseMicroPayments] = useState<boolean>();
   const [microPaymentProgress, setMicroPaymentProgress] = useState<number>(0);
   useEffect(() => {
     NitroRpcClient.CreateHttpNitroClient(url)
@@ -138,15 +138,6 @@ function App() {
   return (
     <Box>
       <Box p={10} minHeight={200}>
-        <Button
-          id="createChannel"
-          onClick={() => {
-            createPaymentChannel();
-          }}
-          disabled={paymentChannelId != ""}
-        >
-          Create Channel
-        </Button>
         <ChannelDetails info={paymentChannelInfo} />
       </Box>
       <Box>
@@ -195,14 +186,21 @@ function App() {
           type="number"
         ></TextField>
       </Box>
-
+      <Button
+        id="createChannel"
+        onClick={() => {
+          createPaymentChannel();
+        }}
+        disabled={paymentChannelId != ""}
+      >
+        Create Channel
+      </Button>
       <Button onClick={fetchAndDownloadFile} disabled={paymentChannelId == ""}>
         {useMicroPayments ? "Fetch with micropayments" : "Fetch"}
       </Button>
       <Box visibility={useMicroPayments ? "visible" : "hidden"}>
         <LinearProgress value={microPaymentProgress} variant="determinate" />
       </Box>
-
       <Box>{errorText}</Box>
     </Box>
   );
