@@ -19,7 +19,7 @@ docker/paymentproxy/build:
 	docker build -f docker/paymentproxy/Dockerfile -t payment-proxy .
 docker/paymentproxy/start:
 	docker remove payment-proxy || true
-	docker run -it -d --name payment-proxy -p 5511:5511 payment-proxy
+	docker run -it -d --name payment-proxy -p 5511:5511 -e PROXY_PORT=5511 payment-proxy
 
 docker/network/build:
 	docker build -f docker/Dockerfile -t go-nitro .
