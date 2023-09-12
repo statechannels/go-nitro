@@ -31,4 +31,4 @@ COPY --from=builder /app/nitro_config ./nitro_config
 
 EXPOSE 3005 4005 5005
 
-CMD ./nitro --config $CONFIG_PATH
+CMD ./nitro --config $NITRO_CONFIG_PATH
