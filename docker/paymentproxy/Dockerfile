@@ -14,7 +14,7 @@ COPY --from=builder /app/proxy .
 
 ENV PROXY_PORT=5511
 ENV NITRO_ENDPOINT=host.docker.internal:4007/api/v1
-ENV DESTINATION_URL=http://host.docker.internal:8081
+ENV DESTINATION_URL=http://host.docker.internal:8088
 ENV COST_PER_BYTE=1
 
 EXPOSE $PROXY_PORT

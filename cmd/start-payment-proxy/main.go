@@ -39,7 +39,7 @@ func main() {
 			&cli.StringFlag{
 				Name:    DESTINATION_URL,
 				Usage:   "Specifies the destination URL to forward requests to. It should be a fully qualified URL, including the protocol (e.g. http://localhost:8081)",
-				Value:   "http://localhost:8081",
+				Value:   "http://localhost:8088",
 				Aliases: []string{"d"},
 			},
 			&cli.Uint64Flag{
