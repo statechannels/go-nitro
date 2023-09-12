@@ -9,11 +9,11 @@
   "bin": "src/cli.ts",
   "scripts": {
     "build": "tsc -b .",
-    "lint": "yarn lint:eslint && yarn lint:misc --check",
+    "lint": "bun lint:eslint && bun lint:misc --check",
     "lint:eslint": "eslint . --cache --ext js,ts --max-warnings 0",
-    "lint:fix": "yarn lint:eslint --fix && yarn lint:misc --write",
+    "lint:fix": "bun lint:eslint --fix && bun lint:misc --write",
     "lint:misc": "prettier '**/*.json' '**/*.md' '!CHANGELOG.md' --ignore-path .gitignore",
-    "prepack": "yarn build",
+    "prepack": "bun build",
     "start": "npx ts-node src/cli.ts",
     "test": "jest"
   },
