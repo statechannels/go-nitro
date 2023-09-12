@@ -137,7 +137,7 @@ function App() {
 
   return (
     <Box>
-      <Box p={10} minHeight={200}>
+      <Box p={10}>
         <ChannelDetails info={paymentChannelInfo} />
       </Box>
       <Box>
