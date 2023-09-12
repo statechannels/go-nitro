@@ -19,7 +19,7 @@ const provider = "0xbbb676f9cff8d242e9eac39d063848807d3d1d94";
 const hub = "0x111a00868581f73ab42feef67d235ca09ca1e8db";
 const defaultNitroRPCUrl = "localhost:4005/api/v1";
 const defaultFileUrl = "http://localhost:5511/test.txt";
-const defaultPaymentChannelAmount = 100_000;
+const defaultPaymentChannelAmount = 100_000_000;
 
 const costPerByte = 1;
 function App() {
