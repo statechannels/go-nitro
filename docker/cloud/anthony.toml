@@ -20,4 +20,4 @@ chainurl = "wss://wss.calibration.node.glif.io/apigw/lotus/rpc/v0"
 chainstartblock = 907318
 chainauthtoken = ""
 
-bootpeers = ""/ip4/67.207.88.72/tcp/3005/p2p/16Uiu2HAmHQe7ej1swi9ghLwCi5jdSxLpGP3weBaE7j5ixBf5Hbzx""
+bootpeers = "/ip4/67.207.88.72/tcp/3005/p2p/16Uiu2HAmHQe7ej1swi9ghLwCi5jdSxLpGP3weBaE7j5ixBf5Hbzx"
