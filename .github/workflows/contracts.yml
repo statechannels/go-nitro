@@ -17,7 +17,6 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18.15.0"
-          cache: "yarn"
       - uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
