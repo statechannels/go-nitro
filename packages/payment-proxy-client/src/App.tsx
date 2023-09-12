@@ -171,7 +171,7 @@ function App() {
       </Box>
       <Box visibility={useMicroPayments ? "hidden" : "visible"}>
         <TextField
-          label="Data Size(bytes)"
+          label="Payment amount (bytes)"
           onChange={(e: ChangeEvent<HTMLInputElement>) => {
             setDataSize(parseInt(e.target.value));
           }}
