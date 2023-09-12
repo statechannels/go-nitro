@@ -20,6 +20,7 @@ const hub = "0x111a00868581f73ab42feef67d235ca09ca1e8db";
 const defaultNitroRPCUrl = "localhost:4005/api/v1";
 const defaultFileUrl = "http://localhost:5511/test.txt";
 const defaultPaymentChannelAmount = 100_000_000;
+const CHANNEL_ID_KEY = "channelId";
 
 const costPerByte = 1;
 function App() {
@@ -49,6 +50,18 @@ function App() {
         setErrorText(e.message);
       });
   }, [url]);
+
+  useEffect(() => {
+    const fetchedId = localStorage.getItem(CHANNEL_ID_KEY);
+    if (fetchedId && fetchedId != "") {
+      setPaymentChannelId(fetchedId);
+
+      nitroClient?.GetPaymentChannel(fetchedId).then((paymentChannel) => {
+        console.log(paymentChannel);
+        setPaymentChannelInfo(paymentChannel);
+      });
+    }
+  }, [nitroClient]);
 
   const updateChannelInfo = async (channelId: string) => {
     if (channelId == "") {
@@ -84,7 +97,8 @@ function App() {
       [hub],
       defaultPaymentChannelAmount
     );
-    console.log(result);
+
+    localStorage.setItem(CHANNEL_ID_KEY, result.ChannelId);
     setPaymentChannelId(result.ChannelId);
     updateChannelInfo(result.ChannelId);
 
