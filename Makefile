@@ -33,4 +33,4 @@ docker/network/attach:
 	docker exec -it go-nitro bash
 
 ui/build:
-	yarn workspace nitro-gui build
+	cd packages/nitro-gui && bun run build
