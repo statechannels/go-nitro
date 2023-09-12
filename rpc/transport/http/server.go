@@ -2,9 +2,11 @@ package http
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"path"
 	"strconv"
@@ -59,15 +61,32 @@ func NewHttpTransportAsServer(port string) (*serverHttpTransport, error) {
 	transport.wg = &sync.WaitGroup{}
 
 	transport.wg.Add(1)
-	go transport.serveHttp()
+
+	// Load server.crt and server.key
+	cert, err := tls.LoadX509KeyPair("../internal/tls/statechannels.org.pem", "../internal/tls/statechannels.org_key.pem")
+	if err != nil {
+		panic(err)
+	}
+
+	// Create a TLS config
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}
+
+	// Create a new TLS listener
+	listener, err := tls.Listen("tcp", ":"+port, tlsConfig)
+	if err != nil {
+		panic(err)
+	}
+	go transport.serveHttp(listener)
 
 	return transport, nil
 }
 
-func (t *serverHttpTransport) serveHttp() {
+func (t *serverHttpTransport) serveHttp(tcpListener net.Listener) {
 	defer t.wg.Done()
 
-	err := t.httpServer.ListenAndServeTLS("../internal/tls/statechannels.org.pem", "../internal/tls/statechannels.org_key.pem")
+	err := t.httpServer.Serve(tcpListener)
 
 	if err != nil && errors.Is(err, http.ErrServerClosed) {
 		return
