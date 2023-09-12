@@ -18,6 +18,10 @@ jobs:
         with:
           node-version: "18.15.0"
           cache: "yarn"
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
       - name: Install dependencies
         run: bun install
       - name: Compile contracts
