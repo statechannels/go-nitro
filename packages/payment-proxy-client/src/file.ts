@@ -10,6 +10,9 @@ export async function fetchFile(
   const voucher = await nitroClient.CreateVoucher(channelId, paymentAmount);
 
   const response = await fetch(addVoucherToUrl(url, voucher));
+  if (response.status == 402) {
+    throw new Error(`402 ${await response.text()}`);
+  }
 
   const fileName = parseFileNameFromUrl(response.url);
 
@@ -113,7 +116,9 @@ async function fetchChunk(
   req.headers.set("Range", `bytes=${start}-${stop}`);
 
   const response = await fetch(req);
-
+  if (response.status == 402) {
+    throw new Error(`402 ${await response.text()}`);
+  }
   return {
     data: await getChunkData(response),
     contentLength: parseTotalSizeFromContentRange(
