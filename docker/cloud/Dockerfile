@@ -13,7 +13,7 @@ RUN yarn --version
 # Copy files into image
 WORKDIR /app
 COPY . .
-COPY ./docker/cloud/config.toml .
+COPY ./docker/cloud ./nitro_config
 
 # Build the binary
 RUN yarn workspace nitro-gui install
@@ -27,8 +27,8 @@ RUN apt-get install -y ca-certificates
 RUN rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /app/nitro .
-COPY --from=builder /app/config.toml .
+COPY --from=builder /app/nitro_config ./nitro_config
 
 EXPOSE 3005 4005 5005
 
-CMD ["./nitro", "--config", "./config.toml"]
+CMD ./nitro --config $CONFIG_PATH
