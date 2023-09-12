@@ -135,11 +135,6 @@ function App() {
     }
   };
 
-  // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
-  //   setInterval(() => {
-  //     updateChannelInfo(paymentChannelId);
-  //   }, 1000);
-
   return (
     <Box>
       <Box p={10} minHeight={200}>
