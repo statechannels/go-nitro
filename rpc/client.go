@@ -139,7 +139,7 @@ func NewRpcClient(trans transport.Requester) (RpcClientApi, error) {
 
 // NewHttpRpcClient creates a new rpcClient using an http transport
 func NewHttpRpcClient(rpcServerUrl string) (RpcClientApi, error) {
-	transport, err := http.NewHttpTransportAsClient(rpcServerUrl, 10*time.Millisecond)
+	transport, err := http.NewHttpTransportAsClient(rpcServerUrl, 100*time.Millisecond)
 	if err != nil {
 		return nil, err
 	}
