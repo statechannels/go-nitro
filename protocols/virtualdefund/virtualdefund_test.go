@@ -196,7 +196,7 @@ func TestConstructObjectiveFromState(t *testing.T) {
 	left, right := generateLedgers(alice.Role, vId)
 
 	s := state.StateFromFixedAndVariablePart(data.vFinal.FixedPart(), data.vInitial.VariablePart())
-	v, err := channel.NewChannel(s, 0)
+	v, err := channel.New(s, 0)
 	testhelpers.Ok(t, err)
 
 	want := Objective{

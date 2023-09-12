@@ -47,8 +47,8 @@ func (c *Channel) isNewChainEvent(event chainservice.Event) bool {
 		(event.BlockNum() == c.LastChainUpdate.BlockNum && event.TxIndex() > c.LastChainUpdate.TxIndex)
 }
 
-// NewChannel constructs a new Channel from the supplied state.
-func NewChannel(s state.State, myIndex uint) (*Channel, error) {
+// New constructs a new Channel from the supplied state.
+func New(s state.State, myIndex uint) (*Channel, error) {
 	c := Channel{}
 	var err error = s.Validate()
 
@@ -134,7 +134,7 @@ func (c *Channel) Clone() *Channel {
 	if c == nil {
 		return nil
 	}
-	d, _ := NewChannel(c.PreFundState().Clone(), c.MyIndex)
+	d, _ := New(c.PreFundState().Clone(), c.MyIndex)
 	d.OffChain.LatestSupportedStateTurnNum = c.OffChain.LatestSupportedStateTurnNum
 	for i, ss := range c.OffChain.SignedStateForTurnNum {
 		d.OffChain.SignedStateForTurnNum[i] = ss.Clone()

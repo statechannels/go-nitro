@@ -40,7 +40,7 @@ func TestChannel(t *testing.T) {
 		t.Error(err)
 	}
 
-	c, err2 := NewChannel(s, 0)
+	c, err2 := New(s, 0)
 
 	testNewChannel := func(t *testing.T) {
 		if err2 != nil {
@@ -159,7 +159,7 @@ func TestChannel(t *testing.T) {
 	}
 
 	testAddSignedState := func(t *testing.T) {
-		myC, _ := NewChannel(s, 0)
+		myC, _ := New(s, 0)
 
 		err = ss.AddSignature(sigA)
 		if err != nil {
