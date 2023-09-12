@@ -19,7 +19,7 @@ jobs:
           node-version: "18.15.0"
           cache: "yarn"
       - name: Install dependencies
-        run: yarn
+        run: bun install
       - name: Compile contracts
         run: yarn hardhat compile
       - name: Run gas benchmarks
