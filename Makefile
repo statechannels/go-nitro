@@ -33,4 +33,5 @@ docker/network/attach:
 	docker exec -it go-nitro bash
 
 ui/build:
-	cd packages/nitro-gui && bun run build
+	cd packages/nitro-rpc-client && bun run prepack
+	cd ../nitro-gui && bun run build
