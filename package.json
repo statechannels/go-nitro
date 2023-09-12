@@ -14,8 +14,7 @@
   "license": "(MIT-0 OR Apache-2.0)",
   "author": "http://statechannels.org",
   "workspaces": [
-    "packages/*",
-    "nitro-protocol"
+    "packages/*"
   ],
   "scripts": {
     "bootstrap": "yarn workspaces foreach -pt run prepack",
