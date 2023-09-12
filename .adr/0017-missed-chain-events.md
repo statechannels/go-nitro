@@ -27,7 +27,7 @@ There are a few decisions to make within this design:
 
 1. How does the node protect against race conditions that could caused missed chain events during initialization?
 2. How does the node ensure it processes chain events idempotently (i.e. how does it ensure the same chain event does not make changes to a `Channel`'s data multiple times?). This situation could occur if the node restarts, scans through blocks for events during initialization, and detects events that it has already processed.
-3. When/how should the `lastBlockNum` be updated in the `store`? When the node is initialized it can read the `lastBlockNumSeen` from the `store`, and search for any chain events that occurred between that block and the current block. If the node uses a `memstore`, then the `lastBlockNumSeen` will always be set to `0` when the node is first initialized. By updating the `lastBlockNum` in `store`, the `chainservice` will not have to scan through as many old blocks when it first initializes and calls `checkForMissedEvents`.
+3. By storing a `lastBlockNum` variable in the `store`, the `chainservice` will not have to scan through as many old blocks when it first initializes and calls `checkForMissedEvents`. When the node is initialized it can read the `lastBlockNumSeen` from the `store`, and search for any chain events that occurred between that block and the current block. If the node uses a `memstore`, then the `lastBlockNumSeen` will always be set to `0` when the node is first initialized. When/how should the `lastBlockNumSeen` be updated?
 
 ## Alternatives considered
 
@@ -113,9 +113,9 @@ func (c *Channel) UpdateWithChainEvent(event chainservice.Event) (*Channel, erro
 
 ### [3] Updating `lastBlockNum`: `engine` periodically reads from `chainservice`
 
-Instead of the `chainservice` alerting the `engine`, the `engine` can request the block number from the `chainservice`. This means the `lastBlockNumSeen` wouldn't get updated every block, but that's not a major concern since the node
+Instead of the `chainservice` alerting the `engine`, the `engine` can request the block number from the `chainservice`. This means the `lastBlockNumSeen` won't get updated every block, and could cause the node to try to process old events a second time during initialization. However, that's not a major concern since the node has protection in the `Channel` class (topic [2] above) to prevent it from making `Channel` updates based on stale data.
 
-The benefit of this approach is simplicity and limited additional strain on the `engine`/`store`. Instead of adding a new chan or event, a `chainservice.GetLastConfirmedBlockNum()` function can be added and called by the `engine` periodically. This also means the node wouldn't write to the `store` every block but every x seconds (and when the node closes). The `engine` run loop can be updated to this:
+The benefit of this approach is simplicity and limited additional strain on the `engine`/`store`. Instead of adding a new chan or new event type on an existing `chainservice` --> `engine` chan, a `chainservice.GetLastConfirmedBlockNum()` function is called by the `engine` periodically. This means the node won't write to the `store` every block but every x seconds. The new `engine` run loop looks like this:
 
 ```go
 	blockTicker := time.NewTicker(15 * time.Second)
