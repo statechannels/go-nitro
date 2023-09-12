@@ -188,7 +188,7 @@ function App() {
         onClick={() => {
           createPaymentChannel();
         }}
-        disabled={paymentChannelId != ""}
+        disabled={paymentChannelId != "" || !nitroClient}
       >
         Create Channel
       </Button>
