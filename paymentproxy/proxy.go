@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -104,18 +103,18 @@ func (p *PaymentProxy) handleDestinationResponse(r *http.Response) error {
 	if r.Request.Method == "OPTIONS" {
 		return nil
 	}
-	contentLength, err := strconv.ParseUint(r.Header.Get("Content-Length"), 10, 64)
-	if err != nil {
-		return err
+
+	if r.ContentLength == -1 {
+		return createPaymentError(fmt.Errorf("could not determine content length"))
 	}
 
 	v, ok := r.Request.Context().Value(VOUCHER_CONTEXT_ARG).(payments.Voucher)
 	if !ok {
 		return createPaymentError(fmt.Errorf("could not fetch voucher from context"))
 	}
-	cost := p.costPerByte * contentLength
+	cost := p.costPerByte * uint64(r.ContentLength)
 
-	slog.Debug("Request cost", "cost-per-byte", p.costPerByte, "response-length", contentLength, "cost", cost)
+	slog.Debug("Request cost", "cost-per-byte", p.costPerByte, "response-length", uint64(r.ContentLength), "cost", cost)
 
 	s, err := p.nitroClient.ReceiveVoucher(v)
 	if err != nil {
