@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"math/big"
 	"net/http"
@@ -104,17 +105,26 @@ func (p *PaymentProxy) handleDestinationResponse(r *http.Response) error {
 		return nil
 	}
 
-	if r.ContentLength == -1 {
-		return createPaymentError(fmt.Errorf("could not determine content length"))
+	contentLength := uint64(0)
+	// If the Content-Length header is set, use that
+	// Otherwise, read the body to get the length
+	if r.ContentLength != -1 {
+		contentLength = uint64(r.ContentLength)
+	} else {
+		var err error
+		contentLength, err = readBodyLength(r.Body)
+		if err != nil {
+			return createPaymentError(err)
+		}
 	}
 
 	v, ok := r.Request.Context().Value(VOUCHER_CONTEXT_ARG).(payments.Voucher)
 	if !ok {
 		return createPaymentError(fmt.Errorf("could not fetch voucher from context"))
 	}
-	cost := p.costPerByte * uint64(r.ContentLength)
+	cost := p.costPerByte * contentLength
 
-	slog.Debug("Request cost", "cost-per-byte", p.costPerByte, "response-length", uint64(r.ContentLength), "cost", cost)
+	slog.Debug("Request cost", "cost-per-byte", p.costPerByte, "response-length", contentLength, "cost", cost)
 
 	s, err := p.nitroClient.ReceiveVoucher(v)
 	if err != nil {
@@ -216,4 +226,23 @@ func enableCORS(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
+}
+
+func readBodyLength(b io.ReadCloser) (uint64, error) {
+	var byteCount uint64
+	buffer := make([]byte, 1024)
+
+	// Read the response body and count the bytes
+	for {
+		n, err := b.Read(buffer)
+		if err != nil {
+			if err == io.EOF {
+				break // Reached the end of the response body
+			}
+			return 0, err
+		}
+		byteCount += uint64(n)
+	}
+
+	return byteCount, nil
 }
