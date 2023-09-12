@@ -1,11 +1,17 @@
-name: Deploy to DigitalOcean
+name: Deploy Iris
 
 on:
   workflow_dispatch:
+    inputs:
+      skipBuild:
+        description: 'Skip build step'
+        required: false
+        default: 'false'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: github.event.inputs.skipBuild == 'false'
 
     steps:
       - name: Checkout code
@@ -23,18 +29,22 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    if: always()
 
     steps:
       - name: Deploy to Droplet
         env:
           SSH_PRIVATE_KEY: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+          NITRO_CONFIG: './nitro_config/iris.toml'
+          DROPLET_IP: '67.207.88.72'
+          NODE_NAME: 'nitro_iris'
         run: |
           echo "$SSH_PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
-          ssh -o StrictHostKeyChecking=no -i private_key.pem root@67.207.88.72 <<'ENDSSH'
+          ssh -o StrictHostKeyChecking=no -i private_key.pem root@$DROPLET_IP <<'ENDSSH'
             docker pull registry.digitalocean.com/magmo/go-nitro:latest
-            docker stop nitro_iris || true
-            docker rm nitro_iris || true
-            docker run --restart=unless-stopped -it -d --name nitro_iris -p 3005:3005 -p 4005:4005 -p 5005:5005 -e SC_PK=${{ secrets.DO_SC_PK }} -e CHAIN_PK=${{ secrets.DO_CHAIN_PK }} -v /var/nitro_iris_store:/app/data registry.digitalocean.com/magmo/go-nitro:latest
+            docker stop $NODE_NAME || true
+            docker rm $NODE_NAME || true
+            docker run --restart=unless-stopped -it -d --name $NODE_NAME -p 3005:3005 -p 4005:4005 -p 5005:80 -e NITRO_CONFIG=$NITRO_CONFIG SC_PK=${{ secrets.DO_SC_PK }} -e CHAIN_PK=${{ secrets.DO_CHAIN_PK }} -v /var/nitro_store:/app/data registry.digitalocean.com/magmo/go-nitro:latest
           ENDSSH
           rm private_key.pem

@@ -58,8 +58,9 @@ func main() {
 
 	flags := []cli.Flag{
 		&cli.StringFlag{
-			Name:  CONFIG,
-			Usage: "Load config options from `config.toml`",
+			Name:    CONFIG,
+			Usage:   "Load config options from `config.toml`",
+			EnvVars: []string{"NITRO_CONFIG"},
 		},
 		altsrc.NewBoolFlag(&cli.BoolFlag{
 			Name:        USE_NATS,
