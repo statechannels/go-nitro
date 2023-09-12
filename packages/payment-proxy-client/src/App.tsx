@@ -159,26 +159,30 @@ function App() {
           ></Checkbox>
         }
       />
-      <Box visibility={useMicroPayments ? "visible" : "hidden"}>
-        <TextField
-          label="Chunk size(bytes)"
-          onChange={(e: ChangeEvent<HTMLInputElement>) => {
-            setChunkSize(parseInt(e.target.value));
-          }}
-          value={chunkSize}
-          type="number"
-        ></TextField>
-      </Box>
-      <Box visibility={useMicroPayments ? "hidden" : "visible"}>
-        <TextField
-          label="Payment amount (bytes)"
-          onChange={(e: ChangeEvent<HTMLInputElement>) => {
-            setDataSize(parseInt(e.target.value));
-          }}
-          value={dataSize}
-          type="number"
-        ></TextField>
-      </Box>
+      {useMicroPayments && (
+        <Box>
+          <TextField
+            label="Chunk size(bytes)"
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              setChunkSize(parseInt(e.target.value));
+            }}
+            value={chunkSize}
+            type="number"
+          ></TextField>
+        </Box>
+      )}
+      {!useMicroPayments && (
+        <Box>
+          <TextField
+            label="Payment amount (bytes)"
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              setDataSize(parseInt(e.target.value));
+            }}
+            value={dataSize}
+            type="number"
+          ></TextField>
+        </Box>
+      )}
       <Button
         id="createChannel"
         onClick={() => {
