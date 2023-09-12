@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"net/http"
 	urlUtil "net/url"
 	"sync"
@@ -117,8 +118,8 @@ func httpUrl(url string) (string, error) {
 
 // blockUntilHttpServerIsReady pings the health endpoint until the server is ready
 func blockUntilHttpServerIsReady(url string, retryTimeout time.Duration) error {
-	waitForServer := func() {
-		time.Sleep(retryTimeout)
+	waitForServer := func(iteration int) {
+		time.Sleep(retryTimeout * time.Duration(math.Pow(2, float64(iteration))))
 	}
 
 	httpUrl, err := httpUrl(url)
@@ -133,7 +134,7 @@ func blockUntilHttpServerIsReady(url string, retryTimeout time.Duration) error {
 	for i := 0; i < numAttempts; i++ {
 		resp, err := http.Get(healthUrl)
 		if err != nil {
-			waitForServer()
+			waitForServer(i)
 			continue
 		}
 		defer resp.Body.Close()
@@ -141,7 +142,7 @@ func blockUntilHttpServerIsReady(url string, retryTimeout time.Duration) error {
 		if resp.StatusCode == http.StatusOK {
 			return nil
 		}
-		waitForServer()
+		waitForServer(i)
 	}
 	return fmt.Errorf("http server %v not ready after %d attempts", healthUrl, numAttempts)
 }
