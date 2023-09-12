@@ -37,7 +37,7 @@ function App() {
   const [fileUrl, setFileUrl] = useState<string>(defaultFileUrl);
 
   const [dataSize, setDataSize] = useState<number>(12);
-  const [totalCost, setTotalCost] = useState<number>(costPerByte * dataSize);
+
   const [errorText, setErrorText] = useState<string>("");
   const [chunkSize, setChunkSize] = useState<number>(100);
   const [useMicroPayments, setUseMicroPayments] = useState<boolean>();
@@ -174,15 +174,8 @@ function App() {
           label="Data Size(bytes)"
           onChange={(e: ChangeEvent<HTMLInputElement>) => {
             setDataSize(parseInt(e.target.value));
-            setTotalCost(costPerByte * parseInt(e.target.value));
           }}
           value={dataSize}
-          type="number"
-        ></TextField>
-        <TextField
-          inputProps={{ readOnly: true }}
-          label="Total cost(wei)"
-          value={totalCost}
           type="number"
         ></TextField>
       </Box>
