@@ -1,6 +1,5 @@
 docker/cloud/build:
 	docker build -f docker/cloud/Dockerfile -t go-nitro-cloud .
-
 docker/cloud/start:
 	docker remove go-nitro-cloud || true
 	docker run -it -d --name go-nitro-cloud -p 3005:3005 -p 4005:4005 -p 5005:5005 go-nitro-cloud
@@ -15,6 +14,12 @@ docker/local/build:
 docker/local/start:
 	docker remove go-nitro-local || true
 	docker run -it -d --name go-nitro-local -p 3005:3005 -p 4005:4005 -p 5005:5005 go-nitro-local
+
+docker/paymentproxy/build:
+	docker build -f docker/paymentproxy/Dockerfile -t payment-proxy .
+docker/paymentproxy/start:
+	docker remove payment-proxy || true
+	docker run -it -d --name payment-proxy -p 5511:5511 payment-proxy
 
 docker/network/build:
 	docker build -f docker/Dockerfile -t go-nitro .
