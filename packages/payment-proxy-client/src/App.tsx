@@ -56,14 +56,24 @@ function App() {
   }, [url]);
 
   useEffect(() => {
+    if (!nitroClient) return;
     const fetchedId = localStorage.getItem(CHANNEL_ID_KEY);
     if (fetchedId && fetchedId != "") {
       setPaymentChannelId(fetchedId);
 
-      nitroClient?.GetPaymentChannel(fetchedId).then((paymentChannel) => {
-        console.log(paymentChannel);
-        setPaymentChannelInfo(paymentChannel);
-      });
+      nitroClient
+        ?.GetPaymentChannel(fetchedId)
+        .then((paymentChannel) => {
+          console.log(paymentChannel);
+          setPaymentChannelInfo(paymentChannel);
+        })
+        .catch(() => {
+          console.warn(
+            `Channel from storage ${fetchedId} not found. Removing from storage...`
+          );
+          localStorage.removeItem(CHANNEL_ID_KEY);
+          setPaymentChannelId("");
+        });
     }
   }, [nitroClient]);
 
