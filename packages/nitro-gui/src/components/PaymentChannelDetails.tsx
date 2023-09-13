@@ -101,6 +101,15 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
           {shortString(channelID, 5)}
         </Typography>
       </Stack>
+      <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
+        <Box sx={{ width: "100%" }}>
+          <LinearProgress
+            variant="determinate"
+            value={progress}
+            color={"primary"}
+          />
+        </Box>
+      </Box>
       <Stack
         direction="row"
         alignItems="center"
@@ -144,17 +153,7 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
           justifyContent="center"
           spacing={2}
           width="100%"
-        >
-          <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
-            <Box sx={{ width: "100%" }}>
-              <LinearProgress
-                variant="determinate"
-                value={progress}
-                color={"primary"}
-              />
-            </Box>
-          </Box>
-        </Stack>
+        ></Stack>
         <Stack
           minWidth="fit-content"
           direction="column"
