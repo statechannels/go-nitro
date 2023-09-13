@@ -5,10 +5,10 @@ msgport = 3005
 rpcport = 4005
 guiport = 5005
 
-# State Channel Public Address: 0x3E6b9c3e569e72932Cfc2A943E5497ed07FEfB9e
+# State Channel Public Address: 0xA72DBe31224b824c438606196bE5857C6bE4cB32
 pk = ""
 
-# Chain Public Address: 0x56032FA02b2592338b9A42B1865d5a5BEEaF2B75
+# Chain Public Address: 0xB62da17fab129AD3DF8858B7B1a834e570b8eead
 chainpk = ""
 
 naaddress = "0xe32d4B5C5a80660710f6a2aD3cB1c11664138F34"

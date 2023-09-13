@@ -135,13 +135,13 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) error {
 	// Setup network connection notifications
 	n := &network.NotifyBundle{}
 	n.ConnectedF = func(n network.Network, conn network.Conn) {
-		ms.logger.Debug("notification: connected to peer", "peer", conn.RemotePeer().String())
+		ms.logger.Debug("notification: connected to peer", "peerId", conn.RemotePeer().String(), "peerCount", len(ms.p2pHost.Network().Peers()))
 
 		peerInfo := basicPeerInfo{Id: conn.RemotePeer()}
 		ms.newPeerInfo <- peerInfo
 	}
 	n.DisconnectedF = func(n network.Network, conn network.Conn) {
-		ms.logger.Debug("notification: disconnected from peer", "peer", conn.RemotePeer().String())
+		ms.logger.Debug("notification: disconnected from peer", "peerId", conn.RemotePeer().String(), "peerCount", len(ms.p2pHost.Network().Peers()))
 	}
 	ms.p2pHost.Network().Notify(n)
 	ms.connectBootPeers(bootPeers)
@@ -179,7 +179,7 @@ func (ms *P2PMessageService) InitComplete() <-chan struct{} {
 
 // addScaddrDhtRecord adds this node's state channel address to the custom dht namespace
 func (ms *P2PMessageService) addScaddrDhtRecord(ctx context.Context) {
-	ms.logger.Debug("Adding state channel address to dht", "connected-peers", len(ms.p2pHost.Network().Peers()))
+	ms.logger.Debug("Adding state channel address to dht")
 
 	recordData := &dhtData{
 		SCAddr:    ms.me.String(),

@@ -1,0 +1,123 @@
+name: Deploy Cloud Nodes
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-image:
+        description: 'Build docker image'
+        required: false
+        default: 'true'
+      deploy-iris:
+        description: 'Deploy Iris'
+        required: false
+        default: 'true'
+      deploy-anthony:
+        description: 'Deploy Anthony'
+        required: false
+        default: 'true'
+      deploy-brad:
+        description: 'Deploy Brad'
+        required: false
+        default: 'true'
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        if: github.event.inputs.build-image == 'true'
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        if: github.event.inputs.build-image == 'true'
+        run: make docker/cloud/build
+
+      - name: Login to DigitalOcean Docker Registry
+        if: github.event.inputs.build-image == 'true'
+        run: docker login -u ${{ secrets.DO_API_KEY }} -p ${{ secrets.DO_API_KEY }} registry.digitalocean.com
+
+      - name: Push Docker image to DigitalOcean
+        if: github.event.inputs.build-image == 'true'
+        run: make docker/cloud/push
+
+  deploy-iris:
+    needs: build-image
+    runs-on: ubuntu-latest
+    if: github.event.inputs.deploy-iris == 'true'
+
+    steps:
+      - name: Deploy to Droplet
+        env:
+          DO_API_KEY: ${{ secrets.DO_API_KEY }}
+          SSH_PRIVATE_KEY: ${{ secrets.IRIS_SSH_PRIVATE_KEY }}
+          SC_PK: ${{ secrets.IRIS_SC_PK }}
+          CHAIN_PK: ${{ secrets.IRIS_CHAIN_PK }}
+          NITRO_CONFIG_PATH: './nitro_config/iris.toml'
+          DROPLET_IP: '67.207.88.72'
+          NODE_NAME: 'nitro_iris'
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          ssh -o StrictHostKeyChecking=no -i private_key.pem root@$DROPLET_IP <<ENDSSH
+            docker login -u $DO_API_KEY -p $DO_API_KEY registry.digitalocean.com
+            docker pull registry.digitalocean.com/magmo/go-nitro:latest
+            docker stop $NODE_NAME || true
+            docker rm $NODE_NAME || true
+            docker run --restart=unless-stopped -it -d --name $NODE_NAME -p 3005:3005 -p 4005:4005 -p 5005:80 -e NITRO_CONFIG_PATH=$NITRO_CONFIG_PATH -e SC_PK=$SC_PK -e CHAIN_PK=$CHAIN_PK -v /var/nitro_store:/app/data registry.digitalocean.com/magmo/go-nitro:latest
+          ENDSSH
+          rm private_key.pem
+
+  deploy-anthony:
+    needs: build-image
+    runs-on: ubuntu-latest
+    if: github.event.inputs.deploy-anthony == 'true'
+
+    steps:
+      - name: Deploy to Droplet
+        env:
+          DO_API_KEY: ${{ secrets.DO_API_KEY }}
+          SSH_PRIVATE_KEY: ${{ secrets.ANTHONY_SSH_PRIVATE_KEY }}
+          SC_PK: ${{ secrets.ANTHONY_SC_PK }}
+          CHAIN_PK: ${{ secrets.ANTHONY_CHAIN_PK }}
+          NITRO_CONFIG_PATH: './nitro_config/anthony.toml'
+          DROPLET_IP: '134.122.114.102'
+          NODE_NAME: 'nitro_anthony'
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          ssh -o StrictHostKeyChecking=no -i private_key.pem root@$DROPLET_IP <<ENDSSH
+            docker login -u $DO_API_KEY -p $DO_API_KEY registry.digitalocean.com
+            docker pull registry.digitalocean.com/magmo/go-nitro:latest
+            docker stop $NODE_NAME || true
+            docker rm $NODE_NAME || true
+            docker run --restart=unless-stopped -it -d --name $NODE_NAME -p 3005:3005 -p 4005:4005 -p 5005:80 -e NITRO_CONFIG_PATH=$NITRO_CONFIG_PATH -e SC_PK=$SC_PK -e CHAIN_PK=$CHAIN_PK -v /var/nitro_store:/app/data registry.digitalocean.com/magmo/go-nitro:latest
+          ENDSSH
+          rm private_key.pem
+
+  deploy-brad:
+    needs: build-image
+    runs-on: ubuntu-latest
+    if: github.event.inputs.deploy-brad == 'true'
+
+    steps:
+      - name: Deploy to Droplet
+        env:
+          DO_API_KEY: ${{ secrets.DO_API_KEY }}
+          SSH_PRIVATE_KEY: ${{ secrets.BRAD_SSH_PRIVATE_KEY }}
+          SC_PK: ${{ secrets.BRAD_SC_PK }}
+          CHAIN_PK: ${{ secrets.BRAD_CHAIN_PK }}
+          NITRO_CONFIG_PATH: './nitro_config/brad.toml'
+          DROPLET_IP: '192.81.214.172'
+          NODE_NAME: 'nitro_brad'
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          ssh -o StrictHostKeyChecking=no -i private_key.pem root@$DROPLET_IP <<ENDSSH
+            docker login -u $DO_API_KEY -p $DO_API_KEY registry.digitalocean.com
+            docker pull registry.digitalocean.com/magmo/go-nitro:latest
+            docker stop $NODE_NAME || true
+            docker rm $NODE_NAME || true
+            docker run --restart=unless-stopped -it -d --name $NODE_NAME -p 3005:3005 -p 4005:4005 -p 5005:80 -e NITRO_CONFIG_PATH=$NITRO_CONFIG_PATH -e SC_PK=$SC_PK -e CHAIN_PK=$CHAIN_PK -v /var/nitro_store:/app/data registry.digitalocean.com/magmo/go-nitro:latest
+          ENDSSH
+          rm private_key.pem
