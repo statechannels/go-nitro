@@ -1,6 +1,8 @@
 #!/usr/bin/env ts-node
 /* eslint-disable @typescript-eslint/no-empty-function */
 
+import https from "https";
+
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import axios, { AxiosResponse } from "axios";
@@ -12,6 +14,7 @@ import {
   getLocalRPCUrl,
   logOutChannelUpdates,
 } from "../src/utils";
+import { unsecureHttpsAgent } from "../src/transport/http";
 
 const clientNames = ["alice", "irene", "bob", "ivan"] as const;
 const clientPortMap: Record<ClientNames, number> = {
@@ -322,11 +325,10 @@ async function waitForRPCServer(
 // This is specific to the HTTP/WS RPC transport
 async function isServerUp(port: number): Promise<boolean> {
   let result: AxiosResponse<unknown, unknown>;
-  const url = new URL(`http://${getLocalRPCUrl(port)}`).toString();
+  const url = new URL(`https://${getLocalRPCUrl(port)}/health`).toString();
 
   try {
-    const req = generateRequest("get_address", {}, "");
-    result = await axios.post(url, JSON.stringify(req));
+    result = await axios.get(url, { httpsAgent: unsecureHttpsAgent() });
   } catch (e) {
     return false;
   }
