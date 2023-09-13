@@ -1,10 +1,16 @@
 import { Box, LinearProgress, Typography, Stack, SvgIcon } from "@mui/material";
 import { FC } from "react";
 import { makeStyles } from "tss-react/mui";
-import { PhoneArrowUpRightIcon, UserIcon } from "@heroicons/react/24/outline";
+import {
+  PhoneArrowUpRightIcon,
+  PhoneArrowDownLeftIcon,
+  EyeSlashIcon,
+  UserIcon,
+} from "@heroicons/react/24/outline";
 import { ChannelStatus } from "@statechannels/nitro-rpc-client/src/types";
 
 interface PaymentChannelDetails {
+  myAddress: string;
   channelID: string;
   payee: string;
   payer: string;
@@ -41,7 +47,14 @@ const capitalizeStatus = (status: string) => {
   return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
+enum paymentChannelType {
+  inbound,
+  outbound,
+  mediated,
+}
+
 const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
+  myAddress,
   channelID,
   payee,
   payer,
@@ -56,6 +69,16 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
     ? Number((paidSoFar * 100n) / (remainingFunds + paidSoFar))
     : 0;
 
+  const inferType = () => {
+    if (myAddress == payer) {
+      return paymentChannelType.outbound;
+    } else if (myAddress == payee) {
+      return paymentChannelType.inbound;
+    } else return paymentChannelType.mediated;
+  };
+
+  const pcT: paymentChannelType = inferType();
+
   return (
     <Stack
       direction="column"
@@ -65,10 +88,14 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
     >
       <Stack direction="column" alignItems="center" width="100%" spacing={2}>
         <SvgIcon fontSize="large">
-          <PhoneArrowUpRightIcon />
+          {pcT == paymentChannelType.inbound ?? <PhoneArrowDownLeftIcon />}
+          {pcT == paymentChannelType.outbound && <PhoneArrowUpRightIcon />}
+          {pcT == paymentChannelType.mediated && <EyeSlashIcon />}
         </SvgIcon>
         <Typography variant="h6" component="h6">
-          Outbound Payment Channel
+          {pcT == paymentChannelType.inbound ?? "Inbound Payment Channel"}
+          {pcT == paymentChannelType.outbound && "Outbound Payment Channel"}
+          {pcT == paymentChannelType.mediated && "Mediated Payment Channel"}
         </Typography>
         <Typography variant="h6" component="h6">
           {shortString(channelID, 5)}

@@ -74,6 +74,7 @@ const PaymentChannelContainer: FC<Props> = ({
       />
       <div className={classes.paymentDetails}>
         <PaymentChannelDetails
+          myAddress={nitroClient?.GetAddress}
           channelID={focusedPaymentChannel.ID}
           payer={focusedPaymentChannel.Balance.Payer}
           payee={focusedPaymentChannel.Balance.Payee}
