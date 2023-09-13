@@ -36,7 +36,8 @@ func NewHttpTransportAsClient(url string, retryTimeout time.Duration) (*clientHt
 		return nil, err
 	}
 	dialer := websocket.Dialer{
-		TLSClientConfig: &tls.Config{ServerName: "statechannels.org"},
+		// todo: InsecureSkipVerify needs to be removed in favor of trusting the self signed certificate
+		TLSClientConfig: &tls.Config{ServerName: "statechannels.org", InsecureSkipVerify: true},
 	}
 	conn, _, err := dialer.Dial(subscribeUrl, nil)
 	if err != nil {
@@ -61,6 +62,8 @@ func (t *clientHttpTransport) Request(data []byte) ([]byte, error) {
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				ServerName: "statechannels.org",
+				// todo: InsecureSkipVerify needs to be removed in favor of trusting the self signed certificate
+				InsecureSkipVerify: true,
 			},
 		},
 	}
