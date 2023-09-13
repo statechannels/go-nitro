@@ -36,7 +36,7 @@ type serverHttpTransport struct {
 }
 
 // NewHttpTransportAsServer starts an http server
-func NewHttpTransportAsServer(port string) (*serverHttpTransport, error) {
+func NewHttpTransportAsServer(port string, cert *tls.Certificate) (*serverHttpTransport, error) {
 	transport := &serverHttpTransport{port: port, notificationListeners: safesync.Map[chan []byte]{}, logger: slog.Default()}
 
 	var serveMux http.ServeMux
@@ -62,24 +62,27 @@ func NewHttpTransportAsServer(port string) (*serverHttpTransport, error) {
 
 	transport.wg.Add(1)
 
-	// Load server.crt and server.key
-	cert, err := tls.LoadX509KeyPair("../internal/tls/statechannels.org.pem", "../internal/tls/statechannels.org_key.pem")
-	if err != nil {
-		panic(err)
+	var listener net.Listener
+	var err error
+
+	if cert == nil {
+		listener, err = net.Listen("tcp", ":"+transport.port)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Create a TLS config
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{*cert},
+		}
+		// Create a new TLS listener
+		listener, err = tls.Listen("tcp", ":"+port, tlsConfig)
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	// Create a TLS config
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-	}
-
-	// Create a new TLS listener
-	listener, err := tls.Listen("tcp", ":"+port, tlsConfig)
-	if err != nil {
-		panic(err)
-	}
 	go transport.serveHttp(listener)
-
 	return transport, nil
 }
 
