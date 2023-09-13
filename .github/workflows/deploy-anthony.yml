@@ -31,7 +31,7 @@ jobs:
         run: make docker/cloud/push
 
   deploy-anthony:
-    needs: build
+    needs: build-image
     runs-on: ubuntu-latest
     if: github.event.inputs.deploy-anthony == 'true'
 
