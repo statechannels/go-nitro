@@ -10,6 +10,7 @@ export type Palette = {
   cGreen: string;
   cAmber: string;
   cRed: string;
+  cBlue: string;
 };
 
 export const colors: Palette;
