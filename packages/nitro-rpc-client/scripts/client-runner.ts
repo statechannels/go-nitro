@@ -1,8 +1,6 @@
 #!/usr/bin/env ts-node
 /* eslint-disable @typescript-eslint/no-empty-function */
 
-import https from "https";
-
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import axios, { AxiosResponse } from "axios";
@@ -10,7 +8,6 @@ import axios, { AxiosResponse } from "axios";
 import { NitroRpcClient } from "../src/rpc-client";
 import {
   compactJson,
-  generateRequest,
   getLocalRPCUrl,
   logOutChannelUpdates,
 } from "../src/utils";
