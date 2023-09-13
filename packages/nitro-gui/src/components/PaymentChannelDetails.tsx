@@ -70,9 +70,9 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
     : 0;
 
   const inferType = () => {
-    if (myAddress == payer) {
+    if (myAddress.toLowerCase() == payer.toLowerCase()) {
       return paymentChannelType.outbound;
-    } else if (myAddress == payee) {
+    } else if (myAddress.toLowerCase() == payee.toLowerCase()) {
       return paymentChannelType.inbound;
     } else return paymentChannelType.mediated;
   };
@@ -88,12 +88,12 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
     >
       <Stack direction="column" alignItems="center" width="100%" spacing={2}>
         <SvgIcon fontSize="large">
-          {pcT == paymentChannelType.inbound ?? <PhoneArrowDownLeftIcon />}
+          {pcT == paymentChannelType.inbound && <PhoneArrowDownLeftIcon />}
           {pcT == paymentChannelType.outbound && <PhoneArrowUpRightIcon />}
           {pcT == paymentChannelType.mediated && <EyeSlashIcon />}
         </SvgIcon>
         <Typography variant="h6" component="h6">
-          {pcT == paymentChannelType.inbound ?? "Inbound Payment Channel"}
+          {pcT == paymentChannelType.inbound && "Inbound Payment Channel"}
           {pcT == paymentChannelType.outbound && "Outbound Payment Channel"}
           {pcT == paymentChannelType.mediated && "Mediated Payment Channel"}
         </Typography>

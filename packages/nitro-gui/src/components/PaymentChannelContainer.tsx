@@ -42,6 +42,14 @@ const PaymentChannelContainer: FC<Props> = ({
   );
   const { classes } = useStyles();
 
+  const [myAddress, setMyAddress] = useState("");
+
+  useEffect(() => {
+    if (nitroClient) {
+      nitroClient.GetAddress().then((a) => setMyAddress(a));
+    }
+  }, [nitroClient]);
+
   const [focusedPaymentChannel, setFocusedPaymentChannel] =
     useState<PaymentChannelInfo>(DEFAULT_CHANNEL);
 
@@ -74,7 +82,7 @@ const PaymentChannelContainer: FC<Props> = ({
       />
       <div className={classes.paymentDetails}>
         <PaymentChannelDetails
-          myAddress={nitroClient?.GetAddress}
+          myAddress={myAddress}
           channelID={focusedPaymentChannel.ID}
           payer={focusedPaymentChannel.Balance.Payer}
           payee={focusedPaymentChannel.Balance.Payee}
