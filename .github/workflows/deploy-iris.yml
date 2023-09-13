@@ -15,6 +15,10 @@ on:
         description: 'Deploy Anthony'
         required: false
         default: 'true'
+      deploy-brad:
+        description: 'Deploy Brad'
+        required: false
+        default: 'true'
 
 jobs:
   build-image:
