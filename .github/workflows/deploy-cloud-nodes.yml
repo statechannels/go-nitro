@@ -1,4 +1,4 @@
-name: Deploy Iris
+name: Deploy Cloud Nodes
 
 on:
   workflow_dispatch:
