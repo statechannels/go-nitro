@@ -50,6 +50,7 @@ function App() {
     NitroRpcClient.CreateHttpNitroClient(url)
       .then((c) => setNitroClient(c))
       .catch((e) => {
+        console.error(e);
         setErrorText(e.message);
       });
   }, [url]);
@@ -148,6 +149,7 @@ function App() {
         updateChannelInfo(paymentChannelInfo.ID);
       }, 50);
     } catch (e: unknown) {
+      console.error(e);
       setErrorText((e as Error).message);
     }
   };
