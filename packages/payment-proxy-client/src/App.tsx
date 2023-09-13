@@ -15,10 +15,10 @@ const QUERY_KEY = "rpcUrl";
 import "./App.css";
 import { fetchFile, fetchFileInChunks } from "./file";
 import ChannelDetails from "./ChannelDetails";
-const provider = "0xbbb676f9cff8d242e9eac39d063848807d3d1d94";
-const hub = "0x111a00868581f73ab42feef67d235ca09ca1e8db";
-const defaultNitroRPCUrl = "localhost:4005/api/v1";
-const defaultFileUrl = "http://localhost:5511/test.txt";
+const provider = import.meta.env.VITE_PROVIDER;
+const hub = import.meta.env.VITE_HUB;
+const defaultNitroRPCUrl = import.meta.env.VITE_NITRO_RPC_URL;
+const defaultFileUrl = import.meta.env.VITE_FILE_URL;
 const defaultPaymentChannelAmount = 100_000_000;
 const CHANNEL_ID_KEY = "channelId";
 
