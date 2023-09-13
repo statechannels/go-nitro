@@ -1,3 +1,5 @@
+import https from "https";
+
 import axios from "axios";
 import { w3cwebsocket } from "websocket";
 import { EventEmitter } from "eventemitter3";
@@ -16,7 +18,15 @@ export class HttpTransport {
 
   public static async createTransport(server: string): Promise<Transport> {
     // eslint-disable-next-line new-cap
-    const ws = new w3cwebsocket(`ws://${server}/subscribe`, undefined);
+    const ws = new w3cwebsocket(
+      `wss://${server}/subscribe`,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      // todo: remove once valid (not self-signed) certificates are
+      { tlsOptions: { rejectUnauthorized: false } }
+    );
 
     // throw any websocket errors so we don't fail silently
     ws.onerror = (e) => {
@@ -34,9 +44,11 @@ export class HttpTransport {
   public async sendRequest<K extends RequestMethod>(
     req: RPCRequestAndResponses[K][0]
   ): Promise<unknown> {
-    const url = new URL(`http://${this.server}`).toString();
+    const url = new URL(`https://${this.server}`).toString();
 
-    const result = await axios.post(url.toString(), JSON.stringify(req));
+    const result = await axios.post(url.toString(), JSON.stringify(req), {
+      httpsAgent: unsecureHttpsAgent(),
+    });
 
     return result.data;
   }
@@ -59,4 +71,13 @@ export class HttpTransport {
       this.Notifications.emit(data.method, data.params);
     };
   }
+}
+
+// For testing with self-signed certs, ignore certificate errors. DO NOT use in production.
+export function unsecureHttpsAgent(): https.Agent {
+  // For testing with self-signed certs, ignore certificate errors. DO NOT use in production.
+  const httpsAgent = new https.Agent({
+    rejectUnauthorized: false,
+  });
+  return httpsAgent;
 }
