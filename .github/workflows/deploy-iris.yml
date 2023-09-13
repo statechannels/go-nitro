@@ -47,9 +47,6 @@ jobs:
     if: github.event.inputs.deploy-iris == 'true'
 
     steps:
-      - name: Check if build-image was skipped
-        id: check_skip
-        run: echo "##[set-output name=skip;]${{ needs.build-image.result == 'SKIPPED' }}"
       - name: Deploy to Droplet
         env:
           DO_API_KEY: ${{ secrets.DO_API_KEY }}
