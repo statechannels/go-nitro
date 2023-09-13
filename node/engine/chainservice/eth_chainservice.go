@@ -158,7 +158,7 @@ func (ecs *EthChainService) checkForMissedEvents(startBlock uint64) error {
 
 	missedEvents, err := ecs.chain.FilterLogs(ecs.ctx, query)
 	if err != nil {
-		ecs.logger.Error("failed to retrieve old chain logs: %v", err)
+		ecs.logger.Error("failed to retrieve old chain logs. " + err.Error())
 
 		errorMsg := "*** To avoid this error, consider increasing the chainstartblock value in your configuration before restarting the node."
 		errorMsg += " Note that this may cause your node to miss chain events emitted prior to the chainstartblock."
