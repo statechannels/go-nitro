@@ -22,5 +22,5 @@ chainauthtoken = ""
 
 bootpeers = ""
 
-tlscertfilepath="../internal/tls/statechannels.org.pem"
-tlskeyfilepath="../internal/tls/statechannels.org_key.pem"
+tlscertfilepath = "internal/tls/statechannels.org.pem"
+tlskeyfilepath = "internal/tls/statechannels.org_key.pem"
