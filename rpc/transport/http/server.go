@@ -78,7 +78,7 @@ func NewHttpTransportAsServer(port string, cert *tls.Certificate) (*serverHttpTr
 		// Create a new TLS listener
 		listener, err = tls.Listen("tcp", ":"+port, tlsConfig)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 	}
 
