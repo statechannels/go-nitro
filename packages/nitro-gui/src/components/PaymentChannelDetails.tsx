@@ -49,30 +49,13 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
   remainingFunds,
   status,
 }: PaymentChannelDetails) => {
-  return Outbound({
-    channelID,
-    payee,
-    payer,
-    paidSoFar,
-    remainingFunds,
-    status,
-  });
-};
-
-const Outbound: FC<PaymentChannelDetails> = ({
-  channelID,
-  payee,
-  payer,
-  paidSoFar,
-  remainingFunds,
-  status,
-}) => {
+  const { classes, cx } = useStyles();
   const totalFunds = paidSoFar + remainingFunds;
   // Avoids division by zero
   const progress = totalFunds
     ? Number((paidSoFar * 100n) / (remainingFunds + paidSoFar))
     : 0;
-  const { classes, cx } = useStyles();
+
   return (
     <Stack
       direction="column"
