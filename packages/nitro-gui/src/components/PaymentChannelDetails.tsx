@@ -168,9 +168,6 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
         </Stack>
       </Stack>
       <Stack direction="column" alignItems="center" spacing={2}>
-        <Button variant="contained">1 wei</Button>
-      </Stack>
-      <Stack direction="column" alignItems="center" spacing={2}>
         <Typography
           variant="body1"
           component="span"
