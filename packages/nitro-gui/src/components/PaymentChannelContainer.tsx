@@ -15,6 +15,12 @@ interface Props {
   ledgerChannel: string;
 }
 
+export enum PaymentChannelType {
+  inbound,
+  outbound,
+  mediated,
+}
+
 const useStyles = makeStyles()(() => ({
   paymentDetails: {
     padding: "4rem",
@@ -73,6 +79,18 @@ const PaymentChannelContainer: FC<Props> = ({
     }
   }, [nitroClient, ledgerChannel]);
 
+  const payer = focusedPaymentChannel.Balance.Payer;
+  const payee = focusedPaymentChannel.Balance.Payee;
+
+  const inferType = () => {
+    if (myAddress.toLowerCase() == payer.toLowerCase()) {
+      return PaymentChannelType.outbound;
+    } else if (myAddress.toLowerCase() == payee.toLowerCase()) {
+      return PaymentChannelType.inbound;
+    } else return PaymentChannelType.mediated;
+  };
+  const pcT: PaymentChannelType = inferType();
+
   return (
     <>
       <PaymentChannelList
@@ -82,10 +100,10 @@ const PaymentChannelContainer: FC<Props> = ({
       />
       <div className={classes.paymentDetails}>
         <PaymentChannelDetails
-          myAddress={myAddress}
+          type={pcT}
           channelID={focusedPaymentChannel.ID}
-          payer={focusedPaymentChannel.Balance.Payer}
-          payee={focusedPaymentChannel.Balance.Payee}
+          payer={payer}
+          payee={payee}
           remainingFunds={focusedPaymentChannel.Balance.RemainingFunds}
           paidSoFar={focusedPaymentChannel.Balance.PaidSoFar}
           status={focusedPaymentChannel?.Status}

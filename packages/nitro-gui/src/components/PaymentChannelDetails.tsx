@@ -8,9 +8,10 @@ import {
   UserIcon,
 } from "@heroicons/react/24/outline";
 import { ChannelStatus } from "@statechannels/nitro-rpc-client/src/types";
+import { PaymentChannelType } from "./PaymentChannelContainer";
 
 interface PaymentChannelDetails {
-  myAddress: string;
+  type: PaymentChannelType;
   channelID: string;
   payee: string;
   payer: string;
@@ -47,14 +48,8 @@ const capitalizeStatus = (status: string) => {
   return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
-enum paymentChannelType {
-  inbound,
-  outbound,
-  mediated,
-}
-
 const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
-  myAddress,
+  type,
   channelID,
   payee,
   payer,
@@ -69,16 +64,6 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
     ? Number((paidSoFar * 100n) / (remainingFunds + paidSoFar))
     : 0;
 
-  const inferType = () => {
-    if (myAddress.toLowerCase() == payer.toLowerCase()) {
-      return paymentChannelType.outbound;
-    } else if (myAddress.toLowerCase() == payee.toLowerCase()) {
-      return paymentChannelType.inbound;
-    } else return paymentChannelType.mediated;
-  };
-
-  const pcT: paymentChannelType = inferType();
-
   return (
     <Stack
       direction="column"
@@ -88,23 +73,23 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
     >
       <Stack direction="column" alignItems="center" width="100%" spacing={2}>
         <SvgIcon fontSize="large">
-          {pcT == paymentChannelType.inbound && <PhoneArrowDownLeftIcon />}
-          {pcT == paymentChannelType.outbound && <PhoneArrowUpRightIcon />}
-          {pcT == paymentChannelType.mediated && <EyeSlashIcon />}
+          {type == PaymentChannelType.inbound && <PhoneArrowDownLeftIcon />}
+          {type == PaymentChannelType.outbound && <PhoneArrowUpRightIcon />}
+          {type == PaymentChannelType.mediated && <EyeSlashIcon />}
         </SvgIcon>
         <Typography variant="h6" component="h6">
-          {pcT == paymentChannelType.inbound && "Inbound Payment Channel"}
-          {pcT == paymentChannelType.outbound && "Outbound Payment Channel"}
-          {pcT == paymentChannelType.mediated && "Mediated Payment Channel"}
+          {type == PaymentChannelType.inbound && "Inbound Payment Channel"}
+          {type == PaymentChannelType.outbound && "Outbound Payment Channel"}
+          {type == PaymentChannelType.mediated && "Mediated Payment Channel"}
         </Typography>
         <Typography variant="h6" component="h6">
           {shortString(channelID, 5)}
         </Typography>
       </Stack>
-      {pcT == paymentChannelType.mediated &&
+      {type == PaymentChannelType.mediated &&
         "Funds locked: " + totalFunds.toString() + " wei"}
-      {(pcT == paymentChannelType.inbound ||
-        pcT == paymentChannelType.outbound) && (
+      {(type == PaymentChannelType.inbound ||
+        type == PaymentChannelType.outbound) && (
         <Stack direction="column" alignItems="center" width="100%" spacing={2}>
           <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
             <Box sx={{ width: "100%" }}>
