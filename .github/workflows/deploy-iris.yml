@@ -37,11 +37,12 @@ jobs:
   deploy-iris:
     needs: build-image
     runs-on: ubuntu-latest
-    if: github.event.inputs.deploy-iris == 'true'
+    if: github.event.inputs.deploy-iris == 'true' || needs.build-image.result == 'SKIPPED'
 
     steps:
       - name: Deploy to Droplet
         env:
+          DO_API_KEY: ${{ secrets.DO_API_KEY }}
           SSH_PRIVATE_KEY: ${{ secrets.IRIS_SSH_PRIVATE_KEY }}
           SC_PK: ${{ secrets.IRIS_SC_PK }}
           CHAIN_PK: ${{ secrets.IRIS_CHAIN_PK }}
@@ -52,6 +53,7 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           ssh -o StrictHostKeyChecking=no -i private_key.pem root@$DROPLET_IP <<ENDSSH
+            docker login -u $DO_API_KEY -p $DO_API_KEY registry.digitalocean.com
             docker pull registry.digitalocean.com/magmo/go-nitro:latest
             docker stop $NODE_NAME || true
             docker rm $NODE_NAME || true
@@ -62,7 +64,7 @@ jobs:
   deploy-anthony:
     needs: build-image
     runs-on: ubuntu-latest
-    if: github.event.inputs.deploy-anthony == 'true'
+    if: github.event.inputs.deploy-anthony == 'true' || needs.build-image.result == 'SKIPPED'
 
     steps:
       - name: Deploy to Droplet
