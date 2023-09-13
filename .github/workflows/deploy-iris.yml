@@ -19,19 +19,22 @@ on:
 jobs:
   build-image:
     runs-on: ubuntu-latest
-    if: github.event.inputs.build-image == 'true'
 
     steps:
       - name: Checkout code
+        if: github.event.inputs.build-image == 'true'
         uses: actions/checkout@v3
 
       - name: Build Docker image
+        if: github.event.inputs.build-image == 'true'
         run: make docker/cloud/build
 
       - name: Login to DigitalOcean Docker Registry
+        if: github.event.inputs.build-image == 'true'
         run: docker login -u ${{ secrets.DO_API_KEY }} -p ${{ secrets.DO_API_KEY }} registry.digitalocean.com
 
       - name: Push Docker image to DigitalOcean
+        if: github.event.inputs.build-image == 'true'
         run: make docker/cloud/push
 
   deploy-iris:
@@ -44,7 +47,6 @@ jobs:
         id: check_skip
         run: echo "##[set-output name=skip;]${{ needs.build-image.result == 'SKIPPED' }}"
       - name: Deploy to Droplet
-        if: steps.check_skip.outputs.skip != 'true'
         env:
           DO_API_KEY: ${{ secrets.DO_API_KEY }}
           SSH_PRIVATE_KEY: ${{ secrets.IRIS_SSH_PRIVATE_KEY }}
@@ -68,7 +70,7 @@ jobs:
   deploy-anthony:
     needs: build-image
     runs-on: ubuntu-latest
-    if: github.event.inputs.deploy-anthony == 'true' || needs.build-image.result == 'SKIPPED'
+    if: github.event.inputs.deploy-anthony == 'true'
 
     steps:
       - name: Deploy to Droplet
