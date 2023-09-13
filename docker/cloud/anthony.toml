@@ -21,3 +21,6 @@ chainstartblock = 909569
 chainauthtoken = ""
 
 bootpeers = "/ip4/67.207.88.72/tcp/3005/p2p/16Uiu2HAmDQj9XnHPD1d4GzS1K3DhmM5Z1cSGLfVTwVcNVdEsAN3Q"
+
+tlscertfilepath = "../internal/tls/statechannels.org.pem"
+tlskeyfilepath = "../internal/tls/statechannels.org_key.pem"
