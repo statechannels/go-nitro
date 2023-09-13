@@ -101,91 +101,98 @@ const PaymentChannelDetails: FC<PaymentChannelDetails> = ({
           {shortString(channelID, 5)}
         </Typography>
       </Stack>
-      <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
-        <Box sx={{ width: "100%" }}>
-          <LinearProgress
-            variant="determinate"
-            value={progress}
-            color={"primary"}
-          />
-        </Box>
-      </Box>
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="center"
-        width="100%"
-        spacing={2}
-      >
-        <Stack
-          minWidth="fit-content"
-          direction="column"
-          alignItems="center"
-          spacing={2}
-        >
-          <Typography
-            variant="h2"
-            component="h2"
-            className={cx(classes.icons, classes.iconLeft)}
+      {pcT == paymentChannelType.mediated &&
+        "Funds locked: " + totalFunds.toString() + " wei"}
+      {(pcT == paymentChannelType.inbound ||
+        pcT == paymentChannelType.outbound) && (
+        <Stack direction="column" alignItems="center" width="100%" spacing={2}>
+          <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
+            <Box sx={{ width: "100%" }}>
+              <LinearProgress
+                variant="determinate"
+                value={progress}
+                color={"primary"}
+              />
+            </Box>
+          </Box>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="center"
+            width="100%"
+            spacing={2}
           >
-            <SvgIcon fontSize="inherit">
-              <UserIcon />
-            </SvgIcon>
-          </Typography>
-          <Typography
-            variant="body1"
-            component="span"
-            className={classes.typography}
-          >
-            {paidSoFar.toString()} wei
-          </Typography>
-          <Typography
-            variant="body1"
-            component="span"
-            className={classes.typography}
-          >
-            {shortString(payee, 8)}
-          </Typography>
+            <Stack
+              minWidth="fit-content"
+              direction="column"
+              alignItems="center"
+              spacing={2}
+            >
+              <Typography
+                variant="h2"
+                component="h2"
+                className={cx(classes.icons, classes.iconLeft)}
+              >
+                <SvgIcon fontSize="inherit">
+                  <UserIcon />
+                </SvgIcon>
+              </Typography>
+              <Typography
+                variant="body1"
+                component="span"
+                className={classes.typography}
+              >
+                {paidSoFar.toString()} wei
+              </Typography>
+              <Typography
+                variant="body1"
+                component="span"
+                className={classes.typography}
+              >
+                {shortString(payee, 8)}
+              </Typography>
+            </Stack>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="center"
+              spacing={2}
+              width="100%"
+            ></Stack>
+            <Stack
+              minWidth="fit-content"
+              direction="column"
+              alignItems="center"
+              spacing={2}
+              className={classes.rightPeer}
+            >
+              <Typography
+                variant="h2"
+                component="h2"
+                className={cx(classes.icons, classes.iconRight)}
+              >
+                <SvgIcon fontSize="inherit">
+                  <UserIcon />
+                </SvgIcon>
+              </Typography>
+              <Typography
+                variant="body1"
+                component="span"
+                className={classes.typography}
+              >
+                {remainingFunds.toString()} wei
+              </Typography>
+              <Typography
+                variant="body1"
+                component="span"
+                className={classes.typography}
+              >
+                {shortString(payer, 8)}
+              </Typography>
+            </Stack>
+          </Stack>
         </Stack>
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="center"
-          spacing={2}
-          width="100%"
-        ></Stack>
-        <Stack
-          minWidth="fit-content"
-          direction="column"
-          alignItems="center"
-          spacing={2}
-          className={classes.rightPeer}
-        >
-          <Typography
-            variant="h2"
-            component="h2"
-            className={cx(classes.icons, classes.iconRight)}
-          >
-            <SvgIcon fontSize="inherit">
-              <UserIcon />
-            </SvgIcon>
-          </Typography>
-          <Typography
-            variant="body1"
-            component="span"
-            className={classes.typography}
-          >
-            {remainingFunds.toString()} wei
-          </Typography>
-          <Typography
-            variant="body1"
-            component="span"
-            className={classes.typography}
-          >
-            {shortString(payer, 8)}
-          </Typography>
-        </Stack>
-      </Stack>
+      )}
       <Stack direction="column" alignItems="center" spacing={2}>
         <Typography
           variant="body1"
