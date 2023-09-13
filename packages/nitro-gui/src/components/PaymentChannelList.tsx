@@ -2,6 +2,15 @@ import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import { PaymentChannelInfo } from "@statechannels/nitro-rpc-client/src/types";
 import { FC } from "react";
+import { makeStyles } from "tss-react/mui";
+
+import colors from "../styles/colors.module.css";
+
+const useStyles = makeStyles()(() => ({
+  paymentList: {
+    backgroundColor: colors.cBlue,
+  },
+}));
 
 interface PaymentChannelListProps {
   paymentChannels: PaymentChannelInfo[];
@@ -18,6 +27,8 @@ const PaymentChannelList: FC<PaymentChannelListProps> = ({
   focusedPaymentChannel,
   setFocusedPaymentChannel,
 }: PaymentChannelListProps) => {
+  const { classes } = useStyles();
+
   const handleChange = (_: object, value: number) => {
     setFocusedPaymentChannel(paymentChannels[value]);
   };
@@ -27,7 +38,12 @@ const PaymentChannelList: FC<PaymentChannelListProps> = ({
   );
 
   return (
-    <Tabs value={focusedIndex} onChange={handleChange} orientation="vertical">
+    <Tabs
+      className={classes.paymentList}
+      value={focusedIndex}
+      onChange={handleChange}
+      orientation="vertical"
+    >
       {paymentChannels.map((chan) => (
         <Tab key={chan.ID} label={formatPaymentChannel(chan)} />
       ))}
