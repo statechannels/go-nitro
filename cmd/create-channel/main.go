@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/BurntSushi/toml"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/cmd/utils"
 	"github.com/statechannels/go-nitro/internal/logging"
@@ -13,31 +12,18 @@ import (
 	"github.com/statechannels/go-nitro/rpc/transport/http"
 )
 
-type participantOpts struct {
-	UseDurableStore bool
-	MsgPort         int
-	RpcPort         int
-	Pk              string
-	ChainPk         string
-	ChainUrl        string
-	ChainAuthToken  string
-}
-
 const (
-	HUB_STATE_CHANNEL_ADDRESS = "0x69Ae2DF44965e6f87b25bc648E097B00762583Dc"
+	HUB_STATE_CHANNEL_ADDRESS = "0x89825D58A7E2C198a06125be9CD0631317f9A07B"
+	NODE_IP_ADDRESS           = "192.81.214.172"
+	NODE_RPC_PORT             = 4005
 	CONFIG_FILE               = "./docker/local/config.toml"
 	LOG_FILE                  = "create-single-channel.log"
 )
 
 func main() {
-	var participantOpts participantOpts
-	if _, err := toml.DecodeFile(CONFIG_FILE, &participantOpts); err != nil {
-		panic(err)
-	}
-
 	logging.SetupDefaultFileLogger(LOG_FILE, slog.LevelDebug)
 
-	url := fmt.Sprintf(":%d/api/v1", participantOpts.RpcPort)
+	url := fmt.Sprintf("%s:%d/api/v1", NODE_IP_ADDRESS, NODE_RPC_PORT)
 	clientConnection, err := http.NewHttpTransportAsClient(url, 10*time.Millisecond)
 	if err != nil {
 		panic(err)
