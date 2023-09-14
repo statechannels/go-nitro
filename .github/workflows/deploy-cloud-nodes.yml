@@ -64,7 +64,7 @@ jobs:
             docker pull registry.digitalocean.com/magmo/go-nitro:latest
             docker stop $NODE_NAME || true
             docker rm $NODE_NAME || true
-            docker run --restart=unless-stopped -it -d --name $NODE_NAME -p 3005:3005 -p 4005:4005 -p 80:5005 -e NITRO_CONFIG_PATH=$NITRO_CONFIG_PATH -e SC_PK=$SC_PK -e CHAIN_PK=$CHAIN_PK -v /var/nitro_store:/app/data registry.digitalocean.com/magmo/go-nitro:latest
+            docker run --restart=unless-stopped -it -d --name $NODE_NAME -p 3005:3005 -p 4005:4005 -p 80:5005 -e NITRO_CONFIG_PATH=$NITRO_CONFIG_PATH -e SC_PK=$SC_PK -e CHAIN_PK=$CHAIN_PK -v /var/nitro_store:/app/data -v /etc/letsencrypt:/app/certs registry.digitalocean.com/magmo/go-nitro:latest
           ENDSSH
           rm private_key.pem
 
@@ -91,7 +91,7 @@ jobs:
             docker pull registry.digitalocean.com/magmo/go-nitro:latest
             docker stop $NODE_NAME || true
             docker rm $NODE_NAME || true
-            docker run --restart=unless-stopped -it -d --name $NODE_NAME -p 3005:3005 -p 4005:4005 -p 80:5005 -e NITRO_CONFIG_PATH=$NITRO_CONFIG_PATH -e SC_PK=$SC_PK -e CHAIN_PK=$CHAIN_PK -v /var/nitro_store:/app/data registry.digitalocean.com/magmo/go-nitro:latest
+            docker run --restart=unless-stopped -it -d --name $NODE_NAME -p 3005:3005 -p 4005:4005 -p 80:5005 -e NITRO_CONFIG_PATH=$NITRO_CONFIG_PATH -e SC_PK=$SC_PK -e CHAIN_PK=$CHAIN_PK -v /var/nitro_store:/app/data -v /etc/letsencrypt:/app/certs registry.digitalocean.com/magmo/go-nitro:latest
           ENDSSH
           rm private_key.pem
 
@@ -118,6 +118,6 @@ jobs:
             docker pull registry.digitalocean.com/magmo/go-nitro:latest
             docker stop $NODE_NAME || true
             docker rm $NODE_NAME || true
-            docker run --restart=unless-stopped -it -d --name $NODE_NAME -p 3005:3005 -p 4005:4005 -p 80:5005 -e NITRO_CONFIG_PATH=$NITRO_CONFIG_PATH -e SC_PK=$SC_PK -e CHAIN_PK=$CHAIN_PK -v /var/nitro_store:/app/data registry.digitalocean.com/magmo/go-nitro:latest
+            docker run --restart=unless-stopped -it -d --name $NODE_NAME -p 3005:3005 -p 4005:4005 -p 80:5005 -e NITRO_CONFIG_PATH=$NITRO_CONFIG_PATH -e SC_PK=$SC_PK -e CHAIN_PK=$CHAIN_PK -v /var/nitro_store:/app/data -v /etc/letsencrypt:/app/certs registry.digitalocean.com/magmo/go-nitro:latest
           ENDSSH
           rm private_key.pem

@@ -22,5 +22,5 @@ chainauthtoken = ""
 
 bootpeers = ""
 
-tlscertfilepath = "/etc/letsencrypt/live/iris-node.statechannels.org/fullchain.pem"
-tlskeyfilepath = "/etc/letsencrypt/live/iris-node.statechannels.org/privkey.pem"
+tlscertfilepath = "/app/certs/live/iris-node.statechannels.org/fullchain.pem"
+tlskeyfilepath = "/app/certs/live/iris-node.statechannels.org/privkey.pem"
