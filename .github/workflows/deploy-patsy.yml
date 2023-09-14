@@ -1,4 +1,4 @@
-name: Deploy Cloud Nodes
+name: Deploy Payment Proxy Server
 
 on:
   workflow_dispatch:
