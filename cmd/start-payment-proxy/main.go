@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"log"
 	"log/slog"
 	"os"
@@ -69,21 +68,13 @@ func main() {
 
 			logging.SetupDefaultLogger(os.Stdout, slog.LevelDebug)
 
-			var cert tls.Certificate
-			var err error
-			if c.String(TLS_CERT_FILEPATH) != "" && c.String(TLS_KEY_FILEPATH) == "" {
-				cert, err = tls.LoadX509KeyPair(c.String(TLS_CERT_FILEPATH), c.String(TLS_KEY_FILEPATH))
-				if err != nil {
-					panic(err)
-				}
-			}
-
 			proxy = paymentproxy.NewPaymentProxy(
 				proxyEndpoint,
 				nitroEndpoint,
 				c.String(DESTINATION_URL),
 				c.Uint64(COST_PER_BYTE),
-				&cert,
+				c.String(TLS_CERT_FILEPATH),
+				c.String(TLS_KEY_FILEPATH),
 			)
 
 			return proxy.Start()

@@ -2,7 +2,6 @@ package paymentproxy
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -44,16 +43,13 @@ type PaymentProxy struct {
 	costPerByte  uint64
 	reverseProxy *httputil.ReverseProxy
 
-	destinationUrl *url.URL
-	cert           *tls.Certificate
+	destinationUrl            *url.URL
+	certFilePath, certKeyPath string
 }
 
 // NewPaymentProxy creates a new PaymentProxy.
-func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, costPerByte uint64, cert *tls.Certificate) *PaymentProxy {
+func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, costPerByte uint64, certFilePath, certKeyPath string) *PaymentProxy {
 	server := &http.Server{Addr: proxyAddress}
-	if cert != nil {
-		server.TLSConfig = &tls.Config{Certificates: []tls.Certificate{*cert}}
-	}
 
 	nitroClient, err := rpc.NewHttpRpcClient(nitroEndpoint)
 	if err != nil {
@@ -70,7 +66,8 @@ func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL s
 		costPerByte:    costPerByte,
 		destinationUrl: destinationUrl,
 		reverseProxy:   &httputil.ReverseProxy{},
-		cert:           cert,
+		certFilePath:   certFilePath,
+		certKeyPath:    certKeyPath,
 	}
 	// Wire up our handlers to the reverse proxy
 	p.reverseProxy.Rewrite = func(pr *httputil.ProxyRequest) { pr.SetURL(p.destinationUrl) }
@@ -172,13 +169,12 @@ func (p *PaymentProxy) handleError(w http.ResponseWriter, r *http.Request, err e
 // Start starts the proxy server in a goroutine.
 func (p *PaymentProxy) Start() error {
 	go func() {
-		slog.Info("Starting a payment proxy", "address", p.server.Addr)
-
-		if p.cert != nil {
-			if err := p.server.ListenAndServeTLS("", ""); err != http.ErrServerClosed {
+		if p.certFilePath != "" && p.certKeyPath != "" {
+			if err := p.server.ListenAndServeTLS(p.certFilePath, p.certKeyPath); err != http.ErrServerClosed {
 				slog.Error("Error while listening", "error", err)
 			}
 		} else {
+			slog.Info("Starting a payment proxy", "address", p.server.Addr)
 			if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
 				slog.Error("Error while listening", "error", err)
 			}
