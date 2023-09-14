@@ -86,6 +86,12 @@ func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL s
 // It is responsible for parsing the voucher from the query params and moving it to the request header
 // It then delegates to the reverse proxy to handle rewriting the request and sending it to the destination
 func (p *PaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// If the request is a health check, return a 200 OK
+	if r.URL.Path == "/health" {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Proxy is healthy"))
+		return
+	}
 	enableCORS(w, r)
 	v, err := parseVoucher(r.URL.Query())
 	if err != nil {
