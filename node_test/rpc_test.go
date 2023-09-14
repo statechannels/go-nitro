@@ -404,7 +404,7 @@ func setupNitroNodeWithRPCClient(
 		t.Fatal(err)
 	}
 
-	cert, err := tls.LoadX509KeyPair("../internal/tls/statechannels.org.pem", "../internal/tls/statechannels.org_key.pem")
+	cert, err := tls.LoadX509KeyPair("../tls/statechannels.org.pem", "../tls/statechannels.org_key.pem")
 	if err != nil {
 		panic(err)
 	}
