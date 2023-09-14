@@ -1,0 +1,43 @@
+name: Deploy Cloud Nodes
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: make docker/paymentproxy/build
+
+      - name: Login to DigitalOcean Docker Registry
+        run: docker login -u ${{ secrets.DO_API_KEY }} -p ${{ secrets.DO_API_KEY }} registry.digitalocean.com
+
+      - name: Push Docker image to DigitalOcean
+        run: make docker/paymentproxy/push
+
+  deploy-patsy:
+    needs: build-image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Droplet
+        env:
+          DO_API_KEY: ${{ secrets.DO_API_KEY }}}
+          DROPLET_IP: "64.227.75.247"
+          NAME: nitro-payment-proxy
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          ssh -o StrictHostKeyChecking=no -i private_key.pem root@$DROPLET_IP <<ENDSSH
+            docker login -u $DO_API_KEY -p $DO_API_KEY registry.digitalocean.com
+            docker pull registry.digitalocean.com/magmo/nitro-payment-proxy:latest
+            docker stop $NAME || true
+            docker rm $NAME || true
+            docker run --restart=unless-stopped -it -d --name $NAME -p 443:443 -p 80:80 -p 5511:5511 -e registry.digitalocean.com/magmo/nitro-payment-proxy:latest
+          ENDSSH
+          rm private_key.pem
