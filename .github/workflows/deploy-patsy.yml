@@ -49,6 +49,7 @@ jobs:
           DESTINATION_URL: "https://magmo.com"
           TLS_CERT_FILE: /app/certs/live/payment-proxy.statechannels.org/fullchain.pem
           TLS_KEY_FILE: /app/certs/live/payment-proxy.statechannels.org/privkey.pem
+          PROXY_PORT: 443
         run: |
           echo "$SSH_PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
@@ -64,6 +65,7 @@ jobs:
               -e DESTINATION_URL=$DESTINATION_URL \
               -e TLS_CERT_FILE=$TLS_CERT_FILE \
               -e TLS_KEY_FILE=$TLS_KEY_FILE \
+              -e PROXY_PORT=$PROXY_PORT \
               registry.digitalocean.com/magmo/nitro-payment-proxy:latest
           ENDSSH
           rm private_key.pem
