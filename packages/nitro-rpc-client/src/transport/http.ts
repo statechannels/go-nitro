@@ -1,5 +1,3 @@
-import https from "https";
-
 import axios from "axios";
 import { w3cwebsocket } from "websocket";
 import { EventEmitter } from "eventemitter3";
@@ -46,9 +44,7 @@ export class HttpTransport {
   ): Promise<unknown> {
     const url = new URL(`https://${this.server}`).toString();
 
-    const result = await axios.post(url.toString(), JSON.stringify(req), {
-      httpsAgent: unsecureHttpsAgent(),
-    });
+    const result = await axios.post(url.toString(), JSON.stringify(req));
 
     return result.data;
   }
@@ -71,13 +67,4 @@ export class HttpTransport {
       this.Notifications.emit(data.method, data.params);
     };
   }
-}
-
-// For testing with self-signed certs, ignore certificate errors. DO NOT use in production.
-export function unsecureHttpsAgent(): https.Agent {
-  // For testing with self-signed certs, ignore certificate errors. DO NOT use in production.
-  const httpsAgent = new https.Agent({
-    rejectUnauthorized: false,
-  });
-  return httpsAgent;
 }
