@@ -5,7 +5,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Link from "@mui/material/Link";
 import Grid from "@mui/material/Grid";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { Divider, Slider, Stack, Switch } from "@mui/material";
+import { Slider, Stack, Switch } from "@mui/material";
 import Box from "@mui/material/Box";
 import Stepper from "@mui/material/Stepper";
 import Step from "@mui/material/Step";
@@ -16,6 +16,7 @@ import Typography from "@mui/material/Typography";
 import PersonIcon from "@mui/icons-material/Person";
 import StorageIcon from "@mui/icons-material/Storage";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function Copyright(props: any) {
   return (
     <Typography
@@ -38,15 +39,6 @@ function Copyright(props: any) {
 const defaultTheme = createTheme();
 
 export default function SignInSide() {
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    console.log({
-      email: data.get("email"),
-      password: data.get("password"),
-    });
-  };
-
   return (
     <ThemeProvider theme={defaultTheme}>
       <Grid container component="main" sx={{ height: "100vh" }}>
