@@ -2,6 +2,15 @@ name: Deploy Payment Proxy Server
 
 on:
   workflow_dispatch:
+    inputs:
+      build-image:
+        description: 'Build docker image'
+        required: false
+        default: 'true'
+      deploy-patsy:
+        description: 'Deploy Patsy'
+        required: false
+        default: 'true'
 
 jobs:
   build-image:
@@ -9,20 +18,25 @@ jobs:
 
     steps:
       - name: Checkout code
+        if: github.event.inputs.build-image == 'true'
         uses: actions/checkout@v3
 
       - name: Build Docker image
+        if: github.event.inputs.build-image == 'true'
         run: make docker/paymentproxy/build
 
       - name: Login to DigitalOcean Docker Registry
+        if: github.event.inputs.build-image == 'true'
         run: docker login -u ${{ secrets.DO_API_KEY }} -p ${{ secrets.DO_API_KEY }} registry.digitalocean.com
 
       - name: Push Docker image to DigitalOcean
+        if: github.event.inputs.build-image == 'true'
         run: make docker/paymentproxy/push
 
   deploy-patsy:
     needs: build-image
     runs-on: ubuntu-latest
+    if: github.event.inputs.deploy-patsy == 'true'
 
     steps:
       - name: Deploy to Droplet
