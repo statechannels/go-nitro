@@ -1,7 +1,7 @@
 FROM golang:1.21-bullseye AS builder
 WORKDIR /app
 COPY . .
-COPY ./docker/local/config.toml .
+
 RUN go build -o proxy ./cmd/start-payment-proxy
 
 FROM debian:bullseye-slim
