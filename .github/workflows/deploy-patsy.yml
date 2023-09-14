@@ -55,7 +55,7 @@ jobs:
             docker pull registry.digitalocean.com/magmo/nitro-payment-proxy:latest
             docker stop $NAME || true
             docker rm $NAME || true
-            docker run --restart=unless-stopped -it -d --name $NAME \ 
+            docker run --restart=unless-stopped -it -d --name $NAME \
               -p 443:443 -p 80:80 -p 5511:5511 \
               -e NITRO_ENDPOINT=$NITRO_ENDPOINT \
               -e DESTINATION_URL=$DESTINATION_URL \
