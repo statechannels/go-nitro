@@ -46,9 +46,7 @@ export class HttpTransport {
   ): Promise<unknown> {
     const url = new URL(`https://${this.server}`).toString();
 
-    const result = await axios.post(url.toString(), JSON.stringify(req), {
-      httpsAgent: unsecureHttpsAgent(),
-    });
+    const result = await axios.post(url.toString(), JSON.stringify(req));
 
     return result.data;
   }
