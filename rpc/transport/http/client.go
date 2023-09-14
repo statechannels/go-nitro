@@ -2,7 +2,6 @@ package http
 
 import (
 	"bytes"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"log/slog"
@@ -35,11 +34,8 @@ func NewHttpTransportAsClient(url string, retryTimeout time.Duration) (*clientHt
 	if err != nil {
 		return nil, err
 	}
-	dialer := websocket.Dialer{
-		// todo: InsecureSkipVerify needs to be removed in favor of trusting the self signed certificate
-		TLSClientConfig: &tls.Config{ServerName: "statechannels.org", InsecureSkipVerify: true},
-	}
-	conn, _, err := dialer.Dial(subscribeUrl, nil)
+
+	conn, _, err := websocket.DefaultDialer.Dial(subscribeUrl, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -58,16 +54,7 @@ func (t *clientHttpTransport) Request(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				ServerName: "statechannels.org",
-				// todo: InsecureSkipVerify needs to be removed in favor of trusting the self signed certificate
-				InsecureSkipVerify: true,
-			},
-		},
-	}
-	resp, err := httpClient.Post(requestUrl, "application/json", bytes.NewBuffer(data))
+	resp, err := http.Post(requestUrl, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
 	}
