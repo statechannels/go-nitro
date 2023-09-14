@@ -5,6 +5,7 @@ runs:
   using: "composite"
   steps:
     - name: Install mkcert
+      shell: bash
       run: |
         curl -JLO "https://dl.filippo.io/mkcert/latest?for=linux/amd64"
         chmod +x mkcert-v*-linux-amd64
@@ -12,5 +13,6 @@ runs:
         mkcert -install
 
     - name: Generate certificates
+      shell: bash
       run: |
         make -C tls create-cert
