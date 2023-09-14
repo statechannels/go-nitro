@@ -2,6 +2,7 @@ package paymentproxy
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -44,11 +45,16 @@ type PaymentProxy struct {
 	reverseProxy *httputil.ReverseProxy
 
 	destinationUrl *url.URL
+	cert           *tls.Certificate
 }
 
 // NewPaymentProxy creates a new PaymentProxy.
-func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, costPerByte uint64) *PaymentProxy {
+func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, costPerByte uint64, cert *tls.Certificate) *PaymentProxy {
 	server := &http.Server{Addr: proxyAddress}
+	if cert != nil {
+		server.TLSConfig = &tls.Config{Certificates: []tls.Certificate{*cert}}
+	}
+
 	nitroClient, err := rpc.NewHttpRpcClient(nitroEndpoint)
 	if err != nil {
 		panic(err)
@@ -64,8 +70,8 @@ func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL s
 		costPerByte:    costPerByte,
 		destinationUrl: destinationUrl,
 		reverseProxy:   &httputil.ReverseProxy{},
+		cert:           cert,
 	}
-
 	// Wire up our handlers to the reverse proxy
 	p.reverseProxy.Rewrite = func(pr *httputil.ProxyRequest) { pr.SetURL(p.destinationUrl) }
 	p.reverseProxy.ModifyResponse = p.handleDestinationResponse
@@ -158,8 +164,14 @@ func (p *PaymentProxy) Start() error {
 	go func() {
 		slog.Info("Starting a payment proxy", "address", p.server.Addr)
 
-		if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
-			slog.Error("Error while listening", "error", err)
+		if p.cert != nil {
+			if err := p.server.ListenAndServeTLS("", ""); err != http.ErrServerClosed {
+				slog.Error("Error while listening", "error", err)
+			}
+		} else {
+			if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
+				slog.Error("Error while listening", "error", err)
+			}
 		}
 	}()
 
