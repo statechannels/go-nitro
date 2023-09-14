@@ -16,10 +16,11 @@ docker/local/start:
 	docker run -it -d --name go-nitro-local -p 3005:3005 -p 4005:4005 -p 5005:5005 go-nitro-local
 
 docker/paymentproxy/build:
-	docker build -f docker/paymentproxy/Dockerfile -t payment-proxy .
+	docker build -f docker/paymentproxy/Dockerfile -t nitro-payment-proxy .
 
 docker/paymentproxy/push:
 	docker tag nitro-payment-proxy:latest registry.digitalocean.com/magmo/nitro-payment-proxy:latest
+	docker push registry.digitalocean.com/magmo/nitro-payment-proxy:latest
 	
 docker/paymentproxy/start:
 	docker remove payment-proxy || true
