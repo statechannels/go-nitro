@@ -2,11 +2,10 @@ import * as React from "react";
 import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import Checkbox from "@mui/material/Checkbox";
 import Link from "@mui/material/Link";
 import Grid from "@mui/material/Grid";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { Stack, Switch } from "@mui/material";
+import { Divider, Slider, Stack, Switch } from "@mui/material";
 import Box from "@mui/material/Box";
 import Stepper from "@mui/material/Stepper";
 import Step from "@mui/material/Step";
@@ -14,6 +13,8 @@ import StepLabel from "@mui/material/StepLabel";
 import StepContent from "@mui/material/StepContent";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
+import PersonIcon from "@mui/icons-material/Person";
+import StorageIcon from "@mui/icons-material/Storage";
 
 function Copyright(props: any) {
   return (
@@ -77,25 +78,16 @@ export default function SignInSide() {
               alignItems: "center",
             }}
           >
-            <Typography component="h1" variant="h5">
-              Filecoin Paid Retrieval Demo
-            </Typography>
-            <VerticalLinearStepper />
-            <Box
-              component="form"
-              noValidate
-              onSubmit={handleSubmit}
-              sx={{ mt: 1 }}
-            >
-              <Grid container>
-                <Grid item xs>
-                  <Link href="#" variant="body2">
-                    How does this work?
-                  </Link>
-                </Grid>
-              </Grid>
+            <Stack spacing={3}>
+              <Typography component="h1" variant="h5">
+                Filecoin Paid Retrieval Demo
+              </Typography>
+              <VerticalLinearStepper />
+              <Link href="#" variant="body2">
+                How does this work?
+              </Link>
               <Copyright sx={{ mt: 5 }} />
-            </Box>
+            </Stack>
           </Box>
         </Grid>
       </Grid>
@@ -156,44 +148,65 @@ function VerticalLinearStepper() {
         <Step key={"Execute a Paid Retrieval"}>
           <StepLabel>{"Execute a Paid Retrieval"}</StepLabel>
           <StepContent>
-            <Typography>
-              {
-                "Create a payment voucher, and attach it to a request for the provider."
-              }
-            </Typography>
-            <Box sx={{ mb: 2 }}>
-              <div>
-                <Box
-                  component="form"
-                  noValidate
-                  onSubmit={() => {
-                    /* TODO */
-                  }}
-                  sx={{ mt: 1 }}
-                >
-                  <Stack direction="row" spacing={2}></Stack>
-                  <FormControlLabel
-                    control={<Switch value="skippayment" color="primary" />}
-                    label="Skip payment"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Switch value="usemicropayments" color="primary" />
-                    }
-                    label="Use micropayments"
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={() => {
-                      /* TODO */
-                    }}
-                    sx={{ mt: 1, mr: 1 }}
-                  >
-                    Pay & Download
-                  </Button>
+            <Stack spacing={5} direction="column">
+              <Stack>
+                <Typography>
+                  {
+                    "Create a payment voucher, and attach it to a request for the provider."
+                  }
+                </Typography>
+                <Box sx={{ mb: 2 }}>
+                  <div>
+                    <Box
+                      component="form"
+                      noValidate
+                      onSubmit={() => {
+                        /* TODO */
+                      }}
+                      sx={{ mt: 1 }}
+                    >
+                      <Stack direction="row" spacing={2}></Stack>
+                      <FormControlLabel
+                        control={<Switch value="skippayment" color="primary" />}
+                        label="Skip payment"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Switch value="usemicropayments" color="primary" />
+                        }
+                        label="Use micropayments"
+                      />
+                      <Button
+                        variant="contained"
+                        onClick={() => {
+                          /* TODO */
+                        }}
+                        sx={{ mt: 1, mr: 1 }}
+                      >
+                        Pay & Download
+                      </Button>
+                    </Box>
+                  </div>
                 </Box>
-              </div>
-            </Box>
+              </Stack>
+
+              <Stack
+                spacing={2}
+                direction="row"
+                sx={{ mb: 1 }}
+                alignItems="center"
+              >
+                <Typography variant="body2" color="text.secondary">
+                  150 FIL
+                </Typography>
+                <PersonIcon />
+                <Slider aria-label="Volume" value={75} valueLabelDisplay="on" />
+                <StorageIcon />{" "}
+                <Typography variant="body2" color="text.secondary">
+                  250 FIL
+                </Typography>
+              </Stack>
+            </Stack>
           </StepContent>
         </Step>
       </Stepper>
