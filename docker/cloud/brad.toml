@@ -5,6 +5,8 @@ msgport = 3005
 rpcport = 4005
 guiport = 5005
 
+publicip = "192.81.214.172"
+
 # State Channel Public Address: 0xA72DBe31224b824c438606196bE5857C6bE4cB32
 pk = ""
 
