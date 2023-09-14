@@ -1,8 +1,3 @@
-MKCERT ?= $(LOCALBIN)/mkcert
-MKCERT_VERSION ?= v1.4.4
-...
-.PHONY: mkcert
-mkcert: $(MKCERT)
-$(MKCERT): $(LOCALBIN)
-	curl -L "https://github.com/FiloSottile/mkcert/releases/download/$(MKCERT_VERSION)/mkcert-$(MKCERT_VERSION)-$(UNAME)-amd64" -o $(LOCALBIN)/mkcert
-	chmod +x $(LOCALBIN)/mkcert
+.PHONY: create-cert
+create-cert:
+	mkcert -cert-file statechannels.org.pem -key-file statechannels.org_key.pem statechannels.org localhost 127.0.0.1 ::1

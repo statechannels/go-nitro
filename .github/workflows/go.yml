@@ -35,7 +35,7 @@ jobs:
 
       - name: Generate certificates
         run: |
-          mkcert -cert-file tls/statechannels.org.pem -key-file tls/statechannels.org_key.pem localhost 127.0.0.1 ::1
+          make -C tls create-cert
 
       - name: Build
         run: go build -v ./...
