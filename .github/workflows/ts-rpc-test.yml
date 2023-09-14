@@ -20,7 +20,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
-      - uses: ./.github/actions/mkcert.yml
+      - uses: ./.github/actions/mkcert
 
       - name: Install dependencies
         run: yarn
