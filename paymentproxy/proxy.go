@@ -89,7 +89,11 @@ func (p *PaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// If the request is a health check, return a 200 OK
 	if r.URL.Path == "/health" {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Proxy is healthy"))
+		_, err := w.Write([]byte("Proxy is healthy"))
+		if err != nil {
+			p.handleError(w, r, err)
+			return
+		}
 		return
 	}
 	enableCORS(w, r)
