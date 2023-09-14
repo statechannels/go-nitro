@@ -17,6 +17,10 @@ docker/local/start:
 
 docker/paymentproxy/build:
 	docker build -f docker/paymentproxy/Dockerfile -t payment-proxy .
+
+docker/paymentproxy/push:
+	docker tag nitro-payment-proxy:latest registry.digitalocean.com/magmo/nitro-payment-proxy:latest
+	
 docker/paymentproxy/start:
 	docker remove payment-proxy || true
 	docker run -it -d --name payment-proxy -p 5511:5511 -e PROXY_PORT=5511 payment-proxy
