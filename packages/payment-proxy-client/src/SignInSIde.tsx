@@ -6,7 +6,7 @@ import Checkbox from "@mui/material/Checkbox";
 import Link from "@mui/material/Link";
 import Grid from "@mui/material/Grid";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { Stack } from "@mui/material";
+import { Stack, Switch } from "@mui/material";
 import Box from "@mui/material/Box";
 import Stepper from "@mui/material/Stepper";
 import Step from "@mui/material/Step";
@@ -173,12 +173,12 @@ function VerticalLinearStepper() {
                 >
                   <Stack direction="row" spacing={2}></Stack>
                   <FormControlLabel
-                    control={<Checkbox value="skippayment" color="primary" />}
+                    control={<Switch value="skippayment" color="primary" />}
                     label="Skip payment"
                   />
                   <FormControlLabel
                     control={
-                      <Checkbox value="usemicropayments" color="primary" />
+                      <Switch value="usemicropayments" color="primary" />
                     }
                     label="Use micropayments"
                   />
