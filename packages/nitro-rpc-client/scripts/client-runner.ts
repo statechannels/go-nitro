@@ -11,7 +11,6 @@ import {
   getLocalRPCUrl,
   logOutChannelUpdates,
 } from "../src/utils";
-import { unsecureHttpsAgent } from "../src/transport/http";
 
 const clientNames = ["alice", "irene", "bob", "ivan"] as const;
 const clientPortMap: Record<ClientNames, number> = {
@@ -325,7 +324,7 @@ async function isServerUp(port: number): Promise<boolean> {
   const url = new URL(`https://${getLocalRPCUrl(port)}/health`).toString();
 
   try {
-    result = await axios.get(url, { httpsAgent: unsecureHttpsAgent() });
+    result = await axios.get(url);
   } catch (e) {
     return false;
   }
