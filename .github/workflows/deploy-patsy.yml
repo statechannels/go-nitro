@@ -30,6 +30,8 @@ jobs:
           DO_API_KEY: ${{ secrets.DO_API_KEY }}}
           DROPLET_IP: "64.227.75.247"
           NAME: nitro-payment-proxy
+          NITRO_ENDPOINT: brad-node.statechannels.org:4005/api/v1
+          DESTINATION_URL: https://magmo.com
         run: |
           echo "$SSH_PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
@@ -38,6 +40,10 @@ jobs:
             docker pull registry.digitalocean.com/magmo/nitro-payment-proxy:latest
             docker stop $NAME || true
             docker rm $NAME || true
-            docker run --restart=unless-stopped -it -d --name $NAME -p 443:443 -p 80:80 -p 5511:5511 -e registry.digitalocean.com/magmo/nitro-payment-proxy:latest
+            docker run --restart=unless-stopped -it -d --name $NAME \ 
+              -p 443:443 -p 80:80 -p 5511:5511 \
+              -e NITRO_ENDPOINT=$NITRO_ENDPOINT \
+              -e DESTINATION_URL=$DESTINATION_URL \
+              registry.digitalocean.com/magmo/nitro-payment-proxy:latest
           ENDSSH
           rm private_key.pem
