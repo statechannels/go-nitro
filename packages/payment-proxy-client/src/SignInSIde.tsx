@@ -1,17 +1,19 @@
 import * as React from "react";
-import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
-import TextField from "@mui/material/TextField";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
 import Link from "@mui/material/Link";
-import Paper from "@mui/material/Paper";
-import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import Typography from "@mui/material/Typography";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { Stack } from "@mui/material";
+import Box from "@mui/material/Box";
+import Stepper from "@mui/material/Stepper";
+import Step from "@mui/material/Step";
+import StepLabel from "@mui/material/StepLabel";
+import StepContent from "@mui/material/StepContent";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 
 function Copyright(props: any) {
   return (
@@ -22,8 +24,8 @@ function Copyright(props: any) {
       {...props}
     >
       {"Copyright © "}
-      <Link color="inherit" href="https://mui.com/">
-        Your Website
+      <Link color="inherit" href="https://statechannels.org/">
+        statechannels.org
       </Link>{" "}
       {new Date().getFullYear()}
       {"."}
@@ -75,59 +77,20 @@ export default function SignInSide() {
               alignItems: "center",
             }}
           >
-            <Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
-              <LockOutlinedIcon />
-            </Avatar>
             <Typography component="h1" variant="h5">
-              Sign in
+              Filecoin Paid Retrieval Demo
             </Typography>
+            <VerticalLinearStepper />
             <Box
               component="form"
               noValidate
               onSubmit={handleSubmit}
               sx={{ mt: 1 }}
             >
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="email"
-                label="Email Address"
-                name="email"
-                autoComplete="email"
-                autoFocus
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label="Password"
-                type="password"
-                id="password"
-                autoComplete="current-password"
-              />
-              <FormControlLabel
-                control={<Checkbox value="remember" color="primary" />}
-                label="Remember me"
-              />
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                sx={{ mt: 3, mb: 2 }}
-              >
-                Sign In
-              </Button>
               <Grid container>
                 <Grid item xs>
                   <Link href="#" variant="body2">
-                    Forgot password?
-                  </Link>
-                </Grid>
-                <Grid item>
-                  <Link href="#" variant="body2">
-                    {"Don't have an account? Sign Up"}
+                    How does this work?
                   </Link>
                 </Grid>
               </Grid>
@@ -137,5 +100,103 @@ export default function SignInSide() {
         </Grid>
       </Grid>
     </ThemeProvider>
+  );
+}
+
+function VerticalLinearStepper() {
+  const [activeStep, setActiveStep] = React.useState(0);
+
+  const handleNext = () => {
+    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+  };
+
+  return (
+    <Box sx={{ maxWidth: 400 }}>
+      <Stepper activeStep={activeStep} orientation="vertical">
+        <Step key={"Join the Nitro Payment Network"}>
+          <StepLabel>{"Join the Nitro Payment Network"}</StepLabel>
+          <StepContent>
+            <Typography>{`In this demonstration, you will be sharing in a prefunded network account on Calibration Tesnet with all other users.`}</Typography>
+            <Box sx={{ mb: 2 }}>
+              <div>
+                <Button
+                  variant="contained"
+                  onClick={handleNext}
+                  sx={{ mt: 1, mr: 1 }}
+                >
+                  OK
+                </Button>
+              </div>
+            </Box>
+          </StepContent>
+        </Step>
+
+        <Step key={"Connect to a Retrieval Provider"}>
+          <StepLabel>{"Connect to a Retrieval Provider"}</StepLabel>
+          <StepContent>
+            <Typography>
+              {
+                "Create a virtual payment with enough capacity to pay for 10 retrievals."
+              }
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <div>
+                <Button
+                  variant="contained"
+                  onClick={handleNext}
+                  sx={{ mt: 1, mr: 1 }}
+                >
+                  Create Channel
+                </Button>
+              </div>
+            </Box>
+          </StepContent>
+        </Step>
+
+        <Step key={"Execute a Paid Retrieval"}>
+          <StepLabel>{"Execute a Paid Retrieval"}</StepLabel>
+          <StepContent>
+            <Typography>
+              {
+                "Create a payment voucher, and attach it to a request for the provider."
+              }
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <div>
+                <Box
+                  component="form"
+                  noValidate
+                  onSubmit={() => {
+                    /* TODO */
+                  }}
+                  sx={{ mt: 1 }}
+                >
+                  <Stack direction="row" spacing={2}></Stack>
+                  <FormControlLabel
+                    control={<Checkbox value="skippayment" color="primary" />}
+                    label="Skip payment"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox value="usemicropayments" color="primary" />
+                    }
+                    label="Use micropayments"
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={() => {
+                      /* TODO */
+                    }}
+                    sx={{ mt: 1, mr: 1 }}
+                  >
+                    Pay & Download
+                  </Button>
+                </Box>
+              </div>
+            </Box>
+          </StepContent>
+        </Step>
+      </Stepper>
+    </Box>
   );
 }
