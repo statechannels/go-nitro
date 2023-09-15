@@ -90,6 +90,8 @@ export default function App2() {
     PaymentChannelInfo | undefined
   >();
 
+  const [skipPayment, setSkipPayment] = useState(false);
+
   const [errorText, setErrorText] = useState<string>("");
 
   useEffect(() => {
@@ -170,7 +172,7 @@ export default function App2() {
     try {
       const file = await fetchFile(
         fileUrl,
-        costPerByte * dataSize,
+        skipPayment ? 0 : costPerByte * dataSize,
         paymentChannelInfo.ID,
         nitroClient
       );
@@ -290,7 +292,13 @@ export default function App2() {
                         <Stack direction="row" spacing={2}></Stack>
                         <FormControlLabel
                           control={
-                            <Switch value="skippayment" color="primary" />
+                            <Switch
+                              value="skippayment"
+                              color="primary"
+                              onChange={(e) => {
+                                setSkipPayment(e.target.checked);
+                              }}
+                            />
                           }
                           label="Skip payment"
                         />
