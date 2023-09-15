@@ -1,6 +1,5 @@
 // literals
 export const QUERY_KEY = "rpcUrl";
-export const CHANNEL_ID_KEY = "channelId";
 export const costPerByte = 1;
 
 export const proxyUrl = "https://www.w3.org";
