@@ -77,12 +77,13 @@ export default function App2() {
   const [errorText, setErrorText] = useState<string>("");
 
   useEffect(() => {
-    NitroRpcClient.CreateHttpNitroClient(url)
-      .then((c) => setNitroClient(c))
-      .catch((e) => {
+    NitroRpcClient.CreateHttpNitroClient(url).then(
+      (c) => setNitroClient(c),
+      (e) => {
         console.error(e);
         setErrorText(e.message);
-      });
+      }
+    );
   }, [url]);
 
   useEffect(() => {
@@ -182,12 +183,10 @@ export default function App2() {
 
     const handleCreateChannelButton = () => {
       setCreateChannelDisabled(true);
-      createPaymentChannel()
-        .catch((err) => {
-          console.log(err);
-          setCreateChannelDisabled(false);
-        })
-        .then(handleNext);
+      createPaymentChannel().then(handleNext, (err) => {
+        console.log(err);
+        setCreateChannelDisabled(false);
+      });
     };
 
     const handlePayButton = () => {
