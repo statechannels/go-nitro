@@ -1,58 +1,107 @@
-import { ChangeEvent, useEffect, useState } from "react";
+import * as React from "react";
+import { useEffect, useState } from "react";
+import Button from "@mui/material/Button";
+import CssBaseline from "@mui/material/CssBaseline";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Link from "@mui/material/Link";
+import Grid from "@mui/material/Grid";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
+import {
+  Alert,
+  AlertTitle,
+  Slider,
+  Stack,
+  Switch,
+  useMediaQuery,
+} from "@mui/material";
+import Box from "@mui/material/Box";
+import Stepper from "@mui/material/Stepper";
+import Step from "@mui/material/Step";
+import StepLabel from "@mui/material/StepLabel";
+import StepContent from "@mui/material/StepContent";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import PersonIcon from "@mui/icons-material/Person";
+import StorageIcon from "@mui/icons-material/Storage";
 import { NitroRpcClient } from "@statechannels/nitro-rpc-client";
 import { PaymentChannelInfo } from "@statechannels/nitro-rpc-client/src/types";
+
 import {
-  Button,
-  TextField,
-  Box,
-  Checkbox,
-  FormControlLabel,
-  LinearProgress,
-} from "@mui/material";
+  CHANNEL_ID_KEY,
+  QUERY_KEY,
+  costPerByte,
+  dataSize,
+  defaultNitroRPCUrl,
+  fileUrl,
+  hub,
+  initialChannelBalance,
+  provider,
+} from "./constants";
+import { fetchFile } from "./file";
 
-const QUERY_KEY = "rpcUrl";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function Copyright(props: any) {
+  return (
+    <Typography
+      variant="body2"
+      color="text.secondary"
+      align="center"
+      {...props}
+    >
+      {"Copyright © "}
+      <Link color="inherit" href="https://statechannels.org/">
+        statechannels.org
+      </Link>{" "}
+      {new Date().getFullYear()}
+      {"."}
+    </Typography>
+  );
+}
 
-import "./App.css";
-import { fetchFile, fetchFileInChunks } from "./file";
-import ChannelDetails from "./ChannelDetails";
-const provider = import.meta.env.VITE_PROVIDER;
-const hub = import.meta.env.VITE_HUB;
-const defaultNitroRPCUrl = import.meta.env.VITE_NITRO_RPC_URL;
-const defaultFileUrl = import.meta.env.VITE_FILE_URL;
-const CHANNEL_ID_KEY = "channelId";
-const initialChannelBalance = parseInt(
-  import.meta.env.VITE_INITIAL_CHANNEL_BALANCE,
-  10
-);
+function computePercentagePaid(info: PaymentChannelInfo): number {
+  return parseInt(
+    (
+      info.Balance.PaidSoFar / info.Balance.PaidSoFar +
+      info.Balance.RemainingFunds
+    ).toString(),
+    10
+  );
+}
+export default function App() {
+  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
 
-const costPerByte = 1;
-function App() {
+  const theme = React.useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode: prefersDarkMode ? "dark" : "light",
+        },
+      }),
+    [prefersDarkMode]
+  );
+
   const url =
     new URLSearchParams(window.location.search).get(QUERY_KEY) ??
     defaultNitroRPCUrl;
 
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
-
   const [paymentChannelId, setPaymentChannelId] = useState<string>("");
   const [paymentChannelInfo, setPaymentChannelInfo] = useState<
     PaymentChannelInfo | undefined
   >();
 
-  const [fileUrl, setFileUrl] = useState<string>(defaultFileUrl);
-
-  const [dataSize, setDataSize] = useState<number>(12);
+  const [skipPayment, setSkipPayment] = useState(false);
 
   const [errorText, setErrorText] = useState<string>("");
-  const [chunkSize, setChunkSize] = useState<number>(100);
-  const [useMicroPayments, setUseMicroPayments] = useState<boolean>();
-  const [microPaymentProgress, setMicroPaymentProgress] = useState<number>(0);
+
   useEffect(() => {
-    NitroRpcClient.CreateHttpNitroClient(url)
-      .then((c) => setNitroClient(c))
-      .catch((e) => {
+    NitroRpcClient.CreateHttpNitroClient(url).then(
+      (c) => setNitroClient(c),
+      (e) => {
         console.error(e);
         setErrorText(e.message);
-      });
+      }
+    );
   }, [url]);
 
   useEffect(() => {
@@ -83,10 +132,6 @@ function App() {
     }
     const paymentChannel = await nitroClient?.GetPaymentChannel(channelId);
     setPaymentChannelInfo(paymentChannel);
-  };
-
-  const proxyUrlChanged = (e: ChangeEvent<HTMLInputElement>) => {
-    setFileUrl(e.target.value);
   };
 
   const triggerFileDownload = (file: File) => {
@@ -137,22 +182,12 @@ function App() {
     }
 
     try {
-      setMicroPaymentProgress(0);
-      const file = useMicroPayments
-        ? await fetchFileInChunks(
-            chunkSize,
-            fileUrl,
-            costPerByte,
-            paymentChannelInfo.ID,
-            nitroClient,
-            setMicroPaymentProgress
-          )
-        : await fetchFile(
-            fileUrl,
-            costPerByte * dataSize,
-            paymentChannelInfo.ID,
-            nitroClient
-          );
+      const file = await fetchFile(
+        fileUrl,
+        skipPayment ? 0 : costPerByte * dataSize,
+        paymentChannelInfo.ID,
+        nitroClient
+      );
 
       triggerFileDownload(file);
 
@@ -166,72 +201,214 @@ function App() {
     }
   };
 
+  function displayError(errorText: string) {
+    if (errorText == "") {
+      return <div></div>;
+    }
+    return (
+      <Alert severity="error">
+        <AlertTitle>Error</AlertTitle>
+        {errorText}
+      </Alert>
+    );
+  }
+
+  function VerticalLinearStepper() {
+    const [activeStep, setActiveStep] = React.useState(0);
+
+    const [createChannelDisabled, setCreateChannelDisabled] = useState(false);
+    const [payDisabled, setPayDisabled] = useState(false);
+
+    const handleNext = () => {
+      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    };
+
+    const handleCreateChannelButton = () => {
+      setCreateChannelDisabled(true);
+      createPaymentChannel().then(handleNext, (err) => {
+        console.log(err);
+        setCreateChannelDisabled(false);
+      });
+    };
+
+    const handlePayButton = () => {
+      setPayDisabled(true);
+      fetchAndDownloadFile().finally(() => setPayDisabled(false));
+    };
+
+    return (
+      <Box sx={{ maxWidth: 400 }}>
+        <Stepper activeStep={activeStep} orientation="vertical">
+          <Step key={"Join the Nitro Payment Network"}>
+            <StepLabel>{"Join the Nitro Payment Network"}</StepLabel>
+            <StepContent>
+              <Typography>{`In this demonstration, you will be sharing in a prefunded network account on Calibration Tesnet with all other users.`}</Typography>
+              <Box sx={{ mb: 2 }}>
+                <div>
+                  <Button
+                    disabled={!nitroClient}
+                    variant="contained"
+                    onClick={handleNext}
+                    sx={{ mt: 1, mr: 1 }}
+                  >
+                    OK
+                  </Button>
+                </div>
+              </Box>
+            </StepContent>
+          </Step>
+
+          <Step key={"Connect to a Retrieval Provider"}>
+            <StepLabel>{"Connect to a Retrieval Provider"}</StepLabel>
+            <StepContent>
+              <Typography>
+                {
+                  "Create a virtual payment with enough capacity to pay for 10 retrievals."
+                }
+              </Typography>
+              <Box sx={{ mb: 2 }}>
+                <div>
+                  <Button
+                    variant="contained"
+                    disabled={createChannelDisabled}
+                    onClick={handleCreateChannelButton}
+                    sx={{ mt: 1, mr: 1 }}
+                  >
+                    Create Channel
+                  </Button>
+                </div>
+              </Box>
+            </StepContent>
+          </Step>
+
+          <Step key={"Execute a Paid Retrieval"}>
+            <StepLabel>{"Execute a Paid Retrieval"}</StepLabel>
+            <StepContent>
+              <Stack spacing={5} direction="column">
+                <Stack>
+                  <Typography>
+                    {
+                      "Create a payment voucher, and attach it to a request for the provider."
+                    }
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <div>
+                      <Box
+                        component="form"
+                        noValidate
+                        onSubmit={() => {
+                          /* TODO */
+                        }}
+                        sx={{ mt: 1 }}
+                      >
+                        <Stack direction="row" spacing={2}></Stack>
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              value="skippayment"
+                              color="primary"
+                              onChange={(e) => {
+                                setSkipPayment(e.target.checked);
+                              }}
+                            />
+                          }
+                          label="Skip payment"
+                        />
+                        <Button
+                          variant="contained"
+                          disabled={payDisabled}
+                          onClick={handlePayButton}
+                          sx={{ mt: 1, mr: 1 }}
+                        >
+                          Pay & Download
+                        </Button>
+                      </Box>
+                    </div>
+                  </Box>
+                </Stack>
+                <Stack direction="column">
+                  <Stack
+                    spacing={2}
+                    direction="row"
+                    sx={{ mb: 1 }}
+                    alignItems="center"
+                  >
+                    <Typography variant="body2" color="text.secondary">
+                      {paymentChannelInfo?.Balance.Payer}
+                    </Typography>
+                    <PersonIcon />
+                    <Slider
+                      aria-label="Volume"
+                      value={
+                        paymentChannelInfo
+                          ? computePercentagePaid(paymentChannelInfo)
+                          : 0
+                      }
+                      valueLabelDisplay="on"
+                    />
+                    <StorageIcon />{" "}
+                    <Typography variant="body2" color="text.secondary">
+                      {paymentChannelInfo?.Balance.Payee}
+                    </Typography>
+                  </Stack>
+                  {paymentChannelId}
+                </Stack>
+              </Stack>
+            </StepContent>
+          </Step>
+        </Stepper>
+      </Box>
+    );
+  }
+
   return (
-    <Box>
-      <Box p={10}>
-        <ChannelDetails info={paymentChannelInfo} />
-      </Box>
-      <Box>
-        <TextField
-          fullWidth={true}
-          label="Proxy URL"
-          onChange={proxyUrlChanged}
-          value={fileUrl}
-        ></TextField>
-      </Box>
-      <FormControlLabel
-        label="Use micropayments"
-        control={
-          <Checkbox
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setUseMicroPayments(e.target.checked)
-            }
-            value={useMicroPayments}
-          ></Checkbox>
-        }
-      />
-      {useMicroPayments && (
-        <Box>
-          <TextField
-            label="Chunk size(bytes)"
-            onChange={(e: ChangeEvent<HTMLInputElement>) => {
-              setChunkSize(parseInt(e.target.value));
+    <ThemeProvider theme={theme}>
+      <Grid container component="main" sx={{ height: "100vh" }}>
+        <CssBaseline />
+        <Grid
+          item
+          xs={false}
+          sm={4}
+          md={7}
+          sx={{
+            backgroundImage:
+              "url(https://source.unsplash.com/random?wallpapers)",
+            backgroundRepeat: "no-repeat",
+            backgroundColor: (t) =>
+              t.palette.mode === "light"
+                ? t.palette.grey[50]
+                : t.palette.grey[900],
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+        <Grid item xs={12} sm={8} md={5} component={Paper} elevation={6} square>
+          <Box
+            sx={{
+              my: 8,
+              mx: 4,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
             }}
-            value={chunkSize}
-            type="number"
-          ></TextField>
-        </Box>
-      )}
-      {!useMicroPayments && (
-        <Box>
-          <TextField
-            label="Payment amount (bytes)"
-            onChange={(e: ChangeEvent<HTMLInputElement>) => {
-              setDataSize(parseInt(e.target.value));
-            }}
-            value={dataSize}
-            type="number"
-          ></TextField>
-        </Box>
-      )}
-      <Button
-        id="createChannel"
-        onClick={() => {
-          createPaymentChannel();
-        }}
-        disabled={paymentChannelId != "" || !nitroClient}
-      >
-        Create Channel
-      </Button>
-      <Button onClick={fetchAndDownloadFile} disabled={paymentChannelId == ""}>
-        {useMicroPayments ? "Fetch with micropayments" : "Fetch"}
-      </Button>
-      <Box visibility={useMicroPayments ? "visible" : "hidden"}>
-        <LinearProgress value={microPaymentProgress} variant="determinate" />
-      </Box>
-      <Box>{errorText}</Box>
-    </Box>
+          >
+            <Stack spacing={3}>
+              <Typography component="h1" variant="h5">
+                Filecoin Paid Retrieval Demo
+              </Typography>
+              <VerticalLinearStepper />
+              <Link
+                href="https://statechannels.notion.site/Filecoin-Paid-Retrieval-Demo-bf6ad9ec92a74e139331ce77900305fc?pvs=4"
+                variant="body2"
+              >
+                How does this work?
+              </Link>
+              {displayError(errorText)}
+              <Copyright sx={{ mt: 5 }} />
+            </Stack>
+          </Box>
+        </Grid>
+      </Grid>
+    </ThemeProvider>
   );
 }
-
-export default App;
