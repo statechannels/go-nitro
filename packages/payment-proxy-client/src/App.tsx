@@ -112,6 +112,8 @@ function App() {
       initialChannelBalance
     );
 
+    await nitroClient.WaitForObjective(result.Id);
+
     localStorage.setItem(CHANNEL_ID_KEY, result.ChannelId);
     setPaymentChannelId(result.ChannelId);
     updateChannelInfo(result.ChannelId);
