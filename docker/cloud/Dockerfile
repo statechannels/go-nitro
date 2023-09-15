@@ -28,7 +28,6 @@ RUN rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /app/nitro .
 COPY --from=builder /app/nitro_config ./nitro_config
-COPY --from=builder /app/internal/tls ./internal/tls
 
 EXPOSE 3005 4005 5005
 
