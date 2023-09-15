@@ -36,11 +36,11 @@ user->payer: create payment
 user<-payer: voucher
 destroysilent payer
 user->proxy: request + voucher
+proxy->origin: request
+proxy<-origin: response
 proxy->payee: validate voucher
 payee->proxy: yes / no
 destroysilent payee
-proxy->origin: request
-proxy<-origin: 200 / 402 response
 user<-proxy: 200 / 402 response
 end
 end
