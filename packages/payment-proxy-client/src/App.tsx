@@ -331,7 +331,7 @@ export default function App() {
                     alignItems="center"
                   >
                     <Typography variant="body2" color="text.secondary">
-                      {paymentChannelInfo?.Balance.Payer}
+                      {paymentChannelInfo?.Balance.RemainingFunds.toString()}
                     </Typography>
                     <PersonIcon />
                     <Slider
@@ -345,7 +345,7 @@ export default function App() {
                     />
                     <StorageIcon />{" "}
                     <Typography variant="body2" color="text.secondary">
-                      {paymentChannelInfo?.Balance.Payee}
+                      {paymentChannelInfo?.Balance.PaidSoFar.toString()}
                     </Typography>
                   </Stack>
                   {paymentChannelId}
