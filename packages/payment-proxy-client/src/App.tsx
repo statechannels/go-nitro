@@ -342,6 +342,11 @@ export default function App() {
                           ? computePercentagePaid(paymentChannelInfo)
                           : 0
                       }
+                      min={0}
+                      max={Number(
+                        (paymentChannelInfo?.Balance.PaidSoFar ?? 0n) +
+                          (paymentChannelInfo?.Balance.RemainingFunds ?? 0n)
+                      )}
                       valueLabelDisplay="on"
                     />
                     <StorageIcon />{" "}
