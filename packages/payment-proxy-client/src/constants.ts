@@ -2,7 +2,7 @@
 export const QUERY_KEY = "rpcUrl";
 export const costPerByte = 1;
 
-export const proxyUrl = "https://www.w3.org";
+export const proxyUrl = import.meta.env.VITE_PROXY_URL;
 export const fileRelativePath = "/assets/logos/w3c/w3c-no-bars.svg";
 export const fileUrl = proxyUrl + fileRelativePath;
 export const dataSize = 6833;
