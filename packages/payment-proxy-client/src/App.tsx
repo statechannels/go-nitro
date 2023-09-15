@@ -16,7 +16,7 @@ import ChannelDetails from "./ChannelDetails";
 import {
   QUERY_KEY,
   defaultNitroRPCUrl,
-  defaultFileUrl,
+  fileUrl as defaultFileUrl,
   provider,
   hub,
   initialChannelBalance,
