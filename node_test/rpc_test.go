@@ -1,6 +1,7 @@
 package node_test
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -403,6 +404,11 @@ func setupNitroNodeWithRPCClient(
 		t.Fatal(err)
 	}
 
+	cert, err := tls.LoadX509KeyPair("../tls/statechannels.org.pem", "../tls/statechannels.org_key.pem")
+	if err != nil {
+		panic(err)
+	}
+
 	slog.Info("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
 	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, bootPeers)
 
@@ -422,7 +428,7 @@ func setupNitroNodeWithRPCClient(
 		err = fmt.Errorf("unknown connection type %v", connectionType)
 		panic(err)
 	}
-	rpcServer, err := interRpc.InitializeRpcServer(&node, rpcPort, useNats)
+	rpcServer, err := interRpc.InitializeRpcServer(&node, rpcPort, useNats, &cert)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -16,7 +16,7 @@ export class HttpTransport {
 
   public static async createTransport(server: string): Promise<Transport> {
     // eslint-disable-next-line new-cap
-    const ws = new w3cwebsocket(`ws://${server}/subscribe`, undefined);
+    const ws = new w3cwebsocket(`wss://${server}/subscribe`);
 
     // throw any websocket errors so we don't fail silently
     ws.onerror = (e) => {
@@ -34,7 +34,7 @@ export class HttpTransport {
   public async sendRequest<K extends RequestMethod>(
     req: RPCRequestAndResponses[K][0]
   ): Promise<unknown> {
-    const url = new URL(`http://${this.server}`).toString();
+    const url = new URL(`https://${this.server}`).toString();
 
     const result = await axios.post(url.toString(), JSON.stringify(req));
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"net/http"
 	urlUtil "net/url"
 	"sync"
@@ -29,10 +30,11 @@ func NewHttpTransportAsClient(url string, retryTimeout time.Duration) (*clientHt
 		return nil, err
 	}
 
-	subscribeUrl, err := urlUtil.JoinPath("ws://", url, "subscribe")
+	subscribeUrl, err := urlUtil.JoinPath("wss://", url, "subscribe")
 	if err != nil {
 		return nil, err
 	}
+
 	conn, _, err := websocket.DefaultDialer.Dial(subscribeUrl, nil)
 	if err != nil {
 		return nil, err
@@ -51,6 +53,7 @@ func (t *clientHttpTransport) Request(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	resp, err := http.Post(requestUrl, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
@@ -96,7 +99,7 @@ func (t *clientHttpTransport) readMessages() {
 
 // httpUrl joins the http prefix with the server url
 func httpUrl(url string) (string, error) {
-	httpUrl, err := urlUtil.JoinPath("http://", url)
+	httpUrl, err := urlUtil.JoinPath("https://", url)
 	if err != nil {
 		return "", err
 	}
@@ -105,8 +108,8 @@ func httpUrl(url string) (string, error) {
 
 // blockUntilHttpServerIsReady pings the health endpoint until the server is ready
 func blockUntilHttpServerIsReady(url string, retryTimeout time.Duration) error {
-	waitForServer := func() {
-		time.Sleep(retryTimeout)
+	waitForServer := func(iteration int) {
+		time.Sleep(retryTimeout * time.Duration(math.Pow(2, float64(iteration))))
 	}
 
 	httpUrl, err := httpUrl(url)
@@ -121,7 +124,7 @@ func blockUntilHttpServerIsReady(url string, retryTimeout time.Duration) error {
 	for i := 0; i < numAttempts; i++ {
 		resp, err := http.Get(healthUrl)
 		if err != nil {
-			waitForServer()
+			waitForServer(i)
 			continue
 		}
 		defer resp.Body.Close()
@@ -129,7 +132,7 @@ func blockUntilHttpServerIsReady(url string, retryTimeout time.Duration) error {
 		if resp.StatusCode == http.StatusOK {
 			return nil
 		}
-		waitForServer()
+		waitForServer(i)
 	}
-	return fmt.Errorf("http server not ready after %d attempts", numAttempts)
+	return fmt.Errorf("http server %v not ready after %d attempts", healthUrl, numAttempts)
 }

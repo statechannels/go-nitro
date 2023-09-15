@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"io"
 	"log/slog"
@@ -35,13 +36,8 @@ type serverHttpTransport struct {
 }
 
 // NewHttpTransportAsServer starts an http server
-func NewHttpTransportAsServer(port string) (*serverHttpTransport, error) {
+func NewHttpTransportAsServer(port string, cert *tls.Certificate) (*serverHttpTransport, error) {
 	transport := &serverHttpTransport{port: port, notificationListeners: safesync.Map[chan []byte]{}, logger: slog.Default()}
-
-	tcpListener, err := net.Listen("tcp", ":"+transport.port)
-	if err != nil {
-		return nil, err
-	}
 
 	var serveMux http.ServeMux
 
@@ -55,6 +51,7 @@ func NewHttpTransportAsServer(port string) (*serverHttpTransport, error) {
 	serveMux.HandleFunc(apiVersionPath, transport.request)
 	serveMux.HandleFunc(path.Join(apiVersionPath, "subscribe"), transport.subscribe)
 	transport.httpServer = &http.Server{
+		Addr:         ":" + port,
 		Handler:      &serveMux,
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,
@@ -64,8 +61,28 @@ func NewHttpTransportAsServer(port string) (*serverHttpTransport, error) {
 	transport.wg = &sync.WaitGroup{}
 
 	transport.wg.Add(1)
-	go transport.serveHttp(tcpListener)
 
+	var listener net.Listener
+	var err error
+
+	if cert == nil {
+		listener, err = net.Listen("tcp", ":"+transport.port)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Create a TLS config
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{*cert},
+		}
+		// Create a new TLS listener
+		listener, err = tls.Listen("tcp", ":"+port, tlsConfig)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	go transport.serveHttp(listener)
 	return transport, nil
 }
 
@@ -73,6 +90,7 @@ func (t *serverHttpTransport) serveHttp(tcpListener net.Listener) {
 	defer t.wg.Done()
 
 	err := t.httpServer.Serve(tcpListener)
+
 	if err != nil && errors.Is(err, http.ErrServerClosed) {
 		return
 	}
@@ -95,7 +113,7 @@ func (t *serverHttpTransport) Notify(data []byte) error {
 }
 
 func (t *serverHttpTransport) Close() error {
-	// This will cause the serveHttp gand listenForClose goroutines to exit
+	// This will cause the serveHttp and listenForClose goroutines to exit
 	err := t.httpServer.Shutdown(context.Background())
 	if err != nil {
 		return err
