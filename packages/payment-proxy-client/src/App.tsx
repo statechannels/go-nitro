@@ -21,9 +21,9 @@ import {
   hub,
   initialChannelBalance,
   CHANNEL_ID_KEY,
+  costPerByte,
 } from "./constants";
 
-const costPerByte = 1;
 function App() {
   const url =
     new URLSearchParams(window.location.search).get(QUERY_KEY) ??
