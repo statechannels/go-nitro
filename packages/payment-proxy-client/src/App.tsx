@@ -59,6 +59,9 @@ function Copyright(props: any) {
 }
 
 function computePercentagePaid(info: PaymentChannelInfo): number {
+  if (info.Balance.RemainingFunds <= 0) {
+    return 0;
+  }
   return Number(
     (100n * info.Balance.PaidSoFar) /
       (info.Balance.RemainingFunds + info.Balance.PaidSoFar)
