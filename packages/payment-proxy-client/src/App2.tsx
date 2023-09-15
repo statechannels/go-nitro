@@ -173,12 +173,17 @@ export default function App2() {
 
     const handleCreateChannelButton = () => {
       setCreateChannelDisabled(true);
-      createPaymentChannel().then(handleNext);
+      createPaymentChannel()
+        .catch((err) => {
+          console.log(err);
+          setCreateChannelDisabled(false);
+        })
+        .then(handleNext);
     };
 
     const handlePayButton = () => {
       setPayDisabled(true);
-      fetchAndDownloadFile().then(() => setPayDisabled(false));
+      fetchAndDownloadFile().finally(() => setPayDisabled(false));
     };
 
     return (
@@ -292,7 +297,6 @@ export default function App2() {
                     </Typography>
                   </Stack>
                   {paymentChannelId}
-                  {errorText}
                 </Stack>
               </Stack>
             </StepContent>
@@ -341,6 +345,7 @@ export default function App2() {
               <Link href="#" variant="body2">
                 How does this work?
               </Link>
+              {errorText}
               <Copyright sx={{ mt: 5 }} />
             </Stack>
           </Box>
