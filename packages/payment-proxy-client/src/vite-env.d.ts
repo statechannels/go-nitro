@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 interface ImportMetaEnv {
   readonly VITE_NITRO_RPC_URL: string;
-  readonly VITE_FILE_URL: string;
+  readonly VITE_PROXY_URL: string;
   readonly VITE_PROVIDER: string;
   readonly VITE_HUB: string;
   readonly VITE_INITIAL_CHANNEL_BALANCE: string;
