@@ -187,6 +187,18 @@ export default function App2() {
     }
   };
 
+  function displayError(errorText: string) {
+    if (errorText == "") {
+      return <div></div>;
+    }
+    return (
+      <Alert severity="error">
+        <AlertTitle>Error</AlertTitle>
+        {errorText}
+      </Alert>
+    );
+  }
+
   function VerticalLinearStepper() {
     const [activeStep, setActiveStep] = React.useState(0);
 
@@ -377,11 +389,7 @@ export default function App2() {
               >
                 How does this work?
               </Link>
-              <Alert severity="error">
-                <AlertTitle>Error</AlertTitle>
-                {errorText}
-              </Alert>
-
+              {displayError(errorText)}
               <Copyright sx={{ mt: 5 }} />
             </Stack>
           </Box>
