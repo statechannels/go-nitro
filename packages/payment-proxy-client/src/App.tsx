@@ -62,7 +62,7 @@ function App() {
       setPaymentChannelId(fetchedId);
 
       nitroClient
-        ?.GetPaymentChannel(fetchedId)
+        .GetPaymentChannel(fetchedId)
         .then((paymentChannel) => {
           console.log(paymentChannel);
           setPaymentChannelInfo(paymentChannel);
