@@ -18,15 +18,7 @@ export class HttpTransport {
 
   public static async createTransport(server: string): Promise<Transport> {
     // eslint-disable-next-line new-cap
-    const ws = new w3cwebsocket(
-      `wss://${server}/subscribe`,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      // todo: remove once valid (not self-signed) certificates are
-      { tlsOptions: { rejectUnauthorized: false } }
-    );
+    const ws = new w3cwebsocket(`wss://${server}/subscribe`);
 
     // throw any websocket errors so we don't fail silently
     ws.onerror = (e) => {
