@@ -10,20 +10,18 @@ import {
   LinearProgress,
 } from "@mui/material";
 
-const QUERY_KEY = "rpcUrl";
-
 import "./App.css";
 import { fetchFile, fetchFileInChunks } from "./file";
 import ChannelDetails from "./ChannelDetails";
-const provider = import.meta.env.VITE_PROVIDER;
-const hub = import.meta.env.VITE_HUB;
-const defaultNitroRPCUrl = import.meta.env.VITE_NITRO_RPC_URL;
-const defaultFileUrl = import.meta.env.VITE_FILE_URL;
-const CHANNEL_ID_KEY = "channelId";
-const initialChannelBalance = parseInt(
-  import.meta.env.VITE_INITIAL_CHANNEL_BALANCE,
-  10
-);
+import {
+  QUERY_KEY,
+  defaultNitroRPCUrl,
+  defaultFileUrl,
+  provider,
+  hub,
+  initialChannelBalance,
+  CHANNEL_ID_KEY,
+} from "./constants";
 
 const costPerByte = 1;
 function App() {
