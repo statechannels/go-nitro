@@ -289,13 +289,6 @@ func (ms *P2PMessageService) Send(msg protocols.Message) error {
 	}
 
 	for i := 0; i < NUM_CONNECT_ATTEMPTS; i++ {
-		addrInfo, err := ms.dht.FindPeer(ms.dht.Context(), peerId)
-		if err == nil {
-			ms.logger.Error("could not FindPeer", "err", err)
-		} else {
-			ms.logger.Debug("FindPeer success", "addrInfo", addrInfo)
-		}
-
 		s, err := ms.p2pHost.NewStream(context.Background(), peerId, GENERAL_MSG_PROTOCOL_ID)
 		if err == nil {
 			writer := bufio.NewWriter(s)
