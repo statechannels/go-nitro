@@ -2,7 +2,6 @@ package http
 
 import (
 	"bytes"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"log/slog"
@@ -35,10 +34,8 @@ func NewHttpTransportAsClient(url string, retryTimeout time.Duration) (*clientHt
 	if err != nil {
 		return nil, err
 	}
-	dialer := websocket.Dialer{
-		TLSClientConfig: &tls.Config{ServerName: "statechannels.org"},
-	}
-	conn, _, err := dialer.Dial(subscribeUrl, nil)
+
+	conn, _, err := websocket.DefaultDialer.Dial(subscribeUrl, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -57,14 +54,7 @@ func (t *clientHttpTransport) Request(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				ServerName: "statechannels.org",
-			},
-		},
-	}
-	resp, err := httpClient.Post(requestUrl, "application/json", bytes.NewBuffer(data))
+	resp, err := http.Post(requestUrl, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
 	}
