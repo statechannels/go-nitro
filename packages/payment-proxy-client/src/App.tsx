@@ -58,15 +58,6 @@ function Copyright(props: any) {
   );
 }
 
-function computePercentagePaid(info: PaymentChannelInfo): number {
-  if (info.Balance.RemainingFunds <= 0) {
-    return 0;
-  }
-  return Number(
-    (100n * info.Balance.PaidSoFar) /
-      (info.Balance.RemainingFunds + info.Balance.PaidSoFar)
-  );
-}
 export default function App() {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
 
@@ -337,11 +328,7 @@ export default function App() {
                     <PersonIcon />
                     <Slider
                       aria-label="Volume"
-                      value={
-                        paymentChannelInfo
-                          ? computePercentagePaid(paymentChannelInfo)
-                          : 0
-                      }
+                      value={Number(paymentChannelInfo?.Balance.PaidSoFar ?? 0)}
                       min={0}
                       max={Number(
                         (paymentChannelInfo?.Balance.PaidSoFar ?? 0n) +
