@@ -348,7 +348,7 @@ export default function App() {
                       {paymentChannelInfo?.Balance.PaidSoFar.toString()}
                     </Typography>
                   </Stack>
-                  {paymentChannelId}
+                  {paymentChannelId.slice(0, 6) + "..."}
                 </Stack>
               </Stack>
             </StepContent>
