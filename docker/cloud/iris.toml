@@ -17,7 +17,7 @@ caaddress = "0x0C9D79725afc344A388045235CD0B23eA4f0E838"
 
 # RPC provider docs: https://lotus.filecoin.io/lotus/developers/glif-nodes/#testnet-endpoint
 chainurl = "wss://wss.calibration.node.glif.io/apigw/lotus/rpc/v0"
-chainstartblock = 908130
+chainstartblock = 915929
 chainauthtoken = ""
 
 bootpeers = ""
