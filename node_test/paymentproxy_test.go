@@ -81,7 +81,7 @@ func TestPaymentProxy(t *testing.T) {
 		proxyAddress,
 		bobRPCUrl,
 		destinationServerUrl,
-		1)
+		1, "", "")
 	defer func() {
 		err := proxy.Stop()
 		if err != nil {

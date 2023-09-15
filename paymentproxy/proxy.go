@@ -43,12 +43,14 @@ type PaymentProxy struct {
 	costPerByte  uint64
 	reverseProxy *httputil.ReverseProxy
 
-	destinationUrl *url.URL
+	destinationUrl            *url.URL
+	certFilePath, certKeyPath string
 }
 
 // NewPaymentProxy creates a new PaymentProxy.
-func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, costPerByte uint64) *PaymentProxy {
+func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, costPerByte uint64, certFilePath, certKeyPath string) *PaymentProxy {
 	server := &http.Server{Addr: proxyAddress}
+
 	nitroClient, err := rpc.NewHttpRpcClient(nitroEndpoint)
 	if err != nil {
 		panic(err)
@@ -64,8 +66,9 @@ func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL s
 		costPerByte:    costPerByte,
 		destinationUrl: destinationUrl,
 		reverseProxy:   &httputil.ReverseProxy{},
+		certFilePath:   certFilePath,
+		certKeyPath:    certKeyPath,
 	}
-
 	// Wire up our handlers to the reverse proxy
 	p.reverseProxy.Rewrite = func(pr *httputil.ProxyRequest) { pr.SetURL(p.destinationUrl) }
 	p.reverseProxy.ModifyResponse = p.handleDestinationResponse
@@ -80,6 +83,16 @@ func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL s
 // It is responsible for parsing the voucher from the query params and moving it to the request header
 // It then delegates to the reverse proxy to handle rewriting the request and sending it to the destination
 func (p *PaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// If the request is a health check, return a 200 OK
+	if r.URL.Path == "/health" {
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte("Proxy is healthy"))
+		if err != nil {
+			p.handleError(w, r, err)
+			return
+		}
+		return
+	}
 	enableCORS(w, r)
 	v, err := parseVoucher(r.URL.Query())
 	if err != nil {
@@ -156,10 +169,15 @@ func (p *PaymentProxy) handleError(w http.ResponseWriter, r *http.Request, err e
 // Start starts the proxy server in a goroutine.
 func (p *PaymentProxy) Start() error {
 	go func() {
-		slog.Info("Starting a payment proxy", "address", p.server.Addr)
-
-		if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
-			slog.Error("Error while listening", "error", err)
+		if p.certFilePath != "" && p.certKeyPath != "" {
+			if err := p.server.ListenAndServeTLS(p.certFilePath, p.certKeyPath); err != http.ErrServerClosed {
+				slog.Error("Error while listening", "error", err)
+			}
+		} else {
+			slog.Info("Starting a payment proxy", "address", p.server.Addr)
+			if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
+				slog.Error("Error while listening", "error", err)
+			}
 		}
 	}()
 
