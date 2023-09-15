@@ -59,12 +59,9 @@ function Copyright(props: any) {
 }
 
 function computePercentagePaid(info: PaymentChannelInfo): number {
-  return parseInt(
-    (
-      info.Balance.PaidSoFar /
+  return Number(
+    info.Balance.PaidSoFar /
       (info.Balance.RemainingFunds + info.Balance.RemainingFunds)
-    ).toString(),
-    10
   );
 }
 export default function App() {
