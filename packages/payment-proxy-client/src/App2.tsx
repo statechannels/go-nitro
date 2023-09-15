@@ -351,7 +351,10 @@ export default function App2() {
                 Filecoin Paid Retrieval Demo
               </Typography>
               <VerticalLinearStepper />
-              <Link href="#" variant="body2">
+              <Link
+                href="https://statechannels.notion.site/Filecoin-Paid-Retrieval-Demo-bf6ad9ec92a74e139331ce77900305fc?pvs=4"
+                variant="body2"
+              >
                 How does this work?
               </Link>
               {errorText}
