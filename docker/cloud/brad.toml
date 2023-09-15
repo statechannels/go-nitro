@@ -20,7 +20,7 @@ chainurl = "wss://wss.calibration.node.glif.io/apigw/lotus/rpc/v0"
 chainstartblock = 909569
 chainauthtoken = ""
 
-bootpeers = "/ip4/67.207.88.72/tcp/3005/p2p/16Uiu2HAmDQj9XnHPD1d4GzS1K3DhmM5Z1cSGLfVTwVcNVdEsAN3Q,/ip4/134.122.114.102/tcp/3005/p2p/16Uiu2HAmUPifMQSzPGmt3UdTc86bMuebBJ26e2xBWus7xmQ5zhMt"
+bootpeers = "/ip4/67.207.88.72/tcp/3005/p2p/16Uiu2HAmDQj9XnHPD1d4GzS1K3DhmM5Z1cSGLfVTwVcNVdEsAN3Q"
 
 tlscertfilepath = "/app/certs/live/brad-node.statechannels.org/fullchain.pem"
 tlskeyfilepath = "/app/certs/live/brad-node.statechannels.org/privkey.pem"
