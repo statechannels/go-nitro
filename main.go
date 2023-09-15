@@ -31,6 +31,7 @@ func main() {
 		NA_ADDRESS            = "naaddress"
 		VPA_ADDRESS           = "vpaaddress"
 		CA_ADDRESS            = "caaddress"
+		PUBLIC_IP             = "publicip"
 		MSG_PORT              = "msgport"
 		RPC_PORT              = "rpcport"
 		GUI_PORT              = "guiport"
@@ -51,7 +52,7 @@ func main() {
 		TLS_CERT_FILEPATH = "tlscertfilepath"
 		TLS_KEY_FILEPATH  = "tlskeyfilepath"
 	)
-	var pkString, chainUrl, chainAuthToken, naAddress, vpaAddress, caAddress, chainPk, durableStoreFolder, bootPeers string
+	var pkString, chainUrl, chainAuthToken, naAddress, vpaAddress, caAddress, chainPk, durableStoreFolder, bootPeers, publicIp string
 	var msgPort, rpcPort, guiPort int
 	var chainStartBlock uint64
 	var useNats, useDurableStore bool
@@ -138,6 +139,14 @@ func main() {
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &caAddress,
 		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:        PUBLIC_IP,
+			Usage:       "Specifies the public ip used for the message service.",
+			Value:       "127.0.0.1",
+			Category:    CONNECTIVITY_CATEGORY,
+			Destination: &publicIp,
+			EnvVars:     []string{"NITRO_PUBLIC_IP"},
+		}),
 		altsrc.NewIntFlag(&cli.IntFlag{
 			Name:        MSG_PORT,
 			Usage:       "Specifies the tcp port for the message service.",
@@ -211,7 +220,7 @@ func main() {
 
 			logging.SetupDefaultLogger(os.Stdout, slog.LevelDebug)
 
-			node, _, _, _, err := node.InitializeNode(pkString, chainOpts, useDurableStore, durableStoreFolder, msgPort, peerSlice)
+			node, _, _, _, err := node.InitializeNode(pkString, chainOpts, useDurableStore, durableStoreFolder, msgPort, peerSlice, publicIp)
 			if err != nil {
 				return err
 			}
