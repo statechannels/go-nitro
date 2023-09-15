@@ -27,7 +27,6 @@ import { NitroRpcClient } from "@statechannels/nitro-rpc-client";
 import { PaymentChannelInfo } from "@statechannels/nitro-rpc-client/src/types";
 
 import {
-  CHANNEL_ID_KEY,
   QUERY_KEY,
   costPerByte,
   dataSize,
@@ -103,28 +102,6 @@ export default function App() {
     );
   }, [url]);
 
-  useEffect(() => {
-    if (!nitroClient) return;
-    const fetchedId = localStorage.getItem(CHANNEL_ID_KEY);
-    if (fetchedId && fetchedId != "") {
-      setPaymentChannelId(fetchedId);
-
-      nitroClient
-        .GetPaymentChannel(fetchedId)
-        .then((paymentChannel) => {
-          console.log(paymentChannel);
-          setPaymentChannelInfo(paymentChannel);
-        })
-        .catch(() => {
-          console.warn(
-            `Channel from storage ${fetchedId} not found. Removing from storage...`
-          );
-          localStorage.removeItem(CHANNEL_ID_KEY);
-          setPaymentChannelId("");
-        });
-    }
-  }, [nitroClient]);
-
   const updateChannelInfo = async (channelId: string) => {
     if (channelId == "") {
       throw new Error("Empty channel id provided");
@@ -158,7 +135,6 @@ export default function App() {
 
     await nitroClient.WaitForObjective(result.Id);
 
-    localStorage.setItem(CHANNEL_ID_KEY, result.ChannelId);
     setPaymentChannelId(result.ChannelId);
     updateChannelInfo(result.ChannelId);
 
