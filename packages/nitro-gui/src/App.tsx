@@ -6,38 +6,7 @@ import "./App.css";
 import TopBar from "./components/TopBar";
 import LedgerChannelDetails from "./components/LedgerChannelDetails";
 import PaymentChannelContainer from "./components/PaymentChannelContainer";
-
-async function fetchAndSetLedgerChannels(
-  nitroClient: NitroRpcClient,
-  setLedgerChannels: (l: LedgerChannelInfo[]) => void
-) {
-  setLedgerChannels(await nitroClient.GetAllLedgerChannels());
-}
-
-async function getRpcPort(): Promise<string> {
-  const xhr = new XMLHttpRequest();
-  xhr.open("GET", new URL("/rpc-port", window.location.href));
-  xhr.send();
-  return new Promise((res, rej) => {
-    xhr.onload = function () {
-      if (xhr.status === 200) {
-        res(xhr.responseText);
-      } else if (xhr.status === 404) {
-        rej("could not get rpc port");
-      }
-    };
-  });
-}
-
-async function getRpcHost(): Promise<string> {
-  if (import.meta.env.VITE_RPC_HOST) {
-    return import.meta.env.VITE_RPC_HOST;
-  } else {
-    return getRpcPort().then(
-      (rpcPort) => window.location.hostname + ":" + rpcPort
-    );
-  }
-}
+import { getRpcHost, fetchAndSetLedgerChannels } from "./utils";
 
 function App() {
   const [nitroClient, setNitroClient] = useState<NitroRpcClient | null>(null);
