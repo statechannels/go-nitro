@@ -205,6 +205,7 @@ export default function App2() {
               <Box sx={{ mb: 2 }}>
                 <div>
                   <Button
+                    disabled={!!nitroClient}
                     variant="contained"
                     onClick={handleNext}
                     sx={{ mt: 1, mr: 1 }}
