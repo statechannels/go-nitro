@@ -59,9 +59,11 @@ function Copyright(props: any) {
 }
 
 function computePercentagePaid(info: PaymentChannelInfo): number {
-  return Number(
-    info.Balance.PaidSoFar /
-      (info.Balance.RemainingFunds + info.Balance.PaidSoFar)
+  return (
+    Number(
+      info.Balance.PaidSoFar /
+        (info.Balance.RemainingFunds + info.Balance.PaidSoFar)
+    ) * 100
   );
 }
 export default function App() {
@@ -209,17 +211,15 @@ export default function App() {
       </Alert>
     );
   }
+  const [activeStep, setActiveStep] = React.useState(0);
+  const handleNext = () => {
+    setActiveStep(activeStep + 1);
+  };
+
+  const [createChannelDisabled, setCreateChannelDisabled] = useState(false);
+  const [payDisabled, setPayDisabled] = useState(false);
 
   function VerticalLinearStepper() {
-    const [activeStep, setActiveStep] = React.useState(0);
-
-    const [createChannelDisabled, setCreateChannelDisabled] = useState(false);
-    const [payDisabled, setPayDisabled] = useState(false);
-
-    const handleNext = () => {
-      setActiveStep((prevActiveStep) => prevActiveStep + 1);
-    };
-
     const handleCreateChannelButton = () => {
       setCreateChannelDisabled(true);
       createPaymentChannel().then(handleNext, (err) => {
