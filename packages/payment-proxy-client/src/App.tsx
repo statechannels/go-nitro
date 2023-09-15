@@ -122,6 +122,9 @@ export default function App() {
           localStorage.removeItem(CHANNEL_ID_KEY);
           setPaymentChannelId("");
         });
+
+      // If we already have a channel, skip to the payment step
+      setActiveStep(2);
     }
   }, [nitroClient]);
 
