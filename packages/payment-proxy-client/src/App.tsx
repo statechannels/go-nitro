@@ -57,14 +57,6 @@ function Copyright(props: any) {
   );
 }
 
-function computePercentagePaid(info: PaymentChannelInfo): number {
-  return (
-    Number(
-      info.Balance.PaidSoFar /
-        (info.Balance.RemainingFunds + info.Balance.PaidSoFar)
-    ) * 100
-  );
-}
 export default function App() {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
 
@@ -307,24 +299,25 @@ export default function App() {
                     alignItems="center"
                   >
                     <Typography variant="body2" color="text.secondary">
-                      {paymentChannelInfo?.Balance.Payer}
+                      {paymentChannelInfo?.Balance.RemainingFunds.toString()}
                     </Typography>
                     <PersonIcon />
                     <Slider
                       aria-label="Volume"
-                      value={
-                        paymentChannelInfo
-                          ? computePercentagePaid(paymentChannelInfo)
-                          : 0
-                      }
+                      value={Number(paymentChannelInfo?.Balance.PaidSoFar ?? 0)}
+                      min={0}
+                      max={Number(
+                        (paymentChannelInfo?.Balance.PaidSoFar ?? 0n) +
+                          (paymentChannelInfo?.Balance.RemainingFunds ?? 0n)
+                      )}
                       valueLabelDisplay="on"
                     />
                     <StorageIcon />{" "}
                     <Typography variant="body2" color="text.secondary">
-                      {paymentChannelInfo?.Balance.Payee}
+                      {paymentChannelInfo?.Balance.PaidSoFar.toString()}
                     </Typography>
                   </Stack>
-                  {paymentChannelId}
+                  {paymentChannelId.slice(0, 6) + "..."}
                 </Stack>
               </Stack>
             </StepContent>
