@@ -3,7 +3,8 @@ export const QUERY_KEY = "rpcUrl";
 export const costPerByte = 1;
 
 export const proxyUrl = import.meta.env.VITE_PROXY_URL;
-export const fileRelativePath = "People/mimasa/test/imgformat/img/w3c_home.png";
+export const fileRelativePath =
+  "/People/mimasa/test/imgformat/img/w3c_home.png";
 export const fileUrl = proxyUrl + fileRelativePath;
 export const dataSize = 6833;
 
