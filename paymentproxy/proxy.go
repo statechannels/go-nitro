@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"math/big"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -43,12 +43,14 @@ type PaymentProxy struct {
 	costPerByte  uint64
 	reverseProxy *httputil.ReverseProxy
 
-	destinationUrl *url.URL
+	destinationUrl            *url.URL
+	certFilePath, certKeyPath string
 }
 
 // NewPaymentProxy creates a new PaymentProxy.
-func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, costPerByte uint64) *PaymentProxy {
+func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, costPerByte uint64, certFilePath, certKeyPath string) *PaymentProxy {
 	server := &http.Server{Addr: proxyAddress}
+
 	nitroClient, err := rpc.NewHttpRpcClient(nitroEndpoint)
 	if err != nil {
 		panic(err)
@@ -64,8 +66,9 @@ func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL s
 		costPerByte:    costPerByte,
 		destinationUrl: destinationUrl,
 		reverseProxy:   &httputil.ReverseProxy{},
+		certFilePath:   certFilePath,
+		certKeyPath:    certKeyPath,
 	}
-
 	// Wire up our handlers to the reverse proxy
 	p.reverseProxy.Rewrite = func(pr *httputil.ProxyRequest) { pr.SetURL(p.destinationUrl) }
 	p.reverseProxy.ModifyResponse = p.handleDestinationResponse
@@ -80,6 +83,16 @@ func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL s
 // It is responsible for parsing the voucher from the query params and moving it to the request header
 // It then delegates to the reverse proxy to handle rewriting the request and sending it to the destination
 func (p *PaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// If the request is a health check, return a 200 OK
+	if r.URL.Path == "/health" {
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte("Proxy is healthy"))
+		if err != nil {
+			p.handleError(w, r, err)
+			return
+		}
+		return
+	}
 	enableCORS(w, r)
 	v, err := parseVoucher(r.URL.Query())
 	if err != nil {
@@ -104,9 +117,18 @@ func (p *PaymentProxy) handleDestinationResponse(r *http.Response) error {
 	if r.Request.Method == "OPTIONS" {
 		return nil
 	}
-	contentLength, err := strconv.ParseUint(r.Header.Get("Content-Length"), 10, 64)
-	if err != nil {
-		return err
+
+	contentLength := uint64(0)
+	// If the Content-Length header is set, use that
+	// Otherwise, read the body to get the length
+	if r.ContentLength != -1 {
+		contentLength = uint64(r.ContentLength)
+	} else {
+		var err error
+		contentLength, err = readBodyLength(r.Body)
+		if err != nil {
+			return createPaymentError(err)
+		}
 	}
 
 	v, ok := r.Request.Context().Value(VOUCHER_CONTEXT_ARG).(payments.Voucher)
@@ -147,10 +169,15 @@ func (p *PaymentProxy) handleError(w http.ResponseWriter, r *http.Request, err e
 // Start starts the proxy server in a goroutine.
 func (p *PaymentProxy) Start() error {
 	go func() {
-		slog.Info("Starting a payment proxy", "address", p.server.Addr)
-
-		if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
-			slog.Error("Error while listening", "error", err)
+		if p.certFilePath != "" && p.certKeyPath != "" {
+			if err := p.server.ListenAndServeTLS(p.certFilePath, p.certKeyPath); err != http.ErrServerClosed {
+				slog.Error("Error while listening", "error", err)
+			}
+		} else {
+			slog.Info("Starting a payment proxy", "address", p.server.Addr)
+			if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
+				slog.Error("Error while listening", "error", err)
+			}
 		}
 	}()
 
@@ -217,4 +244,23 @@ func enableCORS(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
+}
+
+func readBodyLength(b io.ReadCloser) (uint64, error) {
+	var byteCount uint64
+	buffer := make([]byte, 1024)
+
+	// Read the response body and count the bytes
+	for {
+		n, err := b.Read(buffer)
+		if err != nil {
+			if err == io.EOF {
+				break // Reached the end of the response body
+			}
+			return 0, err
+		}
+		byteCount += uint64(n)
+	}
+
+	return byteCount, nil
 }

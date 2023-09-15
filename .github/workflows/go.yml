@@ -27,6 +27,8 @@ jobs:
           install-go: false
           min-go-version: 1.21
 
+      - uses: ./.github/actions/mkcert
+
       - name: Build
         run: go build -v ./...
 

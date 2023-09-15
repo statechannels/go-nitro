@@ -21,3 +21,6 @@ chainstartblock = 908130
 chainauthtoken = ""
 
 bootpeers = ""
+
+tlscertfilepath = "/app/certs/live/iris-node.statechannels.org/fullchain.pem"
+tlskeyfilepath = "/app/certs/live/iris-node.statechannels.org/privkey.pem"

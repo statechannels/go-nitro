@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"log"
 	"log/slog"
 	"os"
@@ -45,11 +46,18 @@ func main() {
 		STORAGE_CATEGORY     = "Storage:"
 		USE_DURABLE_STORE    = "usedurablestore"
 		DURABLE_STORE_FOLDER = "durablestorefolder"
+
+		// TLS
+		TLS_CATEGORY      = "TLS:"
+		TLS_CERT_FILEPATH = "tlscertfilepath"
+		TLS_KEY_FILEPATH  = "tlskeyfilepath"
 	)
 	var pkString, chainUrl, chainAuthToken, naAddress, vpaAddress, caAddress, chainPk, durableStoreFolder, bootPeers, publicIp string
 	var msgPort, rpcPort, guiPort int
 	var chainStartBlock uint64
 	var useNats, useDurableStore bool
+
+	var tlsCertFilepath, tlsKeyFilepath string
 
 	// urfave default precedence for flag value sources (highest to lowest):
 	// 1. Command line flag value
@@ -174,6 +182,20 @@ func main() {
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &bootPeers,
 		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:        TLS_CERT_FILEPATH,
+			Usage:       "Filepath to the TLS certificate. If not specified, TLS will not be used with the RPC transport.",
+			Value:       "./tls/statechannels.org.pem",
+			Category:    TLS_CATEGORY,
+			Destination: &tlsCertFilepath,
+		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:        TLS_KEY_FILEPATH,
+			Usage:       "Filepath to the TLS private key. If not specified, TLS will not be used with the RPC transport.",
+			Value:       "./tls/statechannels.org_key.pem",
+			Category:    TLS_CATEGORY,
+			Destination: &tlsKeyFilepath,
+		}),
 	}
 	app := &cli.App{
 		Name:   "go-nitro",
@@ -202,8 +224,16 @@ func main() {
 			if err != nil {
 				return err
 			}
+			var cert tls.Certificate
 
-			rpcServer, err := rpc.InitializeRpcServer(node, rpcPort, useNats)
+			if tlsCertFilepath != "" && tlsKeyFilepath != "" {
+				cert, err = tls.LoadX509KeyPair(tlsCertFilepath, tlsKeyFilepath)
+				if err != nil {
+					panic(err)
+				}
+			}
+
+			rpcServer, err := rpc.InitializeRpcServer(node, rpcPort, useNats, &cert)
 			if err != nil {
 				return err
 			}

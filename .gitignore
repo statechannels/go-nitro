@@ -117,3 +117,6 @@ node_modules/
 **/storybook-static
 
 **/tmp-build
+
+# Ignore tls certificates and private keys
+tls/*.pem

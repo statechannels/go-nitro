@@ -30,7 +30,7 @@ const (
 	parseErrorResponseBody     = "could not parse voucher"
 	signatureErrorResponseBody = "error processing voucher"
 	proxyAddress               = ":5511"
-	bobRPCUrl                  = ":4107/api/v1"
+	bobRPCUrl                  = "127.0.0.1:4107/api/v1"
 	destPort                   = 6622
 	otherParam                 = "otherParam"
 	otherParamValue            = "2"
@@ -81,7 +81,7 @@ func TestPaymentProxy(t *testing.T) {
 		proxyAddress,
 		bobRPCUrl,
 		destinationServerUrl,
-		1)
+		1, "", "")
 	defer func() {
 		err := proxy.Stop()
 		if err != nil {

@@ -1,0 +1,20 @@
+name: mkcert
+
+description: "Install mkcert and generate certificates"
+runs:
+  using: "composite"
+  steps:
+    - name: Install mkcert
+      shell: bash
+      run: |
+        curl -JLO "https://dl.filippo.io/mkcert/latest?for=linux/amd64"
+        chmod +x mkcert-v*-linux-amd64
+        sudo cp mkcert-v*-linux-amd64 /usr/local/bin/mkcert
+        mkcert -install
+
+        echo "NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem"" >> "$GITHUB_ENV"
+
+    - name: Generate certificates
+      shell: bash
+      run: |
+        make -C tls create-cert

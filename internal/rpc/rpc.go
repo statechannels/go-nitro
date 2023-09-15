@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log/slog"
 
@@ -11,7 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/rpc/transport/nats"
 )
 
-func InitializeRpcServer(node *node.Node, rpcPort int, useNats bool) (*rpc.RpcServer, error) {
+func InitializeRpcServer(node *node.Node, rpcPort int, useNats bool, cert *tls.Certificate) (*rpc.RpcServer, error) {
 	var transport transport.Responder
 	var err error
 
@@ -20,7 +21,7 @@ func InitializeRpcServer(node *node.Node, rpcPort int, useNats bool) (*rpc.RpcSe
 		transport, err = nats.NewNatsTransportAsServer(rpcPort)
 	} else {
 		slog.Info("Initializing Http RPC transport...")
-		transport, err = httpTransport.NewHttpTransportAsServer(fmt.Sprint(rpcPort))
+		transport, err = httpTransport.NewHttpTransportAsServer(fmt.Sprint(rpcPort), cert)
 	}
 	if err != nil {
 		return nil, err
