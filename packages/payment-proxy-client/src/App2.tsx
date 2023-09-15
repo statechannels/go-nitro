@@ -294,12 +294,6 @@ export default function App2() {
                           }
                           label="Skip payment"
                         />
-                        <FormControlLabel
-                          control={
-                            <Switch value="usemicropayments" color="primary" />
-                          }
-                          label="Use micropayments"
-                        />
                         <Button
                           variant="contained"
                           disabled={payDisabled}
