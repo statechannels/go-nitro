@@ -6,7 +6,14 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Link from "@mui/material/Link";
 import Grid from "@mui/material/Grid";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { Slider, Stack, Switch, useMediaQuery } from "@mui/material";
+import {
+  Alert,
+  AlertTitle,
+  Slider,
+  Stack,
+  Switch,
+  useMediaQuery,
+} from "@mui/material";
 import Box from "@mui/material/Box";
 import Stepper from "@mui/material/Stepper";
 import Step from "@mui/material/Step";
@@ -370,7 +377,11 @@ export default function App2() {
               >
                 How does this work?
               </Link>
-              {errorText}
+              <Alert severity="error">
+                <AlertTitle>Error</AlertTitle>
+                {errorText}
+              </Alert>
+
               <Copyright sx={{ mt: 5 }} />
             </Stack>
           </Box>
