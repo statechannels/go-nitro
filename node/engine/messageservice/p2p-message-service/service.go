@@ -65,7 +65,7 @@ func (ms *P2PMessageService) Id() peer.ID {
 }
 
 // NewMessageService returns a running P2PMessageService listening on the given ip, port and message key.
-func NewMessageService(ip string, port int, me types.Address, pk []byte, bootPeers []string) *P2PMessageService {
+func NewMessageService(publicIp string, port int, me types.Address, pk []byte, bootPeers []string) *P2PMessageService {
 	ms := &P2PMessageService{
 		initComplete: make(chan struct{}, 1),
 		toEngine:     make(chan protocols.Message, BUFFER_SIZE),
@@ -76,23 +76,31 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, bootPee
 	}
 
 	messageKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(pk)
+	ms.checkError(err)
+
+	extMultiAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", publicIp, port))
 	if err != nil {
-		panic(err)
+		ms.logger.Error("Error creating multiaddress", "err", err)
+	}
+	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
+		if extMultiAddr != nil {
+			addrs = append(addrs, extMultiAddr)
+		}
+		return addrs
 	}
 
 	ms.key = messageKey
 	options := []libp2p.Option{
 		libp2p.Identity(messageKey),
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port)),
+		libp2p.AddrsFactory(addressFactory),
+		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", "0.0.0.0", port)),
 		libp2p.Transport(tcp.NewTCPTransport),
 		libp2p.NATPortMap(),
 		libp2p.EnableNATService(),
 		libp2p.DefaultMuxers,
 	}
 	host, err := libp2p.New(options...)
-	if err != nil {
-		panic(err)
-	}
+	ms.checkError(err)
 
 	ms.p2pHost = host
 	ms.p2pHost.SetStreamHandler(GENERAL_MSG_PROTOCOL_ID, ms.msgStreamHandler)
@@ -103,25 +111,34 @@ func NewMessageService(ip string, port int, me types.Address, pk []byte, bootPee
 		Addrs: ms.p2pHost.Addrs(),
 	}
 	addrs, err := peer.AddrInfoToP2pAddrs(&peerInfo)
-	if err != nil {
-		panic(err)
-	}
+	ms.checkError(err)
+
 	ms.MultiAddr = addrs[0].String()
 	ms.logger.Info("libp2p node", "multiaddrs", addrs)
 
 	err = ms.setupDht(bootPeers)
-
-	if err != nil {
-		panic(err)
-	}
+	ms.checkError(err)
 
 	return ms
 }
 
 func (ms *P2PMessageService) setupDht(bootPeers []string) error {
 	ctx := context.Background()
+
+	var bootAddrs []peer.AddrInfo
+	for _, p := range bootPeers {
+		addr, err := multiaddr.NewMultiaddr(p)
+		ms.checkError(err)
+
+		peer, err := peer.AddrInfoFromP2pAddr(addr)
+		ms.checkError(err)
+
+		bootAddrs = append(bootAddrs, *peer)
+	}
+
 	var options []dht.Option
 	options = append(options, dht.BucketSize(20))
+	options = append(options, dht.BootstrapPeers(bootAddrs...))
 	options = append(options, dht.Mode(dht.ModeServer))                                                    // allows other peers to connect to this node
 	options = append(options, dht.ProtocolPrefix(DHT_PROTOCOL_PREFIX))                                     // need this to allow custom NamespacedValidator
 	options = append(options, dht.NamespacedValidator(DHT_NAMESPACE, stateChannelAddrToPeerIDValidator{})) // all records prefixed with /scaddr/ will use this custom validator
@@ -144,7 +161,7 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) error {
 		ms.logger.Debug("notification: disconnected from peer", "peerId", conn.RemotePeer().String(), "peerCount", len(ms.p2pHost.Network().Peers()))
 	}
 	ms.p2pHost.Network().Notify(n)
-	ms.connectBootPeers(bootPeers)
+	ms.connectBootPeers(bootAddrs)
 
 	err = ms.dht.Bootstrap(ctx) // Sends FIND_NODE queries periodically to populate dht routing table
 	if err != nil {
@@ -275,8 +292,9 @@ func (ms *P2PMessageService) Send(msg protocols.Message) error {
 		addrInfo, err := ms.dht.FindPeer(ms.dht.Context(), peerId)
 		if err == nil {
 			ms.logger.Error("could not FindPeer", "err", err)
+		} else {
+			ms.logger.Debug("FindPeer success", "addrInfo", addrInfo)
 		}
-		ms.logger.Debug("FindPeer success", "addrInfo", addrInfo)
 
 		s, err := ms.p2pHost.NewStream(context.Background(), peerId, GENERAL_MSG_PROTOCOL_ID)
 		if err == nil {
@@ -323,24 +341,17 @@ func (ms *P2PMessageService) PeerInfoReceived() <-chan basicPeerInfo {
 }
 
 // connectBootPeers connects to the given boot peers
-func (ms *P2PMessageService) connectBootPeers(bootPeers []string) {
+func (ms *P2PMessageService) connectBootPeers(bootPeers []peer.AddrInfo) {
 	expectedPeers := len(bootPeers)
 	if expectedPeers == 0 {
 		return
 	}
 
-	for _, p := range bootPeers {
-		addr, err := multiaddr.NewMultiaddr(p)
+	for _, peer := range bootPeers {
+		err := ms.p2pHost.Connect(context.Background(), peer) // Adds peerInfo to local Peerstore
 		ms.checkError(err)
 
-		peer, err := peer.AddrInfoFromP2pAddr(addr)
-		ms.checkError(err)
-
-		err = ms.p2pHost.Connect(context.Background(), *peer) // Adds peerInfo to local Peerstore
-		ms.checkError(err)
-
-		ms.logger.Debug("connected to boot peer", "peer", p)
-
+		ms.logger.Debug("connected to boot peer", "peer", peer)
 	}
 
 	// Add bootpeers and wait for connections before proceeding
