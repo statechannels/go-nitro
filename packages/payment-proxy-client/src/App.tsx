@@ -67,7 +67,7 @@ function computePercentagePaid(info: PaymentChannelInfo): number {
     10
   );
 }
-export default function App2() {
+export default function App() {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
 
   const theme = React.useMemo(

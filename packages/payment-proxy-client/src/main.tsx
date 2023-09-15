@@ -2,10 +2,10 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 
 // import "./index.css";
-import App2 from "./App2.tsx";
+import App from "./App.tsx";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <App2 />
+    <App />
   </React.StrictMode>
 );
