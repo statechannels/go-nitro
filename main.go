@@ -106,6 +106,7 @@ func main() {
 			Usage:       "The bearer token used for auth when making requests to the chain's RPC endpoint.",
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &chainAuthToken,
+			EnvVars:     []string{"CHAIN_AUTH_TOKEN"},
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CHAIN_PK,
