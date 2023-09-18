@@ -102,6 +102,7 @@ func main() {
 			DefaultText: "hardhat / anvil default",
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &chainUrl,
+			EnvVars:     []string{"CHAIN_URL"},
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CHAIN_AUTH_TOKEN,
@@ -122,6 +123,7 @@ func main() {
 			Value:       0,
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &chainStartBlock,
+			EnvVars:     []string{"CHAIN_START_BLOCK"},
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        NA_ADDRESS,
