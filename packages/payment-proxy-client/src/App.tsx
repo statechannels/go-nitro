@@ -9,6 +9,7 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import {
   Alert,
   AlertTitle,
+  Chip,
   Slider,
   Stack,
   Switch,
@@ -38,6 +39,11 @@ import {
 } from "./constants";
 import { fetchFile } from "./file";
 import { Copyright } from "./Copyright";
+
+function truncateHexString(h: string) {
+  if (h == "") return "";
+  return h.slice(0, 6) + "...";
+}
 
 export default function App() {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
@@ -211,7 +217,12 @@ export default function App() {
           </Step>
 
           <Step key={"Connect to a Retrieval Provider"}>
-            <StepLabel>{"Connect to a Retrieval Provider"}</StepLabel>
+            <StepLabel>
+              {`Connect to a Retrieval Provider `}
+              {paymentChannelId != "" && (
+                <Chip label={truncateHexString(paymentChannelId)} />
+              )}
+            </StepLabel>
             <StepContent>
               <Typography>
                 {
@@ -305,7 +316,6 @@ export default function App() {
                       {paymentChannelInfo?.Balance.PaidSoFar.toString()}
                     </Typography>
                   </Stack>
-                  {paymentChannelId.slice(0, 6) + "..."}
                 </Stack>
               </Stack>
             </StepContent>
