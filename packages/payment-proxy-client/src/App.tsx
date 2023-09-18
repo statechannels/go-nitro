@@ -224,9 +224,8 @@ export default function App() {
             <StepLabel>{`Connect to a Retrieval Provider `} </StepLabel>
             <StepContent>
               <Typography>
-                {
-                  "Create a virtual payment with enough capacity to pay for 10 retrievals."
-                }
+                Create a <b>virtual payment channel</b> with enough capacity to
+                pay for 10 retrievals.
               </Typography>
 
               <Box sx={{ mb: 2 }}>
