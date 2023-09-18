@@ -36,7 +36,7 @@ func main() {
 			Value:   "0x111A00868581f73AB42FEEF67D235Ca09ca1E8db",
 			Aliases: []string{"c"},
 		},
-		&cli.UintFlag{
+		&cli.Uint64Flag{
 			Name:    AMOUNT,
 			Value:   5_000_000,
 			Usage:   "Specifies the amount of wei to deposit into the ledger channel.",
@@ -59,7 +59,7 @@ func main() {
 			}
 			defer client.Close()
 
-			err = utils.CreateLedgerChannel(client, common.HexToAddress(cCtx.String(COUNTERPARTY_ADDRESS)), cCtx.Uint(AMOUNT))
+			err = utils.CreateLedgerChannel(client, common.HexToAddress(cCtx.String(COUNTERPARTY_ADDRESS)), cCtx.Uint64(AMOUNT))
 			if err != nil {
 				return err
 			}
