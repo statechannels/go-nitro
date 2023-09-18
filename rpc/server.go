@@ -271,6 +271,12 @@ func validateJsonrpcRequest(requestData []byte) (serde.JsonRpcGeneralRequest, []
 	}
 	vr.Method = sMethod
 
+	mParams, ok := request["params"].(map[string]interface{})
+	if !ok {
+		errRes := serde.NewJsonRpcErrorResponse(vr.Id, serde.InvalidRequestError)
+		return serde.JsonRpcGeneralRequest{}, marshalResponse(errRes)
+	}
+	vr.Payload = mParams["payload"]
 	return vr, nil
 }
 
