@@ -16,5 +16,8 @@ export const initialChannelBalance = parseInt(
   10
 );
 
-// computed
-export const fileUrl = proxyUrl + fileRelativePath;
+export const fileUrls: { fileName: string; url: string }[] =
+  import.meta.env.VITE_FILE_PATHS.split(",").map((filePath: string) => ({
+    url: proxyUrl + filePath,
+    fileName: filePath.split("/").pop() || filePath,
+  }));

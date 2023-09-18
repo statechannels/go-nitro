@@ -33,7 +33,7 @@ import {
   costPerByte,
   dataSize,
   defaultNitroRPCUrl,
-  fileUrl,
+  fileUrls,
   hub,
   initialChannelBalance,
   provider,
@@ -143,10 +143,9 @@ export default function App() {
       setErrorText("No payment channel to use");
       return;
     }
-
     try {
       const file = await fetchFile(
-        fileUrl,
+        fileUrls[0].url,
         skipPayment ? 0 : costPerByte * dataSize,
         paymentChannelInfo.ID,
         nitroClient
