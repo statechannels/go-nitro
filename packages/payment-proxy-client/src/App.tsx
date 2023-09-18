@@ -3,12 +3,12 @@ import { useEffect, useState } from "react";
 import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import Link from "@mui/material/Link";
 import Grid from "@mui/material/Grid";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import {
   Alert,
   AlertTitle,
+  Divider,
   Slider,
   Stack,
   Switch,
@@ -37,24 +37,12 @@ import {
   provider,
 } from "./constants";
 import { fetchFile } from "./file";
+import { Copyright } from "./Copyright";
+import { prettyPrintFIL } from "./prettyPrintFIL";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function Copyright(props: any) {
-  return (
-    <Typography
-      variant="body2"
-      color="text.secondary"
-      align="center"
-      {...props}
-    >
-      {"Copyright © "}
-      <Link color="inherit" href="https://statechannels.org/">
-        statechannels.org
-      </Link>{" "}
-      {new Date().getFullYear()}
-      {"."}
-    </Typography>
-  );
+function truncateHexString(h: string) {
+  if (h == "") return "";
+  return h.slice(0, 6) + "...";
 }
 
 export default function App() {
@@ -85,13 +73,16 @@ export default function App() {
   const [errorText, setErrorText] = useState<string>("");
 
   useEffect(() => {
-    NitroRpcClient.CreateHttpNitroClient(url).then(
-      (c) => setNitroClient(c),
-      (e) => {
-        console.error(e);
-        setErrorText(e.message);
-      }
-    );
+    console.time("Connect to Nitro Node");
+    NitroRpcClient.CreateHttpNitroClient(url)
+      .then(
+        (c) => setNitroClient(c),
+        (e) => {
+          console.error(e);
+          setErrorText(e.message);
+        }
+      )
+      .finally(() => console.timeEnd("Connect to Nitro Node"));
   }, [url]);
 
   const updateChannelInfo = async (channelId: string) => {
@@ -119,6 +110,7 @@ export default function App() {
       setErrorText("Nitro client not initialized");
       return;
     }
+    console.time("Create Payment Channel");
     const result = await nitroClient.CreatePaymentChannel(
       provider,
       [hub],
@@ -130,6 +122,7 @@ export default function App() {
 
     setPaymentChannelId(result.ChannelId);
     updateChannelInfo(result.ChannelId);
+    console.timeEnd("Create Payment Channel");
 
     // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
     setTimeout(() => {
@@ -224,26 +217,60 @@ export default function App() {
             </StepContent>
           </Step>
 
-          <Step key={"Connect to a Retrieval Provider"}>
-            <StepLabel>{"Connect to a Retrieval Provider"}</StepLabel>
+          <Step
+            key={"Connect to a Retrieval Provider"}
+            expanded={!!paymentChannelId}
+          >
+            <StepLabel>{`Connect to a Retrieval Provider `} </StepLabel>
             <StepContent>
               <Typography>
-                {
-                  "Create a virtual payment with enough capacity to pay for 10 retrievals."
-                }
+                Create a <b>virtual payment channel</b> with enough capacity to
+                pay for 10 retrievals.
               </Typography>
+
               <Box sx={{ mb: 2 }}>
-                <div>
+                <Stack direction="row">
                   <Button
                     variant="contained"
                     disabled={createChannelDisabled}
                     onClick={handleCreateChannelButton}
                     sx={{ mt: 1, mr: 1 }}
                   >
-                    Create Channel
+                    {paymentChannelId != ""
+                      ? truncateHexString(paymentChannelId)
+                      : "Create Channel"}
                   </Button>
-                </div>
+                </Stack>
               </Box>
+              <Stack direction="column">
+                <Stack
+                  spacing={2}
+                  direction="row"
+                  sx={{ mb: 1 }}
+                  alignItems="center"
+                >
+                  <PersonIcon />
+                  <Slider
+                    disabled={!paymentChannelInfo}
+                    valueLabelDisplay="off"
+                    valueLabelFormat={(value) =>
+                      prettyPrintFIL(value) + " remaining"
+                    }
+                    track="inverted"
+                    value={Number(paymentChannelInfo?.Balance.PaidSoFar ?? 0)}
+                    min={0}
+                    max={Number(
+                      (paymentChannelInfo?.Balance.PaidSoFar ?? 0n) +
+                        (paymentChannelInfo?.Balance.RemainingFunds ?? 0n)
+                    )}
+                  />
+                  <StorageIcon />{" "}
+                </Stack>
+                <Typography variant="caption">
+                  Funds remaining:{" "}
+                  {prettyPrintFIL(paymentChannelInfo?.Balance.RemainingFunds)}
+                </Typography>
+              </Stack>
             </StepContent>
           </Step>
 
@@ -257,68 +284,39 @@ export default function App() {
                       "Create a payment voucher, and attach it to a request for the provider."
                     }
                   </Typography>
-                  <Box sx={{ mb: 2 }}>
-                    <div>
-                      <Box
-                        component="form"
-                        noValidate
-                        onSubmit={() => {
-                          /* TODO */
-                        }}
-                        sx={{ mt: 1 }}
+                  <Stack direction="column" spacing={2}>
+                    <Box
+                      component="form"
+                      noValidate
+                      onSubmit={() => {
+                        /* TODO */
+                      }}
+                      sx={{ mt: 1 }}
+                    >
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={skipPayment}
+                            value="skipPayment"
+                            color="primary"
+                            onChange={(e) => {
+                              setSkipPayment(e.target.checked);
+                            }}
+                          />
+                        }
+                        label="Skip payment"
+                      />
+                      <Button
+                        variant="contained"
+                        disabled={payDisabled}
+                        onClick={handlePayButton}
+                        sx={{ mt: 1, mr: 1 }}
                       >
-                        <Stack direction="row" spacing={2}></Stack>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              value="skippayment"
-                              color="primary"
-                              onChange={(e) => {
-                                setSkipPayment(e.target.checked);
-                              }}
-                            />
-                          }
-                          label="Skip payment"
-                        />
-                        <Button
-                          variant="contained"
-                          disabled={payDisabled}
-                          onClick={handlePayButton}
-                          sx={{ mt: 1, mr: 1 }}
-                        >
-                          Pay & Download
-                        </Button>
-                      </Box>
-                    </div>
-                  </Box>
-                </Stack>
-                <Stack direction="column">
-                  <Stack
-                    spacing={2}
-                    direction="row"
-                    sx={{ mb: 1 }}
-                    alignItems="center"
-                  >
-                    <Typography variant="body2" color="text.secondary">
-                      {paymentChannelInfo?.Balance.RemainingFunds.toString()}
-                    </Typography>
-                    <PersonIcon />
-                    <Slider
-                      aria-label="Volume"
-                      value={Number(paymentChannelInfo?.Balance.PaidSoFar ?? 0)}
-                      min={0}
-                      max={Number(
-                        (paymentChannelInfo?.Balance.PaidSoFar ?? 0n) +
-                          (paymentChannelInfo?.Balance.RemainingFunds ?? 0n)
-                      )}
-                      valueLabelDisplay="on"
-                    />
-                    <StorageIcon />{" "}
-                    <Typography variant="body2" color="text.secondary">
-                      {paymentChannelInfo?.Balance.PaidSoFar.toString()}
-                    </Typography>
+                        Pay & Download
+                      </Button>
+                    </Box>
+                    {displayError(errorText)}
                   </Stack>
-                  {paymentChannelId.slice(0, 6) + "..."}
                 </Stack>
               </Stack>
             </StepContent>
@@ -332,6 +330,27 @@ export default function App() {
     <ThemeProvider theme={theme}>
       <Grid container component="main" sx={{ height: "100vh" }}>
         <CssBaseline />
+
+        <Grid item xs={12} sm={8} md={5} component={Paper} elevation={6} square>
+          <Box
+            sx={{
+              my: 8,
+              mx: 4,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <Stack spacing={3}>
+              <Typography component="h1" variant="h5">
+                Filecoin Paid Retrieval Demo
+              </Typography>
+              <VerticalLinearStepper />
+              <Divider variant="middle" />
+              <Copyright sx={{ mt: 5 }} />
+            </Stack>
+          </Box>
+        </Grid>
         <Grid
           item
           xs={false}
@@ -349,32 +368,6 @@ export default function App() {
             backgroundPosition: "center",
           }}
         />
-        <Grid item xs={12} sm={8} md={5} component={Paper} elevation={6} square>
-          <Box
-            sx={{
-              my: 8,
-              mx: 4,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
-            <Stack spacing={3}>
-              <Typography component="h1" variant="h5">
-                Filecoin Paid Retrieval Demo
-              </Typography>
-              <VerticalLinearStepper />
-              <Link
-                href="https://statechannels.notion.site/Filecoin-Paid-Retrieval-Demo-bf6ad9ec92a74e139331ce77900305fc?pvs=4"
-                variant="body2"
-              >
-                How does this work?
-              </Link>
-              {displayError(errorText)}
-              <Copyright sx={{ mt: 5 }} />
-            </Stack>
-          </Box>
-        </Grid>
       </Grid>
     </ThemeProvider>
   );
