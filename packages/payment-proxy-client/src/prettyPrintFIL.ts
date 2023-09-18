@@ -26,6 +26,9 @@ export const prettyPrintFIL = (wei: bigint | number | undefined): string => {
 
   let formattedString = "";
   decimals.forEach((decimal, index) => {
+    if (wei == undefined) {
+      return "-";
+    }
     if (wei >= 10n ** decimal) {
       formattedString = `${bigDecimal.divide(wei, 10n ** decimal, PRECISION)} ${
         names[index]
