@@ -12,8 +12,8 @@ export async function fetchFile(
   console.timeEnd("Create Payment Vouncher");
   console.time("Fetch file");
   const response = await fetch(addVoucherToUrl(url, voucher));
-  if (response.status == 402) {
-    throw new Error(`402 ${await response.text()}`);
+  if (response.status != 200) {
+    throw new Error(`${response.status.toString()} : ${await response.text()}`);
   }
   console.timeEnd("Fetch file");
 
