@@ -39,6 +39,7 @@ import {
 } from "./constants";
 import { fetchFile } from "./file";
 import { Copyright } from "./Copyright";
+import { prettyPrintFIL } from "./prettyPrintFIL";
 
 function truncateHexString(h: string) {
   if (h == "") return "";
@@ -216,31 +217,61 @@ export default function App() {
             </StepContent>
           </Step>
 
-          <Step key={"Connect to a Retrieval Provider"}>
-            <StepLabel>
-              {`Connect to a Retrieval Provider `}
-              {paymentChannelId != "" && (
-                <Chip label={truncateHexString(paymentChannelId)} />
-              )}
-            </StepLabel>
+          <Step
+            key={"Connect to a Retrieval Provider"}
+            expanded={!!paymentChannelId}
+          >
+            <StepLabel>{`Connect to a Retrieval Provider `} </StepLabel>
             <StepContent>
               <Typography>
                 {
                   "Create a virtual payment with enough capacity to pay for 10 retrievals."
                 }
               </Typography>
+
               <Box sx={{ mb: 2 }}>
-                <div>
+                <Stack direction="row">
                   <Button
                     variant="contained"
                     disabled={createChannelDisabled}
                     onClick={handleCreateChannelButton}
                     sx={{ mt: 1, mr: 1 }}
                   >
-                    Create Channel
+                    {paymentChannelId != ""
+                      ? truncateHexString(paymentChannelId)
+                      : "Create Channel"}
                   </Button>
-                </div>
+                </Stack>
               </Box>
+              <Stack direction="column">
+                <Stack
+                  spacing={2}
+                  direction="row"
+                  sx={{ mb: 1 }}
+                  alignItems="center"
+                >
+                  <PersonIcon />
+                  <Slider
+                    disabled={!paymentChannelInfo}
+                    valueLabelDisplay="off"
+                    valueLabelFormat={(value) =>
+                      prettyPrintFIL(value) + " remaining"
+                    }
+                    track="inverted"
+                    value={Number(paymentChannelInfo?.Balance.PaidSoFar ?? 0)}
+                    min={0}
+                    max={Number(
+                      (paymentChannelInfo?.Balance.PaidSoFar ?? 0n) +
+                        (paymentChannelInfo?.Balance.RemainingFunds ?? 0n)
+                    )}
+                  />
+                  <StorageIcon />{" "}
+                </Stack>
+                <Typography variant="caption">
+                  Funds remaining:{" "}
+                  {prettyPrintFIL(paymentChannelInfo?.Balance.RemainingFunds)}
+                </Typography>
+              </Stack>
             </StepContent>
           </Step>
 
@@ -289,33 +320,6 @@ export default function App() {
                       </Box>
                     </div>
                   </Box>
-                </Stack>
-                <Stack direction="column">
-                  <Stack
-                    spacing={2}
-                    direction="row"
-                    sx={{ mb: 1 }}
-                    alignItems="center"
-                  >
-                    <Typography variant="body2" color="text.secondary">
-                      {paymentChannelInfo?.Balance.RemainingFunds.toString()}
-                    </Typography>
-                    <PersonIcon />
-                    <Slider
-                      aria-label="Volume"
-                      value={Number(paymentChannelInfo?.Balance.PaidSoFar ?? 0)}
-                      min={0}
-                      max={Number(
-                        (paymentChannelInfo?.Balance.PaidSoFar ?? 0n) +
-                          (paymentChannelInfo?.Balance.RemainingFunds ?? 0n)
-                      )}
-                      valueLabelDisplay="on"
-                    />
-                    <StorageIcon />{" "}
-                    <Typography variant="body2" color="text.secondary">
-                      {paymentChannelInfo?.Balance.PaidSoFar.toString()}
-                    </Typography>
-                  </Stack>
                 </Stack>
               </Stack>
             </StepContent>
