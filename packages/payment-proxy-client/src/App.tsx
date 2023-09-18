@@ -257,7 +257,8 @@ export default function App() {
                         <FormControlLabel
                           control={
                             <Switch
-                              value="skippayment"
+                              checked={skipPayment}
+                              value="skipPayment"
                               color="primary"
                               onChange={(e) => {
                                 setSkipPayment(e.target.checked);
