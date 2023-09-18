@@ -38,25 +38,6 @@ import {
 } from "./constants";
 import { fetchFile } from "./file";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function Copyright(props: any) {
-  return (
-    <Typography
-      variant="body2"
-      color="text.secondary"
-      align="center"
-      {...props}
-    >
-      {"Copyright © "}
-      <Link color="inherit" href="https://statechannels.org/">
-        statechannels.org
-      </Link>{" "}
-      {new Date().getFullYear()}
-      {"."}
-    </Typography>
-  );
-}
-
 export default function App() {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
 
