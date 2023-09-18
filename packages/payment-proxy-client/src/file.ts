@@ -11,7 +11,9 @@ export async function fetchFile(
   const voucher = await nitroClient.CreateVoucher(channelId, paymentAmount);
   console.timeEnd("Create Payment Vouncher");
   console.time("Fetch file");
-  const response = await fetch(addVoucherToUrl(url, voucher));
+  const req = createRequest(url, voucher);
+
+  const response = await fetch(req);
   console.timeEnd("Fetch file");
   if (response.status != 200) {
     throw new Error(`${response.status.toString()} : ${await response.text()}`);
@@ -115,7 +117,7 @@ async function fetchChunk(
 
   const voucher = await nitroClient.CreateVoucher(channelId, chunkCost);
 
-  const req = new Request(addVoucherToUrl(url, voucher));
+  const req = createRequest(url, voucher);
   req.headers.set("Range", `bytes=${start}-${stop}`);
 
   const response = await fetch(req);
@@ -131,8 +133,15 @@ async function fetchChunk(
   };
 }
 
-function addVoucherToUrl(url: string, voucher: Voucher): string {
-  return `${url}?channelId=${voucher.ChannelId}&amount=${voucher.Amount}&signature=${voucher.Signature}`;
+function createRequest(url: string, voucher: Voucher): Request {
+  const req = new Request(
+    `${url}?channelId=${voucher.ChannelId}&amount=${voucher.Amount}&signature=${voucher.Signature}`
+  );
+
+  // Disable caching so we always hit the payment proxy for the file
+  req.headers.set("Cache-Control", "no-store");
+  req.headers.set("Pragma", "no-cache");
+  return req;
 }
 
 async function getChunkData(res: Response): Promise<Uint8Array> {
