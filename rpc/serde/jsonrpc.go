@@ -146,7 +146,7 @@ type JsonRpcGeneralRequest struct {
 	Jsonrpc string      `json:"jsonrpc"`
 	Id      uint64      `json:"id"`
 	Method  string      `json:"method"`
-	Payload interface{} `json:"payload"`
+	Params  interface{} `json:"payload"`
 }
 
 type JsonRpcGeneralResponse struct {
