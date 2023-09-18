@@ -12,10 +12,10 @@ export async function fetchFile(
   console.timeEnd("Create Payment Vouncher");
   console.time("Fetch file");
   const response = await fetch(addVoucherToUrl(url, voucher));
+  console.timeEnd("Fetch file");
   if (response.status != 200) {
     throw new Error(`${response.status.toString()} : ${await response.text()}`);
   }
-  console.timeEnd("Fetch file");
 
   const fileName = parseFileNameFromUrl(response.url);
 
