@@ -36,7 +36,7 @@ import {
   costPerByte,
   dataSize,
   defaultNitroRPCUrl,
-  fileUrls,
+  files,
   hub,
   initialChannelBalance,
   provider,
@@ -77,14 +77,12 @@ export default function App() {
 
   const [errorText, setErrorText] = useState<string>("");
 
-  if (fileUrls.length == 0) {
+  if (files.length == 0) {
     throw new Error("There must be at least one file to download");
   }
 
   // Default to the first file
-  const [selectedFileUrl, setSelectedFileUrl] = useState<string>(
-    fileUrls[0].url
-  );
+  const [selectedFileUrl, setSelectedFileUrl] = useState<string>(files[0].url);
   useEffect(() => {
     console.time("Connect to Nitro Node");
     NitroRpcClient.CreateHttpNitroClient(url)
@@ -369,7 +367,7 @@ export default function App() {
                             setSelectedFileUrl(e.target.value);
                           }}
                         >
-                          {fileUrls.map((file) => (
+                          {files.map((file) => (
                             <FormControlLabel
                               value={file.url}
                               key={file.url}
