@@ -10,6 +10,9 @@ import {
   AlertTitle,
   Divider,
   LinearProgress,
+  FormControl,
+  Radio,
+  RadioGroup,
   Stack,
   SvgIcon,
   Switch,
@@ -74,6 +77,14 @@ export default function App() {
 
   const [errorText, setErrorText] = useState<string>("");
 
+  if (fileUrls.length == 0) {
+    throw new Error("There must be at least one file to download");
+  }
+
+  // Default to the first file
+  const [selectedFileUrl, setSelectedFileUrl] = useState<string>(
+    fileUrls[0].url
+  );
   useEffect(() => {
     console.time("Connect to Nitro Node");
     NitroRpcClient.CreateHttpNitroClient(url)
@@ -145,7 +156,7 @@ export default function App() {
     }
     try {
       const file = await fetchFile(
-        fileUrls[0].url,
+        selectedFileUrl,
         skipPayment ? 0 : costPerByte * dataSize,
         paymentChannelInfo.ID,
         nitroClient
@@ -348,6 +359,26 @@ export default function App() {
                         }
                         label="Skip payment"
                       />
+                      <FormControl>
+                        <RadioGroup
+                          aria-labelledby="demo-radio-buttons-group-label"
+                          name="availableFiles"
+                          row={true}
+                          value={selectedFileUrl}
+                          onChange={(e) => {
+                            setSelectedFileUrl(e.target.value);
+                          }}
+                        >
+                          {fileUrls.map((file) => (
+                            <FormControlLabel
+                              value={file.url}
+                              key={file.url}
+                              control={<Radio />}
+                              label={file.fileName}
+                            />
+                          ))}
+                        </RadioGroup>
+                      </FormControl>
                       <Button
                         variant="contained"
                         disabled={payDisabled}
