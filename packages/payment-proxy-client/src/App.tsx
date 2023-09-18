@@ -74,14 +74,15 @@ export default function App() {
 
   useEffect(() => {
     console.time("Connect to Nitro Node");
-    NitroRpcClient.CreateHttpNitroClient(url).then(
-      (c) => setNitroClient(c),
-      (e) => {
-        console.error(e);
-        setErrorText(e.message);
-      }
-    );
-    console.timeEnd("Connect to Nitro Node");
+    NitroRpcClient.CreateHttpNitroClient(url)
+      .then(
+        (c) => setNitroClient(c),
+        (e) => {
+          console.error(e);
+          setErrorText(e.message);
+        }
+      )
+      .finally(() => console.timeEnd("Connect to Nitro Node"));
   }, [url]);
 
   const updateChannelInfo = async (channelId: string) => {
