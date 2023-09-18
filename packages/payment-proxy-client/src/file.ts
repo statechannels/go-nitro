@@ -7,12 +7,15 @@ export async function fetchFile(
   channelId: string,
   nitroClient: NitroRpcClient
 ): Promise<File> {
+  console.time("Create Payment Vouncher");
   const voucher = await nitroClient.CreateVoucher(channelId, paymentAmount);
-
+  console.timeEnd("Create Payment Vouncher");
+  console.time("Fetch file");
   const response = await fetch(addVoucherToUrl(url, voucher));
   if (response.status == 402) {
     throw new Error(`402 ${await response.text()}`);
   }
+  console.timeEnd("Fetch file");
 
   const fileName = parseFileNameFromUrl(response.url);
 

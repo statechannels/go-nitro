@@ -67,6 +67,7 @@ export default function App() {
   const [errorText, setErrorText] = useState<string>("");
 
   useEffect(() => {
+    console.time("Connect to Nitro Node");
     NitroRpcClient.CreateHttpNitroClient(url).then(
       (c) => setNitroClient(c),
       (e) => {
@@ -74,6 +75,7 @@ export default function App() {
         setErrorText(e.message);
       }
     );
+    console.timeEnd("Connect to Nitro Node");
   }, [url]);
 
   const updateChannelInfo = async (channelId: string) => {
@@ -101,6 +103,7 @@ export default function App() {
       setErrorText("Nitro client not initialized");
       return;
     }
+    console.time("Create Payment Channel");
     const result = await nitroClient.CreatePaymentChannel(
       provider,
       [hub],
@@ -112,6 +115,7 @@ export default function App() {
 
     setPaymentChannelId(result.ChannelId);
     updateChannelInfo(result.ChannelId);
+    console.timeEnd("Create Payment Channel");
 
     // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
     setTimeout(() => {
