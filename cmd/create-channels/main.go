@@ -66,12 +66,12 @@ func createChannels() error {
 		return err
 	}
 
-	err = utils.CreateLedgerChannel(alice, ireneAddress)
+	err = utils.CreateLedgerChannel(alice, ireneAddress, 5_000_000)
 	if err != nil {
 		return err
 	}
 
-	err = utils.CreateLedgerChannel(irene, bobAddress)
+	err = utils.CreateLedgerChannel(irene, bobAddress, 5_000_000)
 	if err != nil {
 		return err
 	}
