@@ -29,12 +29,7 @@ func main() {
 				Value:   8088,
 				Aliases: []string{"p"},
 			},
-			&cli.StringFlag{
-				Name:    FILE_URL,
-				Usage:   "Specifies the url to serve the file at.",
-				Value:   "/test.txt",
-				Aliases: []string{"f"},
-			},
+
 			&cli.UintFlag{
 				Name:    FILE_LENGTH,
 				Usage:   "Specifies the length of the file to serve.",
@@ -51,7 +46,7 @@ func main() {
 			filePath, cleanup := setupFile(fileName, fileContent)
 			defer cleanup()
 
-			http.HandleFunc(c.String(FILE_URL), func(w http.ResponseWriter, r *http.Request) {
+			http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 				// Set the Content-Disposition header to suggest a filename
 				w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
 
