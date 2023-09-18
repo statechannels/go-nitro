@@ -399,25 +399,23 @@ func setupNitroNodeWithRPCClient(
 	bootPeers []string,
 ) (rpc.RpcClientApi, *p2pms.P2PMessageService, func()) {
 	dataFolder, cleanupData := testhelpers.GenerateTempStoreFolder()
-
-	storeOpts := store.StoreOpts{
+	ourStore, err := store.NewStore(store.StoreOpts{
 		PkBytes:            pkBytes,
 		UseDurableStore:    true,
 		DurableStoreFolder: dataFolder,
-	}
-
-	ourStore, err := store.NewStore(storeOpts)
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cert, err := tls.LoadX509KeyPair("../tls/statechannels.org.pem", "../tls/statechannels.org_key.pem")
-	if err != nil {
-		panic(err)
-	}
-
 	slog.Info("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
-	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pkBytes, bootPeers)
+	messageService := p2pms.NewMessageService(p2pms.MessageOpts{
+		PkBytes:   pkBytes,
+		Port:      msgPort,
+		BootPeers: bootPeers,
+		PublicIp:  "127.0.0.1",
+		SCAddr:    *ourStore.GetAddress(),
+	})
 
 	node := node.New(
 		messageService,
@@ -435,6 +433,12 @@ func setupNitroNodeWithRPCClient(
 		err = fmt.Errorf("unknown connection type %v", connectionType)
 		panic(err)
 	}
+
+	cert, err := tls.LoadX509KeyPair("../tls/statechannels.org.pem", "../tls/statechannels.org_key.pem")
+	if err != nil {
+		panic(err)
+	}
+
 	rpcServer, err := interRpc.InitializeRpcServer(&node, rpcPort, useNats, &cert)
 	if err != nil {
 		t.Fatal(err)

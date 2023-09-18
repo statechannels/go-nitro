@@ -14,6 +14,7 @@ import (
 	"github.com/statechannels/go-nitro/internal/node"
 	"github.com/statechannels/go-nitro/internal/rpc"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
+	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/node/engine/store"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
@@ -225,9 +226,16 @@ func main() {
 				peerSlice = strings.Split(bootPeers, ",")
 			}
 
+			messageOpts := p2pms.MessageOpts{
+				PkBytes:   common.Hex2Bytes(pkString),
+				Port:      msgPort,
+				BootPeers: peerSlice,
+				PublicIp:  publicIp,
+			}
+
 			logging.SetupDefaultLogger(os.Stdout, slog.LevelDebug)
 
-			node, _, _, _, err := node.InitializeNode(pkString, chainOpts, storeOpts, msgPort, peerSlice, publicIp)
+			node, _, _, _, err := node.InitializeNode(chainOpts, storeOpts, messageOpts)
 			if err != nil {
 				return err
 			}
