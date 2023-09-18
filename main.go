@@ -14,6 +14,7 @@ import (
 	"github.com/statechannels/go-nitro/internal/node"
 	"github.com/statechannels/go-nitro/internal/rpc"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
+	"github.com/statechannels/go-nitro/node/engine/store"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 )
@@ -213,6 +214,12 @@ func main() {
 				CaAddress:       common.HexToAddress(caAddress),
 			}
 
+			storeOpts := store.StoreOpts{
+				PkBytes:            common.Hex2Bytes(pkString),
+				UseDurableStore:    useDurableStore,
+				DurableStoreFolder: durableStoreFolder,
+			}
+
 			var peerSlice []string
 			if bootPeers != "" {
 				peerSlice = strings.Split(bootPeers, ",")
@@ -220,7 +227,7 @@ func main() {
 
 			logging.SetupDefaultLogger(os.Stdout, slog.LevelDebug)
 
-			node, _, _, _, err := node.InitializeNode(pkString, chainOpts, useDurableStore, durableStoreFolder, msgPort, peerSlice, publicIp)
+			node, _, _, _, err := node.InitializeNode(pkString, chainOpts, storeOpts, msgPort, peerSlice, publicIp)
 			if err != nil {
 				return err
 			}

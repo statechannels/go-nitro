@@ -32,7 +32,6 @@ import (
 	"github.com/statechannels/go-nitro/rpc/transport/http"
 	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
 	"github.com/statechannels/go-nitro/types"
-	"github.com/tidwall/buntdb"
 
 	"github.com/statechannels/go-nitro/crypto"
 )
@@ -99,6 +98,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 	for i := 0; i < n; i++ {
 		sk := `000000000000000000000000000000000000000000000000000000000000000` + strconv.Itoa(i+1)
 		actors[i] = ta.Actor{
+			// PrivateKey: common.Hex2Bytes(sk),
 			PrivateKey: common.Hex2Bytes(sk),
 		}
 	}
@@ -391,7 +391,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
 func setupNitroNodeWithRPCClient(
 	t *testing.T,
-	pk []byte,
+	pkBytes []byte,
 	msgPort int,
 	rpcPort int,
 	chain *chainservice.MockChainService,
@@ -399,7 +399,14 @@ func setupNitroNodeWithRPCClient(
 	bootPeers []string,
 ) (rpc.RpcClientApi, *p2pms.P2PMessageService, func()) {
 	dataFolder, cleanupData := testhelpers.GenerateTempStoreFolder()
-	ourStore, err := store.NewStore(pk, true, dataFolder, buntdb.Config{})
+
+	storeOpts := store.StoreOpts{
+		PkBytes:            pkBytes,
+		UseDurableStore:    true,
+		DurableStoreFolder: dataFolder,
+	}
+
+	ourStore, err := store.NewStore(storeOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -410,7 +417,7 @@ func setupNitroNodeWithRPCClient(
 	}
 
 	slog.Info("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
-	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, bootPeers)
+	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pkBytes, bootPeers)
 
 	node := node.New(
 		messageService,
@@ -459,7 +466,7 @@ func setupNitroNodeWithRPCClient(
 
 	cleanupFn := func() {
 		// Setup a logger with the address of the node so we know who is closing
-		me := crypto.GetAddressFromSecretKeyBytes(pk)
+		me := crypto.GetAddressFromSecretKeyBytes(pkBytes)
 		logger := logging.LoggerWithAddress(slog.Default(), me)
 		logger.Info("Starting rpc close")
 		rpcClient.Close()
