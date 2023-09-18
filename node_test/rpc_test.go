@@ -38,7 +38,7 @@ import (
 )
 
 func simpleOutcome(a, b types.Address, aBalance, bBalance uint) outcome.Exit {
-	return testdata.Outcomes.Create(a, b, aBalance, bBalance, types.Address{})
+	return testdata.Outcomes.Create(a, b, uint64(aBalance), uint64(bBalance), types.Address{})
 }
 
 func TestRpcWithNats(t *testing.T) {

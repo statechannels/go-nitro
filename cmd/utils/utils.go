@@ -40,12 +40,11 @@ func StopCommands(cmds ...*exec.Cmd) {
 	}
 }
 
-func CreateLedgerChannel(client rpc.RpcClientApi, counterPartyAddress common.Address) error {
+func CreateLedgerChannel(client rpc.RpcClientApi, counterPartyAddress common.Address, ledgerChannelDeposit uint64) error {
 	clientAddress, err := client.Address()
 	if err != nil {
 		return err
 	}
-	ledgerChannelDeposit := uint(5_000_000)
 	asset := types.Address{}
 	outcome := testdata.Outcomes.Create(clientAddress, counterPartyAddress, ledgerChannelDeposit, ledgerChannelDeposit, asset)
 	response, err := client.CreateLedgerChannel(counterPartyAddress, 0, outcome)
