@@ -132,8 +132,8 @@ func finalAliceLedger(intermediary, asset types.Address, numPayments, paymentAmo
 	return testdata.Outcomes.Create(
 		testactors.Alice.Address(),
 		intermediary,
-		ledgerChannelDeposit-(numPayments*paymentAmount*numChannels),
-		ledgerChannelDeposit+(numPayments*paymentAmount*numChannels),
+		uint64(ledgerChannelDeposit-(numPayments*paymentAmount*numChannels)),
+		uint64(ledgerChannelDeposit+(numPayments*paymentAmount*numChannels)),
 		asset)
 }
 
@@ -141,10 +141,8 @@ func finalBobLedger(intermediary, asset types.Address, numPayments, paymentAmoun
 	return testdata.Outcomes.Create(
 		intermediary,
 		testactors.Bob.Address(),
-
-		ledgerChannelDeposit-(numPayments*paymentAmount*numChannels),
-		ledgerChannelDeposit+(numPayments*paymentAmount*numChannels),
-
+		uint64(ledgerChannelDeposit-(numPayments*paymentAmount*numChannels)),
+		uint64(ledgerChannelDeposit+(numPayments*paymentAmount*numChannels)),
 		asset)
 }
 
@@ -156,8 +154,8 @@ func finalPaymentOutcome(alpha, beta, asset types.Address, numPayments, paymentA
 	return testdata.Outcomes.Create(
 		alpha,
 		beta,
-		virtualChannelDeposit-numPayments*paymentAmount,
-		numPayments*paymentAmount,
+		uint64(virtualChannelDeposit-numPayments*paymentAmount),
+		uint64(numPayments*paymentAmount),
 		asset)
 }
 
