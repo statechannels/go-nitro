@@ -9,6 +9,7 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import {
   Alert,
   AlertTitle,
+  Divider,
   Slider,
   Stack,
   Switch,
@@ -346,14 +347,9 @@ export default function App() {
                 Filecoin Paid Retrieval Demo
               </Typography>
               <VerticalLinearStepper />
-              <Link
-                href="https://statechannels.notion.site/Filecoin-Paid-Retrieval-Demo-bf6ad9ec92a74e139331ce77900305fc?pvs=4"
-                variant="body2"
-              >
-                How does this work?
-              </Link>
+              <Divider variant="middle" />
+              <Copyright sx={{ mt: 5 }} />
             </Stack>
-            <Copyright sx={{ mt: 5 }} />
           </Box>
         </Grid>
         <Grid

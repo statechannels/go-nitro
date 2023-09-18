@@ -14,7 +14,13 @@ export function Copyright(props: any) {
         statechannels.org
       </Link>{" "}
       {new Date().getFullYear()}
-      {"."}
+      {" | "}
+      <Link
+        href="https://statechannels.notion.site/Filecoin-Paid-Retrieval-Demo-bf6ad9ec92a74e139331ce77900305fc?pvs=4"
+        variant="body2"
+      >
+        How does this work?
+      </Link>
     </Typography>
   );
 }
