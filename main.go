@@ -10,10 +10,10 @@ import (
 	"syscall"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/statechannels/go-nitro/internal/chain"
 	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/node"
 	"github.com/statechannels/go-nitro/internal/rpc"
+	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 )
@@ -203,7 +203,7 @@ func main() {
 		Flags:  flags,
 		Before: altsrc.InitInputSourceWithContext(flags, altsrc.NewTomlSourceFromFlagFunc(CONFIG)),
 		Action: func(cCtx *cli.Context) error {
-			chainOpts := chain.ChainOpts{
+			chainOpts := chainservice.ChainOpts{
 				ChainUrl:        chainUrl,
 				ChainStartBlock: chainStartBlock,
 				ChainAuthToken:  chainAuthToken,
