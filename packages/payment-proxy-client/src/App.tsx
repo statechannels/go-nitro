@@ -284,41 +284,39 @@ export default function App() {
                       "Create a payment voucher, and attach it to a request for the provider."
                     }
                   </Typography>
-                  <Box sx={{ mb: 2 }}>
-                    <div>
-                      <Box
-                        component="form"
-                        noValidate
-                        onSubmit={() => {
-                          /* TODO */
-                        }}
-                        sx={{ mt: 1 }}
+                  <Stack direction="column" spacing={2}>
+                    <Box
+                      component="form"
+                      noValidate
+                      onSubmit={() => {
+                        /* TODO */
+                      }}
+                      sx={{ mt: 1 }}
+                    >
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={skipPayment}
+                            value="skipPayment"
+                            color="primary"
+                            onChange={(e) => {
+                              setSkipPayment(e.target.checked);
+                            }}
+                          />
+                        }
+                        label="Skip payment"
+                      />
+                      <Button
+                        variant="contained"
+                        disabled={payDisabled}
+                        onClick={handlePayButton}
+                        sx={{ mt: 1, mr: 1 }}
                       >
-                        <Stack direction="row" spacing={2}></Stack>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={skipPayment}
-                              value="skipPayment"
-                              color="primary"
-                              onChange={(e) => {
-                                setSkipPayment(e.target.checked);
-                              }}
-                            />
-                          }
-                          label="Skip payment"
-                        />
-                        <Button
-                          variant="contained"
-                          disabled={payDisabled}
-                          onClick={handlePayButton}
-                          sx={{ mt: 1, mr: 1 }}
-                        >
-                          Pay & Download
-                        </Button>
-                      </Box>
-                    </div>
-                  </Box>
+                        Pay & Download
+                      </Button>
+                    </Box>
+                    {displayError(errorText)}
+                  </Stack>
                 </Stack>
               </Stack>
             </StepContent>
@@ -354,7 +352,6 @@ export default function App() {
               >
                 How does this work?
               </Link>
-              {displayError(errorText)}
             </Stack>
             <Copyright sx={{ mt: 5 }} />
           </Box>
