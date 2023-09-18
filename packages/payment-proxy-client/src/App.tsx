@@ -37,6 +37,7 @@ import {
   provider,
 } from "./constants";
 import { fetchFile } from "./file";
+import { Copyright } from "./Copyright";
 
 export default function App() {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
