@@ -9,7 +9,7 @@ export function Copyright(props: any) {
       align="center"
       {...props}
     >
-      {"Copyright © "}
+      {"© "}
       <Link color="inherit" href="https://statechannels.org/">
         statechannels.org
       </Link>{" "}
