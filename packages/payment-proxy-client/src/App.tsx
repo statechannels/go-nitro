@@ -39,7 +39,7 @@ import {
 } from "./constants";
 import { fetchFile } from "./file";
 import { Copyright } from "./Copyright";
-import { prettyPrintFIL, prettyPrintPair } from "./prettyPrintFIL";
+import { prettyPrintPair } from "./prettyPrintFIL";
 
 function truncateHexString(h: string) {
   if (h == "") return "";
