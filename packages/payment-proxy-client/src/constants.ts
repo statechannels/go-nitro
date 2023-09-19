@@ -16,8 +16,12 @@ export const initialChannelBalance = parseInt(
   10
 );
 
+const ENV_VAR_SPLIT_CHAR = ";";
+
 export const files: { fileName: string; url: string }[] =
-  import.meta.env.VITE_FILE_PATHS.split(",").map((filePath: string) => ({
-    url: proxyUrl + filePath,
-    fileName: filePath.split("/").pop() || filePath,
-  }));
+  import.meta.env.VITE_FILE_PATHS.split(ENV_VAR_SPLIT_CHAR).map(
+    (filePath: string) => ({
+      url: proxyUrl + filePath,
+      fileName: filePath.split("/").pop() || filePath,
+    })
+  );
