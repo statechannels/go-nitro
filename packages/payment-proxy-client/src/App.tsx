@@ -39,7 +39,7 @@ import {
 } from "./constants";
 import { fetchFile } from "./file";
 import { Copyright } from "./Copyright";
-import { prettyPrintFIL } from "./prettyPrintFIL";
+import { prettyPrintFIL, prettyPrintPair } from "./prettyPrintFIL";
 
 function truncateHexString(h: string) {
   if (h == "") return "";
@@ -286,9 +286,11 @@ export default function App() {
                   </Grid>
                   <StorageIcon />
                 </Stack>
-                <Typography variant="caption">
-                  Funds remaining:{" "}
-                  {prettyPrintFIL(paymentChannelInfo?.Balance.RemainingFunds)}
+                <Typography variant="caption" align="center">
+                  {prettyPrintPair(
+                    paymentChannelInfo?.Balance.RemainingFunds,
+                    paymentChannelInfo?.Balance.PaidSoFar
+                  )}
                 </Typography>
               </Stack>
             </StepContent>
