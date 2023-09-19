@@ -11,6 +11,7 @@ import {
   Divider,
   LinearProgress,
   Stack,
+  SvgIcon,
   Switch,
   linearProgressClasses,
   useMediaQuery,
@@ -39,7 +40,7 @@ import {
 } from "./constants";
 import { fetchFile } from "./file";
 import { Copyright } from "./Copyright";
-import { prettyPrintPair } from "./prettyPrintFIL";
+import { prettyPrintFIL } from "./prettyPrintFIL";
 
 function truncateHexString(h: string) {
   if (h == "") return "";
@@ -286,12 +287,32 @@ export default function App() {
                   </Grid>
                   <StorageIcon />
                 </Stack>
-                <Typography variant="caption" align="center">
-                  {prettyPrintPair(
-                    paymentChannelInfo?.Balance.RemainingFunds,
-                    paymentChannelInfo?.Balance.PaidSoFar
-                  )}
-                </Typography>
+                <Stack
+                  spacing={2}
+                  direction="row"
+                  sx={{
+                    mb: 1,
+                    color: paymentChannelInfo ? "primary" : "grey.500",
+                  }}
+                  alignItems="center"
+                >
+                  <SvgIcon />
+                  <Grid container spacing={0.5}>
+                    <Grid item xs={6} textAlign="center">
+                      <Typography variant="caption">
+                        {prettyPrintFIL(
+                          paymentChannelInfo?.Balance.RemainingFunds
+                        )}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6} textAlign="center">
+                      <Typography variant="caption">
+                        {prettyPrintFIL(paymentChannelInfo?.Balance.PaidSoFar)}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                  <SvgIcon />
+                </Stack>
               </Stack>
             </StepContent>
           </Step>
