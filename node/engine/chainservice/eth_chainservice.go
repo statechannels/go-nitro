@@ -14,7 +14,6 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/statechannels/go-nitro/channel/state"
-	"github.com/statechannels/go-nitro/internal/chain"
 	"github.com/statechannels/go-nitro/internal/logging"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
 	Token "github.com/statechannels/go-nitro/node/engine/chainservice/erc20"
@@ -22,6 +21,16 @@ import (
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
+
+type ChainOpts struct {
+	ChainUrl        string
+	ChainStartBlock uint64
+	ChainAuthToken  string
+	ChainPk         string
+	NaAddress       common.Address
+	VpaAddress      common.Address
+	CaAddress       common.Address
+}
 
 var (
 	naAbi, _                 = NitroAdjudicator.NitroAdjudicatorMetaData.GetAbi()
@@ -80,7 +89,7 @@ const RESUB_INTERVAL = 15 * time.Second
 const REQUIRED_BLOCK_CONFIRMATIONS = 2
 
 // NewEthChainService is a convenient wrapper around newEthChainService, which provides a simpler API
-func NewEthChainService(chainOpts chain.ChainOpts) (ChainService, error) {
+func NewEthChainService(chainOpts ChainOpts) (ChainService, error) {
 	if chainOpts.ChainPk == "" {
 		return nil, fmt.Errorf("chainpk must be set")
 	}

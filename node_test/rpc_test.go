@@ -32,7 +32,6 @@ import (
 	"github.com/statechannels/go-nitro/rpc/transport/http"
 	natstrans "github.com/statechannels/go-nitro/rpc/transport/nats"
 	"github.com/statechannels/go-nitro/types"
-	"github.com/tidwall/buntdb"
 
 	"github.com/statechannels/go-nitro/crypto"
 )
@@ -391,7 +390,7 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 // setupNitroNodeWithRPCClient is a helper function that spins up a Nitro Node RPC Server and returns an RPC client connected to it.
 func setupNitroNodeWithRPCClient(
 	t *testing.T,
-	pk []byte,
+	pkBytes []byte,
 	msgPort int,
 	rpcPort int,
 	chain *chainservice.MockChainService,
@@ -399,18 +398,23 @@ func setupNitroNodeWithRPCClient(
 	bootPeers []string,
 ) (rpc.RpcClientApi, *p2pms.P2PMessageService, func()) {
 	dataFolder, cleanupData := testhelpers.GenerateTempStoreFolder()
-	ourStore, err := store.NewStore(pk, true, dataFolder, buntdb.Config{})
+	ourStore, err := store.NewStore(store.StoreOpts{
+		PkBytes:            pkBytes,
+		UseDurableStore:    true,
+		DurableStoreFolder: dataFolder,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cert, err := tls.LoadX509KeyPair("../tls/statechannels.org.pem", "../tls/statechannels.org_key.pem")
-	if err != nil {
-		panic(err)
-	}
-
 	slog.Info("Initializing message service on port " + fmt.Sprint(msgPort) + "...")
-	messageService := p2pms.NewMessageService("127.0.0.1", msgPort, *ourStore.GetAddress(), pk, bootPeers)
+	messageService := p2pms.NewMessageService(p2pms.MessageOpts{
+		PkBytes:   pkBytes,
+		Port:      msgPort,
+		BootPeers: bootPeers,
+		PublicIp:  "127.0.0.1",
+		SCAddr:    *ourStore.GetAddress(),
+	})
 
 	node := node.New(
 		messageService,
@@ -428,6 +432,12 @@ func setupNitroNodeWithRPCClient(
 		err = fmt.Errorf("unknown connection type %v", connectionType)
 		panic(err)
 	}
+
+	cert, err := tls.LoadX509KeyPair("../tls/statechannels.org.pem", "../tls/statechannels.org_key.pem")
+	if err != nil {
+		panic(err)
+	}
+
 	rpcServer, err := interRpc.InitializeRpcServer(&node, rpcPort, useNats, &cert)
 	if err != nil {
 		t.Fatal(err)
@@ -459,7 +469,7 @@ func setupNitroNodeWithRPCClient(
 
 	cleanupFn := func() {
 		// Setup a logger with the address of the node so we know who is closing
-		me := crypto.GetAddressFromSecretKeyBytes(pk)
+		me := crypto.GetAddressFromSecretKeyBytes(pkBytes)
 		logger := logging.LoggerWithAddress(slog.Default(), me)
 		logger.Info("Starting rpc close")
 		rpcClient.Close()

@@ -68,13 +68,13 @@ func setupMessageService(tc TestCase, tp TestParticipant, si sharedTestInfrastru
 		return messageservice.NewTestMessageService(tp.Address(), *si.broker, tc.MessageDelay), ""
 
 	case P2PMessageService:
-		ms := p2pms.NewMessageService(
-			"127.0.0.1",
-			int(tp.Port),
-			tp.Address(),
-			tp.PrivateKey,
-			bootPeers,
-		)
+		ms := p2pms.NewMessageService(p2pms.MessageOpts{
+			PublicIp:  "127.0.0.1",
+			Port:      int(tp.Port),
+			SCAddr:    tp.Address(),
+			PkBytes:   tp.PrivateKey,
+			BootPeers: bootPeers,
+		})
 
 		return ms, ms.MultiAddr
 	default:

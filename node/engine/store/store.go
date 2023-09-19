@@ -52,22 +52,33 @@ type ConsensusChannelStore interface {
 	DestroyConsensusChannel(id types.Destination) error
 }
 
-func NewStore(pk []byte, useDurableStore bool, durableStoreFolder string, buntDbConfig buntdb.Config) (Store, error) {
+type StoreOpts struct {
+	PkBytes            []byte
+	UseDurableStore    bool
+	DurableStoreFolder string
+	BuntDbConfig       buntdb.Config
+}
+
+func NewStore(options StoreOpts) (Store, error) {
+	if options.PkBytes == nil {
+		panic("pk must be provided to Store")
+	}
+
 	var ourStore Store
 	var err error
 
-	if useDurableStore {
-		me := crypto.GetAddressFromSecretKeyBytes(pk)
-		dataFolder := filepath.Join(durableStoreFolder, me.String())
+	if options.UseDurableStore {
+		me := crypto.GetAddressFromSecretKeyBytes(options.PkBytes)
+		dataFolder := filepath.Join(options.DurableStoreFolder, me.String())
 
 		slog.Info("Initialising durable store...", "dataFolder", dataFolder)
-		ourStore, err = NewDurableStore(pk, dataFolder, buntdb.Config{})
+		ourStore, err = NewDurableStore(options.PkBytes, dataFolder, buntdb.Config{})
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		slog.Info("Initialising mem store...")
-		ourStore = NewMemStore(pk)
+		ourStore = NewMemStore(options.PkBytes)
 	}
 
 	return ourStore, nil

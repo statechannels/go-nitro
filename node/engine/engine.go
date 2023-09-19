@@ -541,12 +541,12 @@ func (e *Engine) handlePaymentRequest(request PaymentRequest) (EngineEvent, erro
 func (e *Engine) sendMessages(msgs []protocols.Message) {
 	for _, message := range msgs {
 		message.From = *e.store.GetAddress()
-		e.logMessage(message, Outgoing)
 		err := e.msg.Send(message)
 		if err != nil {
 			e.logger.Error(err.Error())
 			panic(err)
 		}
+		e.logMessage(message, Outgoing)
 	}
 	e.wg.Done()
 }
