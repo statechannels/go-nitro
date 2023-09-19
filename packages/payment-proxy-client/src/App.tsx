@@ -159,7 +159,7 @@ export default function App() {
         ? await fetchFileInChunks(
             CHUNK_SIZE,
             selectedFile.url,
-            costPerByte,
+            skipPayment ? 0 : costPerByte,
             paymentChannelInfo.ID,
             nitroClient,
             setPaymentProgress
