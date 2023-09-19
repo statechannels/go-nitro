@@ -18,6 +18,7 @@ ENV DESTINATION_URL=http://host.docker.internal:8088
 ENV COST_PER_BYTE=1
 ENV TLS_CERT_FILE=""
 ENV TLS_KEY_FILE=""
+ENV COST_PER_BYTE=1
 
 EXPOSE $PROXY_PORT
-CMD ./proxy --nitroendpoint $NITRO_ENDPOINT --proxyaddress 0.0.0.0:$PROXY_PORT --destinationurl $DESTINATION_URL --costperbyte $COST_PER_BYTE --tlscertfilepath $TLS_CERT_FILE --tlskeyfilepath $TLS_KEY_FILE 
+CMD ./proxy --nitroendpoint $NITRO_ENDPOINT --proxyaddress 0.0.0.0:$PROXY_PORT --destinationurl $DESTINATION_URL --costperbyte $COST_PER_BYTE --tlscertfilepath $TLS_CERT_FILE --tlskeyfilepath $TLS_KEY_FILE --costperbyte $COST_PER_BYTE
