@@ -162,7 +162,10 @@ export default function App() {
             skipPayment ? 0 : costPerByte,
             paymentChannelInfo.ID,
             nitroClient,
-            setPaymentProgress
+            (progress) => {
+              setPaymentProgress(progress);
+              updateChannelInfo(paymentChannelInfo.ID);
+            }
           )
         : await fetchFile(
             selectedFile.url,
