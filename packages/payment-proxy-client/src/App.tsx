@@ -32,9 +32,9 @@ import { NitroRpcClient } from "@statechannels/nitro-rpc-client";
 import { PaymentChannelInfo } from "@statechannels/nitro-rpc-client/src/types";
 
 import {
+  AvailableFile,
   QUERY_KEY,
   costPerByte,
-  dataSize,
   defaultNitroRPCUrl,
   files,
   hub,
@@ -82,7 +82,7 @@ export default function App() {
   }
 
   // Default to the first file
-  const [selectedFileUrl, setSelectedFileUrl] = useState<string>(files[0].url);
+  const [selectedFile, setSelectedFile] = useState<AvailableFile>(files[0]);
   useEffect(() => {
     console.time("Connect to Nitro Node");
     NitroRpcClient.CreateHttpNitroClient(url)
@@ -154,8 +154,8 @@ export default function App() {
     }
     try {
       const file = await fetchFile(
-        selectedFileUrl,
-        skipPayment ? 0 : costPerByte * dataSize,
+        selectedFile.url,
+        skipPayment ? 0 : costPerByte * selectedFile.size,
         paymentChannelInfo.ID,
         nitroClient
       );
@@ -359,12 +359,16 @@ export default function App() {
                       />
                       <FormControl>
                         <RadioGroup
-                          aria-labelledby="demo-radio-buttons-group-label"
                           name="availableFiles"
                           row={true}
-                          value={selectedFileUrl}
+                          value={selectedFile.url}
                           onChange={(e) => {
-                            setSelectedFileUrl(e.target.value);
+                            const found = files.find(
+                              (f) => f.url == e.target.value
+                            );
+                            if (found) {
+                              setSelectedFile(found);
+                            }
                           }}
                         >
                           {files.map((file) => (
@@ -372,7 +376,11 @@ export default function App() {
                               value={file.url}
                               key={file.url}
                               control={<Radio />}
-                              label={file.fileName}
+                              label={
+                                file.fileName.length < 50
+                                  ? file.fileName
+                                  : "..." + file.fileName.slice(-50)
+                              }
                             />
                           ))}
                         </RadioGroup>
