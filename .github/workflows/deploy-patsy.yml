@@ -46,7 +46,7 @@ jobs:
           DROPLET_IP: "165.22.197.200"
           NAME: "nitro-payment-proxy"
           NITRO_ENDPOINT: "brad-node.statechannels.org:4005/api/v1"
-          DESTINATION_URL: "https://www.w3.org"
+          DESTINATION_URL: "https://demo-files.ams3.digitaloceanspaces.com"
           TLS_CERT_FILE: /app/certs/live/payment-proxy.statechannels.org/fullchain.pem
           TLS_KEY_FILE: /app/certs/live/payment-proxy.statechannels.org/privkey.pem
           PROXY_PORT: 443
