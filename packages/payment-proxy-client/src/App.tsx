@@ -9,7 +9,7 @@ import {
   Alert,
   AlertTitle,
   Divider,
-  Slider,
+  LinearProgress,
   Stack,
   Switch,
   useMediaQuery,
@@ -195,6 +195,11 @@ export default function App() {
       fetchAndDownloadFile().finally(() => setPayDisabled(false));
     };
 
+    const computePercentagePaid = (info: PaymentChannelInfo) => {
+      const total = info.Balance.PaidSoFar + info.Balance.RemainingFunds;
+      return Number((100n * info.Balance.PaidSoFar) / total);
+    };
+
     return (
       <Box sx={{ maxWidth: 400 }}>
         <Stepper activeStep={activeStep} orientation="vertical">
@@ -246,25 +251,25 @@ export default function App() {
                 <Stack
                   spacing={2}
                   direction="row"
-                  sx={{ mb: 1 }}
+                  sx={{
+                    mb: 1,
+                    color: paymentChannelInfo ? "primary" : "grey.500",
+                  }}
                   alignItems="center"
                 >
                   <PersonIcon />
-                  <Slider
-                    disabled={!paymentChannelInfo}
-                    valueLabelDisplay="off"
-                    valueLabelFormat={(value) =>
-                      prettyPrintFIL(value) + " remaining"
-                    }
-                    track="inverted"
-                    value={Number(paymentChannelInfo?.Balance.PaidSoFar ?? 0)}
-                    min={0}
-                    max={Number(
-                      (paymentChannelInfo?.Balance.PaidSoFar ?? 0n) +
-                        (paymentChannelInfo?.Balance.RemainingFunds ?? 0n)
-                    )}
-                  />
-                  <StorageIcon />{" "}
+                  <Box sx={{ width: "100%" }}>
+                    <LinearProgress
+                      variant="determinate"
+                      color={paymentChannelInfo ? "primary" : "inherit"}
+                      value={
+                        paymentChannelInfo
+                          ? computePercentagePaid(paymentChannelInfo)
+                          : 0
+                      }
+                    />
+                  </Box>
+                  <StorageIcon />
                 </Stack>
                 <Typography variant="caption">
                   Funds remaining:{" "}
