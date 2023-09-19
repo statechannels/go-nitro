@@ -18,6 +18,7 @@ const ENV_VAR_SPLIT_CHAR = ";";
 const fileSizes = import.meta.env.VITE_FILE_SIZES.split(ENV_VAR_SPLIT_CHAR).map(
   (size: string) => parseInt(size, 10)
 );
+const fileNames = import.meta.env.VITE_FILE_NAMES.split(ENV_VAR_SPLIT_CHAR);
 
 export interface AvailableFile {
   fileName: string;
@@ -29,7 +30,7 @@ export const files: AvailableFile[] = import.meta.env.VITE_FILE_PATHS.split(
 ).map((filePath: string, index: number) => {
   return {
     url: proxyUrl + filePath,
-    fileName: filePath.split("/").pop() || filePath,
+    fileName: fileNames[index],
     size: fileSizes[index],
   };
 });
