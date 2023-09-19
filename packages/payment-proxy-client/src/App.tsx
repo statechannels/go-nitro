@@ -4,14 +4,16 @@ import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Grid from "@mui/material/Grid";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { createTheme, ThemeProvider, styled } from "@mui/material/styles";
 import {
   Alert,
   AlertTitle,
   Divider,
-  Slider,
+  LinearProgress,
   Stack,
+  SvgIcon,
   Switch,
+  linearProgressClasses,
   useMediaQuery,
 } from "@mui/material";
 import Box from "@mui/material/Box";
@@ -195,6 +197,11 @@ export default function App() {
       fetchAndDownloadFile().finally(() => setPayDisabled(false));
     };
 
+    const computePercentagePaid = (info: PaymentChannelInfo) => {
+      const total = info.Balance.PaidSoFar + info.Balance.RemainingFunds;
+      return Number((100n * info.Balance.PaidSoFar) / total);
+    };
+
     return (
       <Box sx={{ maxWidth: 400 }}>
         <Stepper activeStep={activeStep} orientation="vertical">
@@ -246,30 +253,66 @@ export default function App() {
                 <Stack
                   spacing={2}
                   direction="row"
-                  sx={{ mb: 1 }}
+                  sx={{
+                    mb: 1,
+                    color: paymentChannelInfo ? "primary" : "grey.500",
+                  }}
                   alignItems="center"
                 >
                   <PersonIcon />
-                  <Slider
-                    disabled={!paymentChannelInfo}
-                    valueLabelDisplay="off"
-                    valueLabelFormat={(value) =>
-                      prettyPrintFIL(value) + " remaining"
-                    }
-                    track="inverted"
-                    value={Number(paymentChannelInfo?.Balance.PaidSoFar ?? 0)}
-                    min={0}
-                    max={Number(
-                      (paymentChannelInfo?.Balance.PaidSoFar ?? 0n) +
-                        (paymentChannelInfo?.Balance.RemainingFunds ?? 0n)
-                    )}
-                  />
-                  <StorageIcon />{" "}
+                  <Grid container spacing={0.5}>
+                    <Grid item xs={6}>
+                      <BorderLinearProgress
+                        variant="determinate"
+                        color={paymentChannelInfo ? "primary" : "inherit"}
+                        value={
+                          paymentChannelInfo
+                            ? 100 - computePercentagePaid(paymentChannelInfo)
+                            : 0
+                        }
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <BorderLinearProgress
+                        sx={{ scale: "-1 1" }}
+                        variant="determinate"
+                        color={paymentChannelInfo ? "primary" : "inherit"}
+                        value={
+                          paymentChannelInfo
+                            ? computePercentagePaid(paymentChannelInfo)
+                            : 0
+                        }
+                      />
+                    </Grid>
+                  </Grid>
+                  <StorageIcon />
                 </Stack>
-                <Typography variant="caption">
-                  Funds remaining:{" "}
-                  {prettyPrintFIL(paymentChannelInfo?.Balance.RemainingFunds)}
-                </Typography>
+                <Stack
+                  spacing={2}
+                  direction="row"
+                  sx={{
+                    mb: 1,
+                    color: paymentChannelInfo ? "primary" : "grey.500",
+                  }}
+                  alignItems="center"
+                >
+                  <SvgIcon />
+                  <Grid container spacing={0.5}>
+                    <Grid item xs={6} textAlign="center">
+                      <Typography variant="caption">
+                        {prettyPrintFIL(
+                          paymentChannelInfo?.Balance.RemainingFunds
+                        )}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6} textAlign="center">
+                      <Typography variant="caption">
+                        {prettyPrintFIL(paymentChannelInfo?.Balance.PaidSoFar)}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                  <SvgIcon />
+                </Stack>
               </Stack>
             </StepContent>
           </Step>
@@ -372,3 +415,16 @@ export default function App() {
     </ThemeProvider>
   );
 }
+
+const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
+  height: 10,
+  borderRadius: 5,
+  [`&.${linearProgressClasses.colorPrimary}`]: {
+    backgroundColor:
+      theme.palette.grey[theme.palette.mode === "light" ? 200 : 800],
+  },
+  [`& .${linearProgressClasses.bar}`]: {
+    borderRadius: 5,
+    backgroundColor: theme.palette.mode === "light" ? "#1a90ff" : "#308fe8",
+  },
+}));
