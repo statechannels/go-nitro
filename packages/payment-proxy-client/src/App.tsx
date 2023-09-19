@@ -357,34 +357,35 @@ export default function App() {
                         }
                         label="Skip payment"
                       />
-                      <FormControl>
-                        <RadioGroup
-                          name="availableFiles"
-                          row={true}
-                          value={selectedFile.url}
-                          onChange={(e) => {
-                            const found = files.find(
-                              (f) => f.url == e.target.value
-                            );
-                            if (found) {
-                              setSelectedFile(found);
-                            }
-                          }}
-                        >
-                          {files.map((file) => (
-                            <FormControlLabel
-                              value={file.url}
-                              key={file.url}
-                              control={<Radio />}
-                              label={
-                                file.fileName.length < 50
-                                  ? file.fileName
-                                  : "..." + file.fileName.slice(-50)
+                      <Box>
+                        <FormControl>
+                          <RadioGroup
+                            name="availableFiles"
+                            value={selectedFile.url}
+                            onChange={(e) => {
+                              const found = files.find(
+                                (f) => f.url == e.target.value
+                              );
+                              if (found) {
+                                setSelectedFile(found);
                               }
-                            />
-                          ))}
-                        </RadioGroup>
-                      </FormControl>
+                            }}
+                          >
+                            {files.map((file) => (
+                              <FormControlLabel
+                                value={file.url}
+                                key={file.url}
+                                control={<Radio />}
+                                label={
+                                  file.fileName.length < 50
+                                    ? file.fileName
+                                    : "..." + file.fileName.slice(-50)
+                                }
+                              />
+                            ))}
+                          </RadioGroup>
+                        </FormControl>
+                      </Box>
                       <Button
                         variant="contained"
                         disabled={payDisabled}
