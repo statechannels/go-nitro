@@ -271,6 +271,7 @@ func validateJsonrpcRequest(requestData []byte) (serde.JsonRpcGeneralRequest, []
 	}
 	vr.Method = sMethod
 
+	vr.Params = request["params"]
 	return vr, nil
 }
 

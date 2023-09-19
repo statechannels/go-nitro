@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly VITE_PROVIDER: string;
   readonly VITE_HUB: string;
   readonly VITE_INITIAL_CHANNEL_BALANCE: string;
+  readonly VITE_FILE_PATHS: string;
 }
 
 interface ImportMeta {
