@@ -4,7 +4,7 @@ import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Grid from "@mui/material/Grid";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { createTheme, ThemeProvider, styled } from "@mui/material/styles";
 import {
   Alert,
   AlertTitle,
@@ -12,6 +12,7 @@ import {
   LinearProgress,
   Stack,
   Switch,
+  linearProgressClasses,
   useMediaQuery,
 } from "@mui/material";
 import Box from "@mui/material/Box";
@@ -258,17 +259,31 @@ export default function App() {
                   alignItems="center"
                 >
                   <PersonIcon />
-                  <Box sx={{ width: "100%" }}>
-                    <LinearProgress
-                      variant="determinate"
-                      color={paymentChannelInfo ? "primary" : "inherit"}
-                      value={
-                        paymentChannelInfo
-                          ? computePercentagePaid(paymentChannelInfo)
-                          : 0
-                      }
-                    />
-                  </Box>
+                  <Grid container spacing={0.5}>
+                    <Grid item xs={6}>
+                      <BorderLinearProgress
+                        variant="determinate"
+                        color={paymentChannelInfo ? "primary" : "inherit"}
+                        value={
+                          paymentChannelInfo
+                            ? 100 - computePercentagePaid(paymentChannelInfo)
+                            : 0
+                        }
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <BorderLinearProgress
+                        sx={{ scale: "-1 1" }}
+                        variant="determinate"
+                        color={paymentChannelInfo ? "primary" : "inherit"}
+                        value={
+                          paymentChannelInfo
+                            ? computePercentagePaid(paymentChannelInfo)
+                            : 0
+                        }
+                      />
+                    </Grid>
+                  </Grid>
                   <StorageIcon />
                 </Stack>
                 <Typography variant="caption">
@@ -377,3 +392,16 @@ export default function App() {
     </ThemeProvider>
   );
 }
+
+const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
+  height: 10,
+  borderRadius: 5,
+  [`&.${linearProgressClasses.colorPrimary}`]: {
+    backgroundColor:
+      theme.palette.grey[theme.palette.mode === "light" ? 200 : 800],
+  },
+  [`& .${linearProgressClasses.bar}`]: {
+    borderRadius: 5,
+    backgroundColor: theme.palette.mode === "light" ? "#1a90ff" : "#308fe8",
+  },
+}));
