@@ -367,7 +367,6 @@ export default function App() {
                         }
                         label="Use micro-payments"
                       />
-
                       <FormControlLabel
                         control={
                           <Switch
