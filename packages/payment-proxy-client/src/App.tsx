@@ -83,7 +83,7 @@ export default function App() {
   useEffect(() => {
     // Reset the progress to 0 and make the button clickable after reaching 100
     if (downloadProgress >= 100) {
-      setTimeout(() => setDownloadProgress(0), 1000); // Reset after 1 second
+      setTimeout(() => setDownloadProgress(0), 500); // Reset after .5 second
     }
   }, [downloadProgress]);
 
@@ -419,11 +419,13 @@ export default function App() {
                         </FormControl>
                       </Box>
                       <ProgressButton
+                        variant="contained"
                         onClick={handlePayButton}
+                        disabled={downloadProgress > 0}
                         fillPercentage={downloadProgress}
                         style={
                           {
-                            "--fill-percentage": `${downloadProgress}%`,
+                            "--fill-percentage": `${100 - downloadProgress}%`,
                             "--primary-color": theme.palette.primary.main,
                           } as React.CSSProperties
                         }
