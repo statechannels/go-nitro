@@ -78,7 +78,7 @@ export default function App() {
   const [skipPayment, setSkipPayment] = useState(false);
   const [useMicroPayments, setUseMicroPayments] = useState(false);
   const [errorText, setErrorText] = useState<string>("");
-  const [paymentProgress, setPaymentProgress] = useState<number>(0);
+  const [downloadProgress, setDownloadProgress] = useState<number>(0);
 
   if (files.length == 0) {
     throw new Error("There must be at least one file to download");
@@ -164,7 +164,7 @@ export default function App() {
             paymentChannelInfo.ID,
             nitroClient,
             (progress) => {
-              setPaymentProgress(progress);
+              setDownloadProgress(progress);
               updateChannelInfo(paymentChannelInfo.ID);
             }
           )
@@ -174,7 +174,7 @@ export default function App() {
             paymentChannelInfo.ID,
             nitroClient
           );
-
+      setDownloadProgress(100);
       triggerFileDownload(file);
 
       // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
@@ -413,13 +413,6 @@ export default function App() {
                           </RadioGroup>
                         </FormControl>
                       </Box>
-                      {useMicroPayments && payDisabled && (
-                        <LinearProgressWithLabel
-                          variant="determinate"
-                          color={"primary"}
-                          value={paymentProgress}
-                        />
-                      )}
 
                       <Button
                         variant="contained"
@@ -429,6 +422,11 @@ export default function App() {
                       >
                         Pay & Download
                       </Button>
+                      <LinearProgressWithLabel
+                        variant="determinate"
+                        color={"primary"}
+                        value={downloadProgress}
+                      />
                     </Box>
                     {displayError(errorText)}
                   </Stack>
