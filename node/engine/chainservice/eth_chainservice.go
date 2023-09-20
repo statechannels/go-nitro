@@ -88,6 +88,10 @@ const RESUB_INTERVAL = 15 * time.Second
 // REQUIRED_BLOCK_CONFIRMATIONS is how many blocks must be mined before an emitted event is processed
 const REQUIRED_BLOCK_CONFIRMATIONS = 2
 
+// MAX_EPOCHS is the maximum range of old epochs we can query with a single "FilterLogs" request
+// This is a restriction enforced by the rpc provider
+const MAX_EPOCHS = 60480
+
 // NewEthChainService is a convenient wrapper around newEthChainService, which provides a simpler API
 func NewEthChainService(chainOpts ChainOpts) (ChainService, error) {
 	if chainOpts.ChainPk == "" {
@@ -157,29 +161,42 @@ func (ecs *EthChainService) checkForMissedEvents(startBlock uint64) error {
 		return err
 	}
 
-	ecs.logger.Info("checking for missed chain events", "startBlock", startBlock, "currentBlock", latestBlock.Number())
-	query := ethereum.FilterQuery{
-		FromBlock: big.NewInt(int64(startBlock)),
-		ToBlock:   latestBlock.Number(),
-		Addresses: []common.Address{ecs.naAddress},
-		Topics:    [][]common.Hash{topicsToWatch},
+	latestBlockNum := latestBlock.NumberU64()
+	ecs.logger.Info("checking for missed chain events", "startBlock", startBlock, "currentBlock", latestBlockNum)
+
+	// Loop through in chunks of MAX_EPOCHS
+	for currentStart := startBlock; currentStart <= latestBlockNum; {
+		currentEnd := currentStart + MAX_EPOCHS
+		if currentEnd > latestBlockNum {
+			currentEnd = latestBlockNum
+		}
+
+		// Create a query for the current chunk
+		query := ethereum.FilterQuery{
+			FromBlock: big.NewInt(int64(currentStart)),
+			ToBlock:   big.NewInt(int64(currentEnd)),
+			Addresses: []common.Address{ecs.naAddress},
+			Topics:    [][]common.Hash{topicsToWatch},
+		}
+
+		// Fetch logs for the current chunk
+		missedEvents, err := ecs.chain.FilterLogs(ecs.ctx, query)
+		if err != nil {
+			ecs.logger.Error("failed to retrieve old chain logs. " + err.Error())
+			errorMsg := "*** To avoid this error, consider increasing the chainstartblock value in your configuration before restarting the node."
+			errorMsg += " Note that this may cause your node to miss chain events emitted prior to the chainstartblock."
+			ecs.logger.Error(errorMsg)
+			return err
+		}
+		ecs.logger.Info("finished checking for missed chain events in range", "fromBlock", currentStart, "toBlock", currentEnd, "numMissedEvents", len(missedEvents))
+
+		for _, event := range missedEvents {
+			ecs.eventTracker.Push(event)
+		}
+
+		currentStart = currentEnd + 1 // Move to the next chunk
 	}
 
-	missedEvents, err := ecs.chain.FilterLogs(ecs.ctx, query)
-	if err != nil {
-		ecs.logger.Error("failed to retrieve old chain logs. " + err.Error())
-
-		errorMsg := "*** To avoid this error, consider increasing the chainstartblock value in your configuration before restarting the node."
-		errorMsg += " Note that this may cause your node to miss chain events emitted prior to the chainstartblock."
-		ecs.logger.Error(errorMsg)
-
-		return err
-	}
-	ecs.logger.Info("finished checking for missed chain events", "numMissedEvents", len(missedEvents))
-
-	for _, event := range missedEvents {
-		ecs.eventTracker.Push(event)
-	}
 	return nil
 }
 
