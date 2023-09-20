@@ -4,7 +4,7 @@ The Dockerfile in this directory defines a container that can act as a `bootnode
 
 ## Create image
 
-Update the `docker/cloud/config.toml` file (or pass as env vars) with the private keys you will use for the state channel address and chain address. You can run the following command to generate a fresh key pair:
+Update the `docker/nitro/config.toml` file (or pass as env vars) with the private keys you will use for the state channel address and chain address. You can run the following command to generate a fresh key pair:
 
 ```
 go run ./cmd/generate-keypair
@@ -15,14 +15,14 @@ You can use [this faucet](https://faucet.calibration.fildev.network/funds.html) 
 Build the image:
 
 ```
-make docker/cloud/build
+make docker/nitro/build
 ```
 
 ## Push image to docker registry
 
 ```
 docker login -u <api_key> -p <api_key> registry.digitalocean.com
-make docker/cloud/push
+make docker/nitro/push
 ```
 
 ## Create ssh key-pair

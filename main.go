@@ -10,10 +10,12 @@ import (
 	"syscall"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/statechannels/go-nitro/internal/chain"
 	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/internal/node"
 	"github.com/statechannels/go-nitro/internal/rpc"
+	"github.com/statechannels/go-nitro/node/engine/chainservice"
+	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
+	"github.com/statechannels/go-nitro/node/engine/store"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 )
@@ -100,12 +102,14 @@ func main() {
 			DefaultText: "hardhat / anvil default",
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &chainUrl,
+			EnvVars:     []string{"CHAIN_URL"},
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CHAIN_AUTH_TOKEN,
 			Usage:       "The bearer token used for auth when making requests to the chain's RPC endpoint.",
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &chainAuthToken,
+			EnvVars:     []string{"CHAIN_AUTH_TOKEN"},
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        CHAIN_PK,
@@ -120,6 +124,7 @@ func main() {
 			Value:       0,
 			Category:    CONNECTIVITY_CATEGORY,
 			Destination: &chainStartBlock,
+			EnvVars:     []string{"CHAIN_START_BLOCK"},
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        NA_ADDRESS,
@@ -203,7 +208,7 @@ func main() {
 		Flags:  flags,
 		Before: altsrc.InitInputSourceWithContext(flags, altsrc.NewTomlSourceFromFlagFunc(CONFIG)),
 		Action: func(cCtx *cli.Context) error {
-			chainOpts := chain.ChainOpts{
+			chainOpts := chainservice.ChainOpts{
 				ChainUrl:        chainUrl,
 				ChainStartBlock: chainStartBlock,
 				ChainAuthToken:  chainAuthToken,
@@ -213,14 +218,27 @@ func main() {
 				CaAddress:       common.HexToAddress(caAddress),
 			}
 
+			storeOpts := store.StoreOpts{
+				PkBytes:            common.Hex2Bytes(pkString),
+				UseDurableStore:    useDurableStore,
+				DurableStoreFolder: durableStoreFolder,
+			}
+
 			var peerSlice []string
 			if bootPeers != "" {
 				peerSlice = strings.Split(bootPeers, ",")
 			}
 
+			messageOpts := p2pms.MessageOpts{
+				PkBytes:   common.Hex2Bytes(pkString),
+				Port:      msgPort,
+				BootPeers: peerSlice,
+				PublicIp:  publicIp,
+			}
+
 			logging.SetupDefaultLogger(os.Stdout, slog.LevelDebug)
 
-			node, _, _, _, err := node.InitializeNode(pkString, chainOpts, useDurableStore, durableStoreFolder, msgPort, peerSlice, publicIp)
+			node, _, _, _, err := node.InitializeNode(chainOpts, storeOpts, messageOpts)
 			if err != nil {
 				return err
 			}

@@ -18,16 +18,6 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-type ChainOpts struct {
-	ChainUrl        string
-	ChainStartBlock uint64
-	ChainAuthToken  string
-	ChainPk         string
-	NaAddress       common.Address
-	VpaAddress      common.Address
-	CaAddress       common.Address
-}
-
 func StartAnvil() (*exec.Cmd, error) {
 	chainCmd := exec.Command("anvil", "--chain-id", "1337", "--block-time", "1", "--silent")
 	chainCmd.Stdout = os.Stdout
