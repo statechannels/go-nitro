@@ -6,6 +6,7 @@ docker/cloud/start:
 	docker run -it -d --name go-nitro-cloud \
 	  -p 3005:3005 -p 4005:4005 -p 5005:5005 \
 		-e NITRO_CONFIG_PATH="./nitro_config/iris.toml" \
+		-v ./docker/cloud:/app/nitro_config \
 		go-nitro-cloud
 
 docker/cloud/push:
