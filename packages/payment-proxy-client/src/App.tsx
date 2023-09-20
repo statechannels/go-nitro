@@ -113,7 +113,6 @@ export default function App() {
 
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank");
-    URL.revokeObjectURL(url);
   };
 
   const createPaymentChannel = async () => {
