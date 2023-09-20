@@ -425,7 +425,6 @@ export default function App() {
                         variant="contained"
                         onClick={handlePayButton}
                         disabled={downloadProgress > 0}
-                        fillPercentage={downloadProgress}
                         style={
                           {
                             "--fill-percentage": `${downloadProgress}%`,
