@@ -13,7 +13,7 @@ RUN yarn --version
 # Copy files into image
 WORKDIR /app
 COPY . .
-COPY ./docker/cloud ./nitro_config
+COPY ./docker/nitro ./nitro_config
 
 # Build the binary
 RUN yarn workspace nitro-gui install
