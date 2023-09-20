@@ -16,6 +16,13 @@ type VoucherStore interface {
 	RemoveVoucherInfo(channelId types.Destination) error
 }
 
+type ChannelRegistrationData struct {
+	ChannelId       types.Destination
+	Payer           common.Address
+	Payee           common.Address
+	StartingBalance *big.Int
+}
+
 // VoucherInfo stores the status of payments for a given payment channel.
 // VoucherManager receives and generates vouchers. It is responsible for storing vouchers.
 type VoucherManager struct {
@@ -29,14 +36,14 @@ func NewVoucherManager(me types.Address, store VoucherStore) *VoucherManager {
 }
 
 // Register registers a channel for use, given the payer, payee and starting balance of the channel
-func (vm *VoucherManager) Register(channelId types.Destination, payer common.Address, payee common.Address, startingBalance *big.Int) error {
-	voucher := Voucher{ChannelId: channelId, Amount: big.NewInt(0)}
-	data := VoucherInfo{payer, payee, big.NewInt(0).Set(startingBalance), voucher}
+func (vm *VoucherManager) Register(regData ChannelRegistrationData) error {
+	voucher := Voucher{ChannelId: regData.ChannelId, Amount: big.NewInt(0)}
+	data := VoucherInfo{regData.Payer, regData.Payee, big.NewInt(0).Set(regData.StartingBalance), voucher}
 
-	if v, _ := vm.store.GetVoucherInfo(channelId); v != nil {
+	if v, _ := vm.store.GetVoucherInfo(regData.ChannelId); v != nil {
 		return fmt.Errorf("channel already registered")
 	}
-	return vm.store.SetVoucherInfo(channelId, data)
+	return vm.store.SetVoucherInfo(regData.ChannelId, data)
 }
 
 // Remove deletes the channel's status
