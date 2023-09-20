@@ -425,7 +425,7 @@ export default function App() {
                         fillPercentage={downloadProgress}
                         style={
                           {
-                            "--fill-percentage": `${100 - downloadProgress}%`,
+                            "--fill-percentage": `${downloadProgress}%`,
                             "--primary-color": theme.palette.primary.main,
                           } as React.CSSProperties
                         }

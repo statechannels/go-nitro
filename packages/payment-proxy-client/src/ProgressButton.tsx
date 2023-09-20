@@ -7,7 +7,7 @@ interface CustomButtonProps extends ButtonProps {
 }
 
 const CustomButton = styled(Button)({
-  background: `linear-gradient(90deg, var(--primary-color) 0%, var(--primary-color) var(--fill-percentage), transparent var(--fill-percentage), transparent 100%)`,
+  background: `linear-gradient(90deg, transparent 0%, transparent var(--fill-percentage), var(--primary-color) var(--fill-percentage), var(--primary-color) 100%)`,
   transition: "background 0.3s ease-in-out",
 }) as React.FC<CustomButtonProps>;
 
