@@ -5,15 +5,18 @@ export async function fetchFile(
   url: string,
   paymentAmount: number,
   channelId: string,
-  nitroClient: NitroRpcClient
+  nitroClient: NitroRpcClient,
+  updateChannelCallback: () => void
 ): Promise<File> {
   console.time("Create Payment Vouncher");
   const voucher = await nitroClient.CreateVoucher(channelId, paymentAmount);
   console.timeEnd("Create Payment Vouncher");
+
   console.time("Fetch file");
   const req = createRequest(url, voucher);
-
-  const response = await fetch(req);
+  const fetchPromise = fetch(req);
+  updateChannelCallback();
+  const response = await fetchPromise;
   console.timeEnd("Fetch file");
   if (response.status != 200) {
     throw new Error(`${response.status.toString()} : ${await response.text()}`);

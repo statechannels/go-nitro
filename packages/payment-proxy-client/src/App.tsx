@@ -172,7 +172,10 @@ export default function App() {
             selectedFile.url,
             skipPayment ? 0 : costPerByte * selectedFile.size,
             paymentChannelInfo.ID,
-            nitroClient
+            nitroClient,
+            () => {
+              updateChannelInfo(paymentChannelInfo.ID);
+            }
           );
 
       triggerFileDownload(file, selectedFile.fileName);
