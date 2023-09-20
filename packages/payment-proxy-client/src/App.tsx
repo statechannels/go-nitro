@@ -421,8 +421,15 @@ export default function App() {
                       <ProgressButton
                         onClick={handlePayButton}
                         fillPercentage={downloadProgress}
-                        label="Pay & Download"
-                      />
+                        style={
+                          {
+                            "--fill-percentage": `${downloadProgress}%`,
+                            "--primary-color": theme.palette.primary.main,
+                          } as React.CSSProperties
+                        }
+                      >
+                        Pay & Download
+                      </ProgressButton>
                     </Box>
                     {displayError(errorText)}
                   </Stack>
