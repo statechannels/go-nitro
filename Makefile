@@ -1,29 +1,19 @@
-docker/cloud/build:
-	docker build -f docker/cloud/Dockerfile -t go-nitro-cloud .
+docker/nitro/build:
+	docker build -f docker/nitro/Dockerfile -t go-nitro .
 
-docker/cloud/start:
-	docker remove go-nitro-cloud || true
-	docker run -it -d --name go-nitro-cloud \
+docker/nitro/start:
+	docker remove go-nitro || true
+	docker run -it -d --name go-nitro \
     -p 3005:3005 -p 4005:4005 -p 5005:5005 \
 		-e NITRO_CONFIG_PATH="./nitro_config/iris.toml" \
-    -v ./docker/cloud:/app/nitro_config \
+    -v ./docker/nitro:/app/nitro_config \
 		-v ./tls:/app/tls \
 		-v ./data:/app/data \
-		go-nitro-cloud
+		go-nitro
 
-docker/cloud/push:
-	docker tag go-nitro-cloud:latest registry.digitalocean.com/magmo/go-nitro:latest
+docker/nitro/push:
+	docker tag go-nitro:latest registry.digitalocean.com/magmo/go-nitro:latest
 	docker push registry.digitalocean.com/magmo/go-nitro:latest
-
-docker/local/build:
-	docker build -f docker/local/Dockerfile -t go-nitro-local .
-
-docker/local/start:
-	docker remove go-nitro-local || true
-	docker run -it -d --name go-nitro-local \
-	-p 3005:3005 -p 4005:4005 -p 5005:5005 \
-	-v ./docker/local/config.toml:/app/config.toml \
-	go-nitro-local
 
 docker/paymentproxy/build:
 	docker build -f docker/paymentproxy/Dockerfile -t nitro-payment-proxy .
@@ -35,22 +25,6 @@ docker/paymentproxy/push:
 docker/paymentproxy/start:
 	docker remove payment-proxy || true
 	docker run -it -d --name payment-proxy -p 5511:5511 -e PROXY_PORT=5511 payment-proxy
-
-docker/network/build:
-	docker build -f docker/Dockerfile -t go-nitro .
-
-docker/network/start:
-	docker remove go-nitro || true
-	docker run -it -d --name go-nitro -p 4005:4005 -p 4006:4006 -p 4007:4007 go-nitro
-
-docker/network/stop:
-	docker stop go-nitro
-	docker rm go-nitro
-
-docker/network/restart: docker/network/stop docker/network/start
-
-docker/network/attach:
-	docker exec -it go-nitro bash
 
 ui/build:
 	yarn workspace nitro-gui build

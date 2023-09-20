@@ -31,7 +31,7 @@ jobs:
 
       - name: Build Docker image
         if: github.event.inputs.build-image == 'true'
-        run: make docker/cloud/build
+        run: make docker/nitro/build
 
       - name: Login to DigitalOcean Docker Registry
         if: github.event.inputs.build-image == 'true'
@@ -39,7 +39,7 @@ jobs:
 
       - name: Push Docker image to DigitalOcean
         if: github.event.inputs.build-image == 'true'
-        run: make docker/cloud/push
+        run: make docker/nitro/push
 
   deploy-iris:
     needs: build-image
