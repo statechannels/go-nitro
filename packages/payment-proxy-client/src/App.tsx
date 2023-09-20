@@ -419,13 +419,18 @@ export default function App() {
                         </FormControl>
                       </Box>
                       <ProgressButton
+                        onClick={handlePayButton}
+                        fillPercentage={downloadProgress}
+                        label="Pay & Download"
+                      />
+                      {/* <ProgressButton
                         variant="contained"
                         onClick={handlePayButton}
                         sx={{ mt: 1, mr: 1 }}
                         value={downloadProgress}
                       >
                         Pay & Download
-                      </ProgressButton>
+                      </ProgressButton> */}
                     </Box>
                     {displayError(errorText)}
                   </Stack>

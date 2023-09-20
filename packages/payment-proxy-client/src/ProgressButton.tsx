@@ -1,58 +1,27 @@
 import React from "react";
 import Button, { ButtonProps } from "@mui/material/Button";
-import Box from "@mui/material/Box";
 import { makeStyles } from "@mui/styles";
 
-interface ProgressButtonProps extends Omit<ButtonProps, "onClick"> {
-  value: number;
-  onClick: () => void;
-}
-
 const useStyles = makeStyles({
-  progressStyle: (props: ProgressButtonProps) => ({
-    position: "absolute",
-    top: 0,
-    left: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 255, 0.5)", // Adjust color as needed
-    width: `${props.value}%`,
-    // transition: "width 0.3s ease",
+  customButton: (props: { fillPercentage: number }) => ({
+    background: `linear-gradient(92deg, white 0%, white ${props.fillPercentage}%, transparent ${props.fillPercentage}%, transparent 100%)`,
   }),
-  customDisabled: {
-    cursor: "not-allowed",
-    pointerEvents: "none",
-    opacity: 0.5,
-  },
 });
 
-const ProgressButton: React.FC<ProgressButtonProps> = ({
-  value,
-  onClick,
-  children,
-  ...props
-}) => {
-  const isDisabled = value > 0;
-  const classes = useStyles({
-    value,
-    onClick,
-    children,
-    ...props,
-  });
+interface CustomButtonProps extends ButtonProps {
+  fillPercentage: number;
+  label: string;
+}
 
+const CustomButton: React.FC<CustomButtonProps> = (
+  props: CustomButtonProps
+) => {
+  const classes = useStyles({ fillPercentage: props.fillPercentage });
   return (
-    <Box position="relative">
-      <Button
-        variant="contained"
-        fullWidth
-        onClick={onClick}
-        className={isDisabled ? classes.customDisabled : ""}
-        {...props}
-      >
-        {children}
-      </Button>
-      <Box className={classes.progressStyle}></Box>
-    </Box>
+    <Button className={classes.customButton} {...props}>
+      {props.label}
+    </Button>
   );
 };
 
-export default ProgressButton;
+export default CustomButton;
