@@ -18,6 +18,7 @@ import {
   Switch,
   linearProgressClasses,
   useMediaQuery,
+  LinearProgressProps,
 } from "@mui/material";
 import Box from "@mui/material/Box";
 import Stepper from "@mui/material/Stepper";
@@ -413,7 +414,7 @@ export default function App() {
                         </FormControl>
                       </Box>
                       {useMicroPayments && payDisabled && (
-                        <BorderLinearProgress
+                        <LinearProgressWithLabel
                           variant="determinate"
                           color={"primary"}
                           value={paymentProgress}
@@ -499,3 +500,20 @@ const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
     backgroundColor: theme.palette.mode === "light" ? "#1a90ff" : "#308fe8",
   },
 }));
+
+const LinearProgressWithLabel = (
+  props: LinearProgressProps & { value: number }
+) => {
+  return (
+    <Box sx={{ display: "flex", alignItems: "center" }}>
+      <Box sx={{ width: "100%", mr: 1 }}>
+        <LinearProgress variant="determinate" {...props} />
+      </Box>
+      <Box sx={{ minWidth: 35 }}>
+        <Typography variant="body2" color="text.secondary">{`${Math.round(
+          props.value
+        )}%`}</Typography>
+      </Box>
+    </Box>
+  );
+};
