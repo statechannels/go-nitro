@@ -225,7 +225,7 @@ export default function App() {
     };
 
     const handlePayButton = async () => {
-      fetchAndDownloadFile(); //.finally(() => setDownloadProgress(0));
+      fetchAndDownloadFile();
     };
 
     const computePercentagePaid = (info: PaymentChannelInfo) => {
