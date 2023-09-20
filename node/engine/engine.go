@@ -451,14 +451,6 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		if err != nil {
 			return failedEngineEvent, fmt.Errorf("handleAPIEvent: Could not create virtualfund objective for %+v: %w", request, err)
 		}
-		// Only Alice or Bob care about registering the objective and keeping track of vouchers
-		lastParticipant := uint(len(vfo.V.Participants) - 1)
-		if vfo.MyRole == lastParticipant || vfo.MyRole == payments.PAYER_INDEX {
-			err = e.registerPaymentChannel(vfo)
-			if err != nil {
-				return failedEngineEvent, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
-			}
-		}
 
 		if err != nil {
 			return failedEngineEvent, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
@@ -727,10 +719,6 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p proto
 		vfo, err := virtualfund.ConstructObjectiveFromPayload(p, false, *e.store.GetAddress(), e.store.GetConsensusChannel)
 		if err != nil {
 			return &virtualfund.Objective{}, fromMsgErr(id, err)
-		}
-		err = e.registerPaymentChannel(vfo)
-		if err != nil {
-			return &virtualfund.Objective{}, fmt.Errorf("could not register channel with payment/receipt manager.\n\ttarget channel: %s\n\terr: %w", id, err)
 		}
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):
