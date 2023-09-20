@@ -42,14 +42,22 @@ const (
 	BOOTSTRAP_SLEEP_DURATION = 100 * time.Millisecond // how often we check for bootpeers in Peerstore
 )
 
+type MessageOpts struct {
+	PkBytes   []byte
+	Port      int
+	BootPeers []string
+	PublicIp  string
+	SCAddr    types.Address
+}
+
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
 type P2PMessageService struct {
 	initComplete chan struct{}
 	toEngine     chan protocols.Message // for forwarding processed messages to the engine
 	peers        *safesync.Map[peer.ID]
 
-	me          types.Address
-	key         p2pcrypto.PrivKey
+	scAddr      types.Address
+	privateKey  p2pcrypto.PrivKey
 	p2pHost     host.Host
 	dht         *dht.IpfsDHT
 	newPeerInfo chan basicPeerInfo
@@ -58,42 +66,35 @@ type P2PMessageService struct {
 	MultiAddr string
 }
 
-// Id returns the libp2p peer ID of the message service.
-func (ms *P2PMessageService) Id() peer.ID {
-	id, _ := peer.IDFromPrivateKey(ms.key)
-	return id
-}
-
 // NewMessageService returns a running P2PMessageService listening on the given ip, port and message key.
-func NewMessageService(publicIp string, port int, me types.Address, pk []byte, bootPeers []string) *P2PMessageService {
+func NewMessageService(opts MessageOpts) *P2PMessageService {
 	ms := &P2PMessageService{
 		initComplete: make(chan struct{}, 1),
 		toEngine:     make(chan protocols.Message, BUFFER_SIZE),
 		newPeerInfo:  make(chan basicPeerInfo, BUFFER_SIZE),
 		peers:        &safesync.Map[peer.ID]{},
-		me:           me,
-		logger:       logging.LoggerWithAddress(slog.Default(), me),
+		scAddr:       opts.SCAddr,
+		logger:       logging.LoggerWithAddress(slog.Default(), opts.SCAddr),
 	}
 
-	messageKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(pk)
+	messageKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(opts.PkBytes)
 	ms.checkError(err)
 
-	extMultiAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", publicIp, port))
-	if err != nil {
-		ms.logger.Error("Error creating multiaddress", "err", err)
-	}
 	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
-		if extMultiAddr != nil {
-			addrs = append(addrs, extMultiAddr)
+		extMultiAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", opts.PublicIp, opts.Port))
+		if err != nil {
+			ms.logger.Error("failed to create publicIp multiaddress", "err", err)
+			return addrs
 		}
+		addrs = append(addrs, extMultiAddr)
 		return addrs
 	}
 
-	ms.key = messageKey
+	ms.privateKey = messageKey
 	options := []libp2p.Option{
 		libp2p.Identity(messageKey),
 		libp2p.AddrsFactory(addressFactory),
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", "0.0.0.0", port)),
+		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", "0.0.0.0", opts.Port)),
 		libp2p.Transport(tcp.NewTCPTransport),
 		libp2p.NATPortMap(),
 		libp2p.EnableNATService(),
@@ -114,9 +115,9 @@ func NewMessageService(publicIp string, port int, me types.Address, pk []byte, b
 	ms.checkError(err)
 
 	ms.MultiAddr = addrs[0].String()
-	ms.logger.Info("libp2p node", "multiaddrs", addrs)
+	ms.logger.Info("libp2p node initialized", "multiaddrs", addrs)
 
-	err = ms.setupDht(bootPeers)
+	err = ms.setupDht(opts.BootPeers)
 	ms.checkError(err)
 
 	return ms
@@ -194,19 +195,25 @@ func (ms *P2PMessageService) InitComplete() <-chan struct{} {
 	return ms.initComplete
 }
 
+// Id returns the libp2p peer ID of the message service.
+func (ms *P2PMessageService) Id() peer.ID {
+	id, _ := peer.IDFromPrivateKey(ms.privateKey)
+	return id
+}
+
 // addScaddrDhtRecord adds this node's state channel address to the custom dht namespace
 func (ms *P2PMessageService) addScaddrDhtRecord(ctx context.Context) {
 	ms.logger.Debug("Adding state channel address to dht")
 
 	recordData := &dhtData{
-		SCAddr:    ms.me.String(),
+		SCAddr:    ms.scAddr.String(),
 		PeerID:    ms.Id().String(),
 		Timestamp: time.Time.Unix(time.Now()),
 	}
 	recordDataBytes, err := json.Marshal(recordData)
 	ms.checkError(err)
 
-	signature, err := ms.key.Sign(recordDataBytes)
+	signature, err := ms.privateKey.Sign(recordDataBytes)
 	ms.checkError(err)
 
 	fullRecord := &dhtRecord{
@@ -216,7 +223,7 @@ func (ms *P2PMessageService) addScaddrDhtRecord(ctx context.Context) {
 	fullRecordBytes, err := json.Marshal(fullRecord)
 	ms.checkError(err)
 
-	key := DHT_RECORD_PREFIX + ms.me.String()
+	key := DHT_RECORD_PREFIX + ms.scAddr.String()
 	err = ms.dht.PutValue(ctx, key, fullRecordBytes)
 	ms.checkError(err)
 	ms.logger.Info("Added state channel address to dht")
