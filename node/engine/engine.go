@@ -666,15 +666,6 @@ func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, erro
 	return outgoing, nil
 }
 
-func (e Engine) registerPaymentChannel(vfo virtualfund.Objective) error {
-	postfund := vfo.V.PostFundState()
-	startingBalance := big.NewInt(0)
-	// TODO: Assumes one asset for now
-	startingBalance.Set(postfund.Outcome[0].Allocations[0].Amount)
-
-	return e.vm.Register(vfo.V.Id, payments.GetPayer(postfund.Participants), payments.GetPayee(postfund.Participants), startingBalance)
-}
-
 // spawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective if it is a directfund.Objective.
 // The associated Channel will remain in the store.
 func (e Engine) spawnConsensusChannelIfDirectFundObjective(crankedObjective protocols.Objective) error {
