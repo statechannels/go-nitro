@@ -79,7 +79,7 @@ export default function App() {
   const [useMicroPayments, setUseMicroPayments] = useState(false);
   const [errorText, setErrorText] = useState<string>("");
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
-
+  const [fetchInProgress, setFetchInProgress] = useState<boolean>(false);
   useEffect(() => {
     // Reset the progress to 0 and make the button clickable after reaching 100
     if (downloadProgress >= 100) {
@@ -153,6 +153,7 @@ export default function App() {
 
   const fetchAndDownloadFile = async () => {
     setErrorText("");
+    setFetchInProgress(true);
 
     if (!nitroClient) {
       setErrorText("Nitro client not initialized");
@@ -162,6 +163,7 @@ export default function App() {
       setErrorText("No payment channel to use");
       return;
     }
+
     try {
       const file = useMicroPayments
         ? await fetchFileInChunks(
@@ -193,7 +195,10 @@ export default function App() {
       }, 50);
     } catch (e: unknown) {
       console.error(e);
+
       setErrorText((e as Error).message);
+    } finally {
+      setFetchInProgress(false);
     }
   };
 
@@ -222,10 +227,6 @@ export default function App() {
         console.log(err);
         setCreateChannelDisabled(false);
       });
-    };
-
-    const handlePayButton = async () => {
-      fetchAndDownloadFile();
     };
 
     const computePercentagePaid = (info: PaymentChannelInfo) => {
@@ -423,8 +424,8 @@ export default function App() {
                       </Box>
                       <ProgressButton
                         variant="contained"
-                        onClick={handlePayButton}
-                        disabled={downloadProgress > 0}
+                        onClick={fetchAndDownloadFile}
+                        disabled={fetchInProgress}
                         style={
                           {
                             "--fill-percentage": `${downloadProgress}%`,
