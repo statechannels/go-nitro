@@ -107,14 +107,14 @@ export default function App() {
     setPaymentChannelInfo(paymentChannel);
   };
 
-  const triggerFileDownload = (file: File) => {
+  const triggerFileDownload = (file: File, fileName?: string) => {
     // This will prompt the browser to download the file
     const blob = new Blob([file], { type: file.type });
 
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = file.name;
+    link.download = fileName || file.name;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -175,7 +175,7 @@ export default function App() {
             nitroClient
           );
 
-      triggerFileDownload(file);
+      triggerFileDownload(file, selectedFile.fileName);
 
       // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
       setTimeout(() => {
