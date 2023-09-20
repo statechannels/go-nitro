@@ -560,6 +560,14 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	for _, proposal := range sideEffects.ProposalsToProcess {
 		e.fromLedger <- proposal
 	}
+
+	if sideEffects.PaymentChannelToRegister != (payments.ChannelRegistrationData{}) {
+		err := e.vm.Register(sideEffects.PaymentChannelToRegister)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -598,6 +606,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	// TODO: If attemptProgress is called on a completed objective CompletedObjectives would include that objective id
 	// Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
 	if waitingFor == "WaitingForNothing" {
+		// err = e.executeSideEffects(sideEffects)
 		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
 		err = e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
 		if err != nil {
