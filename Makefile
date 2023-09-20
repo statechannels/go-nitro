@@ -4,9 +4,10 @@ docker/cloud/build:
 docker/cloud/start:
 	docker remove go-nitro-cloud || true
 	docker run -it -d --name go-nitro-cloud \
-	  -p 3005:3005 -p 4005:4005 -p 5005:5005 \
-		-e NITRO_CONFIG_PATH="./nitro_config/iris.toml" \
-		go-nitro-cloud
+	-p 3005:3005 -p 4005:4005 -p 5005:5005 \
+	-e NITRO_CONFIG_PATH="./nitro_config/iris.toml" \
+	-v ./docker/cloud:/app/nitro_config \
+	go-nitro-cloud
 
 docker/cloud/push:
 	docker tag go-nitro-cloud:latest registry.digitalocean.com/magmo/go-nitro:latest
@@ -17,7 +18,10 @@ docker/local/build:
 
 docker/local/start:
 	docker remove go-nitro-local || true
-	docker run -it -d --name go-nitro-local -p 3005:3005 -p 4005:4005 -p 5005:5005 go-nitro-local
+	docker run -it -d --name go-nitro-local \
+	-p 3005:3005 -p 4005:4005 -p 5005:5005 \
+	-v ./docker/local/config.toml:/app/config.toml \
+	go-nitro-local
 
 docker/paymentproxy/build:
 	docker build -f docker/paymentproxy/Dockerfile -t nitro-payment-proxy .
