@@ -426,7 +426,7 @@ export default function App() {
                       <ProgressButton
                         variant="contained"
                         onClick={fetchAndDownloadFile}
-                        disabled={fetchInProgress}
+                        disabled={fetchInProgress || downloadProgress == 100}
                         style={
                           {
                             "--fill-percentage": `${downloadProgress}%`,
