@@ -152,8 +152,7 @@ async function getChunkData(res: Response): Promise<Uint8Array> {
   if (!res.ok) {
     throw new Error(`Response status ${res.status}`);
   }
-  const result = await res.body.getReader().read();
-  return result.value || new Uint8Array();
+  return new Uint8Array(await res.arrayBuffer());
 }
 
 function parseTotalSizeFromContentRange(
