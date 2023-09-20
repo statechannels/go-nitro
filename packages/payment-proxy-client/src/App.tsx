@@ -114,15 +114,12 @@ export default function App() {
     setPaymentChannelInfo(paymentChannel);
   };
 
-  const triggerFileDownload = (file: File, fileName?: string) => {
+  const triggerFileDownload = (file: File) => {
     // This will prompt the browser to download the file
     const blob = new Blob([file], { type: file.type });
 
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName || file.name;
-    link.click();
+    open(url);
     URL.revokeObjectURL(url);
   };
 
@@ -188,7 +185,7 @@ export default function App() {
             }
           );
       setDownloadProgress(100);
-      triggerFileDownload(file, selectedFile.fileName);
+      triggerFileDownload(file);
 
       // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
       setTimeout(() => {
