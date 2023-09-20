@@ -5,6 +5,8 @@ import { makeStyles } from "@mui/styles";
 const useStyles = makeStyles({
   customButton: (props: { fillPercentage: number }) => ({
     background: `linear-gradient(92deg, white 0%, white ${props.fillPercentage}%, transparent ${props.fillPercentage}%, transparent 100%)`,
+    transition: "background 0.3s ease-in-out",
+    color: props.fillPercentage > 0 ? "transparent" : undefined,
   }),
 });
 
@@ -18,7 +20,11 @@ const CustomButton: React.FC<CustomButtonProps> = (
 ) => {
   const classes = useStyles({ fillPercentage: props.fillPercentage });
   return (
-    <Button className={classes.customButton} {...props}>
+    <Button
+      className={classes.customButton}
+      {...props}
+      disabled={props.fillPercentage > 0}
+    >
       {props.label}
     </Button>
   );

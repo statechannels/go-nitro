@@ -423,14 +423,6 @@ export default function App() {
                         fillPercentage={downloadProgress}
                         label="Pay & Download"
                       />
-                      {/* <ProgressButton
-                        variant="contained"
-                        onClick={handlePayButton}
-                        sx={{ mt: 1, mr: 1 }}
-                        value={downloadProgress}
-                      >
-                        Pay & Download
-                      </ProgressButton> */}
                     </Box>
                     {displayError(errorText)}
                   </Stack>
