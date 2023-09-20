@@ -119,7 +119,7 @@ export default function App() {
     const blob = new Blob([file], { type: file.type });
 
     const url = URL.createObjectURL(blob);
-    open(url, "_blank");
+    window.open(url, "_blank");
     URL.revokeObjectURL(url);
   };
 
