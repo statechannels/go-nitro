@@ -8,6 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_FILE_PATHS: string;
   readonly VITE_FILE_SIZES: string;
   readonly VITE_FILE_NAMES: string;
+  readonly VITE_CHUNK_SIZE: string;
 }
 
 interface ImportMeta {

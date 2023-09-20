@@ -3,6 +3,7 @@ export const QUERY_KEY = "rpcUrl";
 export const costPerByte = 1;
 
 // env vars
+export const CHUNK_SIZE = parseInt(import.meta.env.VITE_CHUNK_SIZE, 10);
 export const proxyUrl = import.meta.env.VITE_PROXY_URL;
 export const fileRelativePath = import.meta.env.VITE_FILE_RELATIVE_PATH;
 

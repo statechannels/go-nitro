@@ -18,6 +18,7 @@ import {
   Switch,
   linearProgressClasses,
   useMediaQuery,
+  LinearProgressProps,
 } from "@mui/material";
 import Box from "@mui/material/Box";
 import Stepper from "@mui/material/Stepper";
@@ -33,6 +34,7 @@ import { PaymentChannelInfo } from "@statechannels/nitro-rpc-client/src/types";
 
 import {
   AvailableFile,
+  CHUNK_SIZE,
   QUERY_KEY,
   costPerByte,
   defaultNitroRPCUrl,
@@ -41,7 +43,7 @@ import {
   initialChannelBalance,
   provider,
 } from "./constants";
-import { fetchFile } from "./file";
+import { fetchFile, fetchFileInChunks } from "./file";
 import { Copyright } from "./Copyright";
 import { prettyPrintFIL } from "./prettyPrintFIL";
 
@@ -74,8 +76,9 @@ export default function App() {
   >();
 
   const [skipPayment, setSkipPayment] = useState(false);
-
+  const [useMicroPayments, setUseMicroPayments] = useState(false);
   const [errorText, setErrorText] = useState<string>("");
+  const [paymentProgress, setPaymentProgress] = useState<number>(0);
 
   if (files.length == 0) {
     throw new Error("There must be at least one file to download");
@@ -153,12 +156,24 @@ export default function App() {
       return;
     }
     try {
-      const file = await fetchFile(
-        selectedFile.url,
-        skipPayment ? 0 : costPerByte * selectedFile.size,
-        paymentChannelInfo.ID,
-        nitroClient
-      );
+      const file = useMicroPayments
+        ? await fetchFileInChunks(
+            CHUNK_SIZE,
+            selectedFile.url,
+            skipPayment ? 0 : costPerByte,
+            paymentChannelInfo.ID,
+            nitroClient,
+            (progress) => {
+              setPaymentProgress(progress);
+              updateChannelInfo(paymentChannelInfo.ID);
+            }
+          )
+        : await fetchFile(
+            selectedFile.url,
+            skipPayment ? 0 : costPerByte * selectedFile.size,
+            paymentChannelInfo.ID,
+            nitroClient
+          );
 
       triggerFileDownload(file);
 
@@ -200,7 +215,7 @@ export default function App() {
       });
     };
 
-    const handlePayButton = () => {
+    const handlePayButton = async () => {
       setPayDisabled(true);
       fetchAndDownloadFile().finally(() => setPayDisabled(false));
     };
@@ -347,6 +362,18 @@ export default function App() {
                       <FormControlLabel
                         control={
                           <Switch
+                            checked={useMicroPayments}
+                            color="primary"
+                            onChange={(e) => {
+                              setUseMicroPayments(e.target.checked);
+                            }}
+                          />
+                        }
+                        label="Use micro-payments"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Switch
                             checked={skipPayment}
                             value="skipPayment"
                             color="primary"
@@ -386,6 +413,14 @@ export default function App() {
                           </RadioGroup>
                         </FormControl>
                       </Box>
+                      {useMicroPayments && payDisabled && (
+                        <LinearProgressWithLabel
+                          variant="determinate"
+                          color={"primary"}
+                          value={paymentProgress}
+                        />
+                      )}
+
                       <Button
                         variant="contained"
                         disabled={payDisabled}
@@ -465,3 +500,20 @@ const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
     backgroundColor: theme.palette.mode === "light" ? "#1a90ff" : "#308fe8",
   },
 }));
+
+const LinearProgressWithLabel = (
+  props: LinearProgressProps & { value: number }
+) => {
+  return (
+    <Box sx={{ display: "flex", alignItems: "center" }}>
+      <Box sx={{ width: "100%", mr: 1 }}>
+        <LinearProgress variant="determinate" {...props} />
+      </Box>
+      <Box sx={{ minWidth: 35 }}>
+        <Typography variant="body2" color="text.secondary">{`${Math.round(
+          props.value
+        )}%`}</Typography>
+      </Box>
+    </Box>
+  );
+};
