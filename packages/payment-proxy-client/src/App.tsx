@@ -18,7 +18,6 @@ import {
   Switch,
   linearProgressClasses,
   useMediaQuery,
-  LinearProgressProps,
 } from "@mui/material";
 import Box from "@mui/material/Box";
 import Stepper from "@mui/material/Stepper";
@@ -46,6 +45,7 @@ import {
 import { fetchFile, fetchFileInChunks } from "./file";
 import { Copyright } from "./Copyright";
 import { prettyPrintFIL } from "./prettyPrintFIL";
+import ProgressButton from "./ProgressButton";
 
 function truncateHexString(h: string) {
   if (h == "") return "";
@@ -79,6 +79,13 @@ export default function App() {
   const [useMicroPayments, setUseMicroPayments] = useState(false);
   const [errorText, setErrorText] = useState<string>("");
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
+
+  useEffect(() => {
+    // Reset the progress to 0 and make the button clickable after reaching 100
+    if (downloadProgress >= 100) {
+      setTimeout(() => setDownloadProgress(0), 1000); // Reset after 1 second
+    }
+  }, [downloadProgress]);
 
   if (files.length == 0) {
     throw new Error("There must be at least one file to download");
@@ -204,7 +211,6 @@ export default function App() {
   };
 
   const [createChannelDisabled, setCreateChannelDisabled] = useState(false);
-  const [payDisabled, setPayDisabled] = useState(false);
 
   function VerticalLinearStepper() {
     const handleCreateChannelButton = () => {
@@ -216,8 +222,7 @@ export default function App() {
     };
 
     const handlePayButton = async () => {
-      setPayDisabled(true);
-      fetchAndDownloadFile().finally(() => setPayDisabled(false));
+      fetchAndDownloadFile(); //.finally(() => setDownloadProgress(0));
     };
 
     const computePercentagePaid = (info: PaymentChannelInfo) => {
@@ -413,20 +418,14 @@ export default function App() {
                           </RadioGroup>
                         </FormControl>
                       </Box>
-
-                      <Button
+                      <ProgressButton
                         variant="contained"
-                        disabled={payDisabled}
                         onClick={handlePayButton}
                         sx={{ mt: 1, mr: 1 }}
+                        value={downloadProgress}
                       >
                         Pay & Download
-                      </Button>
-                      <LinearProgressWithLabel
-                        variant="determinate"
-                        color={"primary"}
-                        value={downloadProgress}
-                      />
+                      </ProgressButton>
                     </Box>
                     {displayError(errorText)}
                   </Stack>
@@ -498,20 +497,3 @@ const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
     backgroundColor: theme.palette.mode === "light" ? "#1a90ff" : "#308fe8",
   },
 }));
-
-const LinearProgressWithLabel = (
-  props: LinearProgressProps & { value: number }
-) => {
-  return (
-    <Box sx={{ display: "flex", alignItems: "center" }}>
-      <Box sx={{ width: "100%", mr: 1 }}>
-        <LinearProgress variant="determinate" {...props} />
-      </Box>
-      <Box sx={{ minWidth: 35 }}>
-        <Typography variant="body2" color="text.secondary">{`${Math.round(
-          props.value
-        )}%`}</Typography>
-      </Box>
-    </Box>
-  );
-};
