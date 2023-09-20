@@ -154,6 +154,7 @@ export default function App() {
   const fetchAndDownloadFile = async () => {
     setErrorText("");
     setFetchInProgress(true);
+    setDownloadProgress(0);
 
     if (!nitroClient) {
       setErrorText("Nitro client not initialized");
