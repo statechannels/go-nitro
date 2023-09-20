@@ -14,4 +14,4 @@ COPY --from=builder /app/config.toml .
 
 EXPOSE 3005 4005
 
-CMD ["./nitro", "--config", "./config.toml"]
+CMD ./nitro --config ./config.toml
