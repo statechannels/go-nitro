@@ -253,7 +253,7 @@ func readBodyLength(b io.ReadCloser) (uint64, error) {
 	return byteCount, nil
 }
 
-// enableCors sets the CORS headers on the response if they are not already set
+// enableCors sets the CORS headers if they are not already set
 func enableCors(header http.Header) {
 	if header.Get("Access-Control-Allow-Origin") == "" {
 		header.Set("Access-Control-Allow-Origin", "*")
