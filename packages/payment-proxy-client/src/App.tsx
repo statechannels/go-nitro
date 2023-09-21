@@ -429,7 +429,11 @@ export default function App() {
                         disabled={fetchInProgress || downloadProgress == 100}
                         style={
                           {
-                            "--fill-percentage": `${downloadProgress}%`,
+                            "--fill-percentage": `${
+                              useMicroPayments && fetchInProgress
+                                ? downloadProgress
+                                : 100
+                            }%`,
                             "--primary-color": theme.palette.primary.main,
                           } as React.CSSProperties
                         }
