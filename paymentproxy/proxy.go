@@ -148,7 +148,7 @@ func (p *PaymentProxy) handleDestinationResponse(r *http.Response) error {
 	// s.Delta is amount our balance increases by adding this voucher
 	// AKA the payment amount we received in the request for this file
 	if cost > s.Delta.Uint64() {
-		return createPaymentError(fmt.Errorf("payment of %d required, the voucher only resulted in a payment of %d", cost, s.Delta.Uint64()))
+		return createPaymentError(fmt.Errorf("payment of %d attoFIL required, the voucher only resulted in a payment of %d attoFIL", cost, s.Delta.Uint64()))
 	}
 	slog.Debug("Destination request", "url", r.Request.URL.String())
 
