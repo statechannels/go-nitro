@@ -18,6 +18,7 @@ import {
   Switch,
   linearProgressClasses,
   useMediaQuery,
+  Modal,
 } from "@mui/material";
 import Box from "@mui/material/Box";
 import Stepper from "@mui/material/Stepper";
@@ -80,6 +81,9 @@ export default function App() {
   const [errorText, setErrorText] = useState<string>("");
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [fetchInProgress, setFetchInProgress] = useState<boolean>(false);
+  const [displayImage, setDisplayImage] = useState(false);
+  const [blobURL, setBlobURL] = useState<string>("");
+
   useEffect(() => {
     // Reset the progress to 0 and make the button clickable after reaching 100
     if (downloadProgress >= 100) {
@@ -114,16 +118,13 @@ export default function App() {
     setPaymentChannelInfo(paymentChannel);
   };
 
-  const triggerFileDownload = (file: File, fileName?: string) => {
+  const triggerFileDownload = (file: File) => {
     // This will prompt the browser to download the file
     const blob = new Blob([file], { type: file.type });
 
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName || file.name;
-    link.click();
-    URL.revokeObjectURL(url);
+    setBlobURL(url);
+    setDisplayImage(true);
   };
 
   const createPaymentChannel = async () => {
@@ -188,7 +189,7 @@ export default function App() {
             }
           );
       setDownloadProgress(100);
-      triggerFileDownload(file, selectedFile.fileName);
+      triggerFileDownload(file);
 
       // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
       setTimeout(() => {
@@ -469,8 +470,25 @@ export default function App() {
     );
   }
 
+  const style = {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: 400,
+    bgcolor: "background.paper",
+    border: "2px solid #000",
+    boxShadow: 24,
+    p: 4,
+  };
+
   return (
     <ThemeProvider theme={theme}>
+      <Modal open={displayImage} onClose={() => setDisplayImage(false)}>
+        <Box sx={style}>
+          <img src={blobURL} style={{ height: "100%", width: "100%" }}></img>
+        </Box>
+      </Modal>
       <Grid container component="main" sx={{ height: "100vh" }}>
         <CssBaseline />
 
