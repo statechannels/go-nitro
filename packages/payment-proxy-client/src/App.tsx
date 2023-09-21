@@ -119,7 +119,12 @@ export default function App() {
     const blob = new Blob([file], { type: file.type });
 
     const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
+    const newTab = window.open("", "_blank");
+
+    newTab?.document.write(
+      `<html><body><img src=${url} alt=${file.name}></body></html>`
+    );
+    newTab?.document.close();
   };
 
   const createPaymentChannel = async () => {
