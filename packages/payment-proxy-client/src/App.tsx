@@ -243,7 +243,7 @@ export default function App() {
             <StepContent>
               <Typography>
                 In this demonstration, you have shared access to a prefunded
-                nitro account backed by a deposit on{" "}
+                Nitro account backed by a deposit on{" "}
                 <a
                   href="https://calibration.filscan.io/en/address/0xe32d4B5C5a80660710f6a2aD3cB1c11664138F34/"
                   target="_blank"
