@@ -253,7 +253,7 @@ export default function App() {
                 Nitro account backed by a deposit on{" "}
                 <Link
                   underline="hover"
-                  href="https://calibration.filscan.io/en/address/0xe32d4B5C5a80660710f6a2aD3cB1c11664138F34/"
+                  href="https://fvm.starboard.ventures/calibration/explorer/address/0xe1790Ea824035184a3Bf344e087FB61744992545/"
                   target="_blank"
                 >
                   Calibration Testnet.
