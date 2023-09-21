@@ -93,7 +93,6 @@ func (p *PaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	enableCORS(w, r)
 	v, err := parseVoucher(r.URL.Query())
 	if err != nil {
 		p.handleError(w, r, createPaymentError(fmt.Errorf("could not parse voucher: %w", err)))
@@ -113,6 +112,14 @@ func (p *PaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // It will check the voucher amount against the cost (response size * cost per byte)
 // If the voucher amount is less than the cost, it will return a 402 Payment Required error instead of serving the content
 func (p *PaymentProxy) handleDestinationResponse(r *http.Response) error {
+	// Add CORS headers to allow all origins (*).
+	if r.Header.Get("Access-Control-Allow-Origin") == "" {
+		// We want to set this header exactly once (the destination server may have already set it)
+		r.Header.Set("Access-Control-Allow-Origin", "*")
+	}
+	r.Header.Set("Access-Control-Allow-Headers", "*")
+	r.Header.Set("Access-Control-Expose-Headers", "*")
+
 	// Ignore OPTIONS requests as they are preflight requests
 	if r.Request.Method == "OPTIONS" {
 		return nil
@@ -231,21 +238,6 @@ func removeVoucher(r *http.Request) {
 	queryParams.Del(SIGNATURE_VOUCHER_PARAM)
 
 	r.URL.RawQuery = queryParams.Encode()
-}
-
-// enableCORS enables CORS headers in the response.
-func enableCORS(w http.ResponseWriter, r *http.Request) {
-	// Add CORS headers to allow all origins (*).
-	if w.Header().Get("Access-Control-Allow-Origin") == "" {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-	}
-	w.Header().Set("Access-Control-Allow-Headers", "*")
-	w.Header().Set("Access-Control-Expose-Headers", "*")
-	// Check if the request is an OPTIONS preflight request.
-	if r.Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
 }
 
 func readBodyLength(b io.ReadCloser) (uint64, error) {
