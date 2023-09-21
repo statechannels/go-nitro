@@ -50,6 +50,11 @@ func main() {
 				// Set the Content-Disposition header to suggest a filename
 				w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
 
+				// Add CORS headers to allow all origins (*).
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Headers", "*")
+				w.Header().Set("Access-Control-Expose-Headers", "*")
+
 				http.ServeFile(w, r, filePath)
 			})
 
