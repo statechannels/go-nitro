@@ -412,10 +412,6 @@ export default function App() {
                           </RadioGroup>
                         </FormControl>
                       </Box>
-                      <Typography>
-                        Create a payment voucher, and attach it to a request for
-                        the provider.
-                      </Typography>
                       <FormControlLabel
                         control={
                           <Switch
