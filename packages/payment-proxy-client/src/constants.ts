@@ -35,3 +35,8 @@ export const files: AvailableFile[] = import.meta.env.VITE_FILE_PATHS.split(
     size: fileSizes[index],
   };
 });
+
+export const USE_MICROPAYMENTS_INFO_TEXT =
+  "The file will be downloaded over multiple requests, sending a micropayment for each request. Click here to find out more.";
+export const USE_MICROPAYMENTS_INFO_LINK =
+  "https://statechannels.notion.site/Filecoin-Paid-Retrieval-Demo-bf6ad9ec92a74e139331ce77900305fc";

@@ -19,7 +19,10 @@ import {
   linearProgressClasses,
   useMediaQuery,
   Modal,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
+import InfoIcon from "@mui/icons-material/Info";
 import Box from "@mui/material/Box";
 import Stepper from "@mui/material/Stepper";
 import Step from "@mui/material/Step";
@@ -36,6 +39,8 @@ import {
   AvailableFile,
   CHUNK_SIZE,
   QUERY_KEY,
+  USE_MICROPAYMENTS_INFO_LINK,
+  USE_MICROPAYMENTS_INFO_TEXT,
   costPerByte,
   defaultNitroRPCUrl,
   files,
@@ -423,7 +428,21 @@ export default function App() {
                             }}
                           />
                         }
-                        label="Use micro-payments"
+                        label={
+                          <Box>
+                            Use micro-payments
+                            <Tooltip title={USE_MICROPAYMENTS_INFO_TEXT}>
+                              <IconButton
+                                aria-label="info"
+                                onClick={() =>
+                                  window.open(USE_MICROPAYMENTS_INFO_LINK)
+                                }
+                              >
+                                <InfoIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        }
                       />
                       <FormControlLabel
                         control={
