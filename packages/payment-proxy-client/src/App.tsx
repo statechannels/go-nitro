@@ -270,11 +270,15 @@ export default function App() {
             key={"Connect to a Retrieval Provider"}
             expanded={!!paymentChannelId}
           >
-            <StepLabel>{`Connect to a Retrieval Provider `} </StepLabel>
+            <StepLabel>Connect to a Retrieval Provider</StepLabel>
             <StepContent>
               <Typography>
-                Create a <b>virtual payment channel</b> with enough capacity to
-                pay for 10 retrievals.
+                Connect to{" "}
+                <a href="https://dcent.nl/" target="_blank">
+                  DCENT Datacenter
+                </a>{" "}
+                Storage Provider, creating a<b>virtual payment channel</b> with
+                enough capacity to pay for 10 retrievals.
               </Typography>
 
               <Box sx={{ mb: 2 }}>
