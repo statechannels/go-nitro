@@ -21,6 +21,7 @@ import {
   Modal,
   IconButton,
   Tooltip,
+  Link,
 } from "@mui/material";
 import InfoIcon from "@mui/icons-material/Info";
 import Box from "@mui/material/Box";
@@ -250,12 +251,13 @@ export default function App() {
               <Typography>
                 In this demonstration, you have shared access to a prefunded
                 Nitro account backed by a deposit on{" "}
-                <a
+                <Link
+                  underline="hover"
                   href="https://calibration.filscan.io/en/address/0xe32d4B5C5a80660710f6a2aD3cB1c11664138F34/"
                   target="_blank"
                 >
                   Calibration Testnet.
-                </a>{" "}
+                </Link>{" "}
               </Typography>
               <Box sx={{ mb: 2 }}>
                 <div>
@@ -280,9 +282,13 @@ export default function App() {
             <StepContent>
               <Typography>
                 Connect to{" "}
-                <a href="https://dcent.nl/" target="_blank">
+                <Link
+                  underline="hover"
+                  href="https://dcent.nl/"
+                  target="_blank"
+                >
                   DCENT Datacenter
-                </a>{" "}
+                </Link>{" "}
                 Storage Provider, creating a <b>virtual payment channel</b> with
                 enough capacity to pay for 10 retrievals.
               </Typography>
