@@ -185,7 +185,7 @@ func createVoucher(t *testing.T, client rpc.RpcClientApi, channelId types.Destin
 }
 
 func expectedPaymentErrorMessage(total, numPaid int) string {
-	return fmt.Sprintf("payment of %d required, the voucher only resulted in a payment of %d", total, numPaid)
+	return fmt.Sprintf("payment of %d attoFIL required, the voucher only resulted in a payment of %d attoFIL", total, numPaid)
 }
 
 // performGetRequest performs a GET request to the given url

@@ -241,7 +241,16 @@ export default function App() {
           <Step key={"Join the Nitro Payment Network"}>
             <StepLabel>{"Join the Nitro Payment Network"}</StepLabel>
             <StepContent>
-              <Typography>{`In this demonstration, you will be sharing in a prefunded network account on Calibration Tesnet with all other users.`}</Typography>
+              <Typography>
+                In this demonstration, you have shared access to a prefunded
+                Nitro account backed by a deposit on{" "}
+                <a
+                  href="https://calibration.filscan.io/en/address/0xe32d4B5C5a80660710f6a2aD3cB1c11664138F34/"
+                  target="_blank"
+                >
+                  Calibration Testnet.
+                </a>{" "}
+              </Typography>
               <Box sx={{ mb: 2 }}>
                 <div>
                   <Button
@@ -261,11 +270,15 @@ export default function App() {
             key={"Connect to a Retrieval Provider"}
             expanded={!!paymentChannelId}
           >
-            <StepLabel>{`Connect to a Retrieval Provider `} </StepLabel>
+            <StepLabel>Connect to a Retrieval Provider</StepLabel>
             <StepContent>
               <Typography>
-                Create a <b>virtual payment channel</b> with enough capacity to
-                pay for 10 retrievals.
+                Connect to{" "}
+                <a href="https://dcent.nl/" target="_blank">
+                  DCENT Datacenter
+                </a>{" "}
+                Storage Provider, creating a <b>virtual payment channel</b> with
+                enough capacity to pay for 10 retrievals.
               </Typography>
 
               <Box sx={{ mb: 2 }}>
@@ -355,11 +368,7 @@ export default function App() {
             <StepContent>
               <Stack spacing={5} direction="column">
                 <Stack>
-                  <Typography>
-                    {
-                      "Create a payment voucher, and attach it to a request for the provider."
-                    }
-                  </Typography>
+                  <Typography>{"Select a file to retrieve:"}</Typography>
                   <Stack direction="column" spacing={2}>
                     <Box
                       component="form"
@@ -369,6 +378,40 @@ export default function App() {
                       }}
                       sx={{ mt: 1 }}
                     >
+                      <Box>
+                        <FormControl>
+                          <RadioGroup
+                            row
+                            name="availableFiles"
+                            value={selectedFile.url}
+                            onChange={(e) => {
+                              const found = files.find(
+                                (f) => f.url == e.target.value
+                              );
+                              if (found) {
+                                setSelectedFile(found);
+                              }
+                            }}
+                          >
+                            {files.map((file) => (
+                              <FormControlLabel
+                                value={file.url}
+                                key={file.url}
+                                control={<Radio />}
+                                label={
+                                  <Stack>
+                                    <Typography>
+                                      {file.fileName.length < 50
+                                        ? file.fileName
+                                        : "..." + file.fileName.slice(-50)}
+                                    </Typography>
+                                  </Stack>
+                                }
+                              />
+                            ))}
+                          </RadioGroup>
+                        </FormControl>
+                      </Box>
                       <FormControlLabel
                         control={
                           <Switch
@@ -394,35 +437,8 @@ export default function App() {
                         }
                         label="Skip payment"
                       />
-                      <Box>
-                        <FormControl>
-                          <RadioGroup
-                            name="availableFiles"
-                            value={selectedFile.url}
-                            onChange={(e) => {
-                              const found = files.find(
-                                (f) => f.url == e.target.value
-                              );
-                              if (found) {
-                                setSelectedFile(found);
-                              }
-                            }}
-                          >
-                            {files.map((file) => (
-                              <FormControlLabel
-                                value={file.url}
-                                key={file.url}
-                                control={<Radio />}
-                                label={
-                                  file.fileName.length < 50
-                                    ? file.fileName
-                                    : "..." + file.fileName.slice(-50)
-                                }
-                              />
-                            ))}
-                          </RadioGroup>
-                        </FormControl>
-                      </Box>
+                    </Box>
+                    <Box sx={{ display: "flex", justifyContent: "center" }}>
                       <ProgressButton
                         variant="contained"
                         onClick={fetchAndDownloadFile}
@@ -438,7 +454,8 @@ export default function App() {
                           } as React.CSSProperties
                         }
                       >
-                        Pay & Download
+                        Pay {prettyPrintFIL(selectedFile.size * costPerByte)} &
+                        Download
                       </ProgressButton>
                     </Box>
                     {displayError(errorText)}
