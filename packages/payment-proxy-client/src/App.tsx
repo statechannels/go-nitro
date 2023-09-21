@@ -370,7 +370,7 @@ export default function App() {
                 <Stack>
                   <Typography>{"Select a file to retrieve:"}</Typography>
                   <Stack direction="column" spacing={2}>
-                    <Stack
+                    <Box
                       component="form"
                       noValidate
                       onSubmit={() => {
@@ -437,6 +437,8 @@ export default function App() {
                         }
                         label="Skip payment"
                       />
+                    </Box>
+                    <Box sx={{ display: "flex", justifyContent: "center" }}>
                       <ProgressButton
                         variant="contained"
                         onClick={fetchAndDownloadFile}
@@ -455,7 +457,7 @@ export default function App() {
                         Pay {prettyPrintFIL(selectedFile.size * costPerByte)} &
                         Download
                       </ProgressButton>
-                    </Stack>
+                    </Box>
                     {displayError(errorText)}
                   </Stack>
                 </Stack>
