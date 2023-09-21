@@ -2,39 +2,36 @@ set -e
 
 GONITRO_DIR=$(pwd)
 NITRO_PROTOCOL_DIR=$GONITRO_DIR/packages/nitro-protocol
-TEMP_DIR=$NITRO_PROTOCOL_DIR/tmp-build
+ARTIFACTS_DIR=$NITRO_PROTOCOL_DIR/artifacts/contracts
 GETH_DIR=$(go list -m -f '{{.Dir}}' github.com/ethereum/go-ethereum)
 
-
-
-trap '{
-rm -rf $TEMP_DIR
-echo "Deleted tmp-build directory."
- }' EXIT
-
 echo "Compiling contracts..."
+cd $NITRO_PROTOCOL_DIR
+npx hardhat compile
 
-solc --include-path $GONITRO_DIR \
-  --base-path $NITRO_PROTOCOL_DIR \
-  @statechannels/exit-format/=../../node_modules/@statechannels/exit-format/ \
-  @openzeppelin/contracts=../../node_modules/@openzeppelin/contracts/ \
-  $NITRO_PROTOCOL_DIR/contracts/NitroAdjudicator.sol \
-  $NITRO_PROTOCOL_DIR/contracts/ConsensusApp.sol \
-  $NITRO_PROTOCOL_DIR/contracts/Token.sol \
-  $NITRO_PROTOCOL_DIR/contracts/VirtualPaymentApp.sol \
-  $NITRO_PROTOCOL_DIR/contracts/deploy/Create2Deployer.sol \
-  --optimize --bin --abi -o $TEMP_DIR --via-ir
+echo "Generating .abi and .bin files for each contract..."
+
+parseJson() {
+  cd $ARTIFACTS_DIR
+  cat ${1}.sol/${1}.json | jq -cM '.abi' > ${1}.sol/${1}.abi
+  cat ${1}.sol/${1}.json | jq -r '.bytecode' > ${1}.sol/${1}.bin
+}
+
+parseJson "NitroAdjudicator"
+parseJson "ConsensusApp"
+parseJson "Token"
+parseJson "VirtualPaymentApp"
+
+echo "Using abigen from $GETH_DIR..."
 
 runAbigen() {
   cd $GETH_DIR
   go run ./cmd/abigen \
-    --abi=$TEMP_DIR/${1}.abi \
-    --bin=$TEMP_DIR/${1}.bin \
+    --abi=$ARTIFACTS_DIR/${1}.sol/${1}.abi \
+    --bin=$ARTIFACTS_DIR/${1}.sol/${1}.bin \
     --pkg=${1} \
     --out=$GONITRO_DIR/node/engine/chainservice/${2}/${1}.go 
 }
-
-echo "Using abigen from $GETH_DIR..."
 
 runAbigen "NitroAdjudicator" "adjudicator"
 runAbigen "ConsensusApp" "consensusapp"
