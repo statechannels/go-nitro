@@ -241,7 +241,17 @@ export default function App() {
           <Step key={"Join the Nitro Payment Network"}>
             <StepLabel>{"Join the Nitro Payment Network"}</StepLabel>
             <StepContent>
-              <Typography>{`In this demonstration, you will be sharing in a prefunded network account on Calibration Tesnet with all other users.`}</Typography>
+              <Typography>
+                In this demonstration, you will be sharing in a prefunded
+                network account on{" "}
+                <a
+                  href="https://calibration.filscan.io/en/address/0xe32d4B5C5a80660710f6a2aD3cB1c11664138F34/"
+                  target="_blank"
+                >
+                  Calibration Testnet
+                </a>{" "}
+                with all other users.
+              </Typography>
               <Box sx={{ mb: 2 }}>
                 <div>
                   <Button
