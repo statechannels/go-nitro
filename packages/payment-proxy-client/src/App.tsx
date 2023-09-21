@@ -355,13 +355,9 @@ export default function App() {
             <StepContent>
               <Stack spacing={5} direction="column">
                 <Stack>
-                  <Typography>
-                    {
-                      "Create a payment voucher, and attach it to a request for the provider."
-                    }
-                  </Typography>
+                  <Typography>{"Select a file to retrieve:"}</Typography>
                   <Stack direction="column" spacing={2}>
-                    <Box
+                    <Stack
                       component="form"
                       noValidate
                       onSubmit={() => {
@@ -369,6 +365,44 @@ export default function App() {
                       }}
                       sx={{ mt: 1 }}
                     >
+                      <Box>
+                        <FormControl>
+                          <RadioGroup
+                            row
+                            name="availableFiles"
+                            value={selectedFile.url}
+                            onChange={(e) => {
+                              const found = files.find(
+                                (f) => f.url == e.target.value
+                              );
+                              if (found) {
+                                setSelectedFile(found);
+                              }
+                            }}
+                          >
+                            {files.map((file) => (
+                              <FormControlLabel
+                                value={file.url}
+                                key={file.url}
+                                control={<Radio />}
+                                label={
+                                  <Stack>
+                                    <Typography>
+                                      {file.fileName.length < 50
+                                        ? file.fileName
+                                        : "..." + file.fileName.slice(-50)}
+                                    </Typography>
+                                  </Stack>
+                                }
+                              />
+                            ))}
+                          </RadioGroup>
+                        </FormControl>
+                      </Box>
+                      <Typography>
+                        Create a payment voucher, and attach it to a request for
+                        the provider.
+                      </Typography>
                       <FormControlLabel
                         control={
                           <Switch
@@ -394,35 +428,6 @@ export default function App() {
                         }
                         label="Skip payment"
                       />
-                      <Box>
-                        <FormControl>
-                          <RadioGroup
-                            name="availableFiles"
-                            value={selectedFile.url}
-                            onChange={(e) => {
-                              const found = files.find(
-                                (f) => f.url == e.target.value
-                              );
-                              if (found) {
-                                setSelectedFile(found);
-                              }
-                            }}
-                          >
-                            {files.map((file) => (
-                              <FormControlLabel
-                                value={file.url}
-                                key={file.url}
-                                control={<Radio />}
-                                label={
-                                  file.fileName.length < 50
-                                    ? file.fileName
-                                    : "..." + file.fileName.slice(-50)
-                                }
-                              />
-                            ))}
-                          </RadioGroup>
-                        </FormControl>
-                      </Box>
                       <ProgressButton
                         variant="contained"
                         onClick={fetchAndDownloadFile}
@@ -438,9 +443,10 @@ export default function App() {
                           } as React.CSSProperties
                         }
                       >
-                        Pay & Download
+                        Pay {prettyPrintFIL(selectedFile.size * costPerByte)} &
+                        Download
                       </ProgressButton>
-                    </Box>
+                    </Stack>
                     {displayError(errorText)}
                   </Stack>
                 </Stack>
