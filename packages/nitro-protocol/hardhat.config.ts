@@ -3,6 +3,7 @@ import {HardhatUserConfig, task} from 'hardhat/config';
 import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-etherscan';
 import '@nomiclabs/hardhat-waffle';
+import '@starboardventures/hardhat-verify';
 import '@typechain/hardhat';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
@@ -14,6 +15,7 @@ dotenv.config();
 const infuraToken = process.env.INFURA_TOKEN;
 const goerliDeployerPK = process.env.GOERLI_DEPLOYER_PK;
 const wallabyDeployerPk = process.env.WALLABY_DEPLOYER_PK;
+const calibrationDeployerPk = process.env.CALIBRATION_DEPLOYER_PK;
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
@@ -77,6 +79,15 @@ const config: HardhatUserConfig & {watcher: any} = {
       accounts: wallabyDeployerPk ? [wallabyDeployerPk] : [],
       chainId: 3141,
     },
+    calibration: {
+      url: 'https://api.calibration.node.glif.io/rpc/v1',
+      accounts: calibrationDeployerPk ? [calibrationDeployerPk] : [],
+      chainId: 314159,
+    },
+  },
+  starboardConfig: {
+    baseURL: 'https://fvm-calibration-api.starboard.ventures',
+    network: 'Calibration', // if there's no baseURL, url will depend on the network.  Mainnet || Calibration
   },
 };
 

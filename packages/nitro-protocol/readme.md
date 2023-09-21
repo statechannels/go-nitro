@@ -17,7 +17,7 @@ Smart contracts which implement nitro protocol for state channel networks on Eth
 
 ### Building your state channel application contract against our interface:
 
-Please see [this section of our docs](https://docs.statechannels.org/protocol-tutorial/0020-execution-rules/#core-protocol-rules). 
+Please see [this section of our docs](https://docs.statechannels.org/protocol-tutorial/0020-execution-rules/#core-protocol-rules).
 
 ### Import precompiled artifacts for deployment/testing
 
@@ -94,3 +94,12 @@ ETHERSCAN_API_KEY=<a-secret> INFURA_TOKEN=<another-secret> yarn hardhat --networ
 for each contract you wish to verify. Swap rinkeby for mainnet as appropriate!
 
 You need to provide both `ETHERSCAN_API_KEY` and `INFURA_TOKEN` for this to work. For more info, see the [docs](https://hardhat.org/plugins/nomiclabs-hardhat-etherscan.html).
+
+## Verifying NitroAdjudicator on Filecoin Calibration testnet
+
+```
+CALIBRATION_DEPLOYER_PK="<deploy_priv_key>" npx hardhat deploy --tags deploy-fvm --network calibration
+npx hardhat starboard-verify NitroAdjudicator <nitro_adjudicator_address>
+```
+
+[Starboard](https://fvm.starboard.ventures/calibration/explorer) is a Filecoin blockchain explorer. The above command utilizes a `hardhat` plugin called `starboard-verify` to verify the contract on that explorer.
