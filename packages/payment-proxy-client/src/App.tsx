@@ -242,15 +242,14 @@ export default function App() {
             <StepLabel>{"Join the Nitro Payment Network"}</StepLabel>
             <StepContent>
               <Typography>
-                In this demonstration, you will be sharing in a prefunded
-                network account on{" "}
+                In this demonstration, you have shared access to a prefunded
+                nitro account backed by a deposit on{" "}
                 <a
                   href="https://calibration.filscan.io/en/address/0xe32d4B5C5a80660710f6a2aD3cB1c11664138F34/"
                   target="_blank"
                 >
-                  Calibration Testnet
+                  Calibration Testnet.
                 </a>{" "}
-                with all other users.
               </Typography>
               <Box sx={{ mb: 2 }}>
                 <div>
