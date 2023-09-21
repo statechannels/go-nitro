@@ -277,7 +277,7 @@ export default function App() {
                 <a href="https://dcent.nl/" target="_blank">
                   DCENT Datacenter
                 </a>{" "}
-                Storage Provider, creating a<b>virtual payment channel</b> with
+                Storage Provider, creating a <b>virtual payment channel</b> with
                 enough capacity to pay for 10 retrievals.
               </Typography>
 
