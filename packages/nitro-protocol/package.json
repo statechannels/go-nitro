@@ -1,49 +1,51 @@
 {
   "name": "@statechannels/nitro-protocol",
   "version": "2.0.0-alpha.5",
-  "author": "statechannels.org",
-  "bugs": "https://github.com/statechannels/go-nitro/issues",
   "description": "Smart contracts and typescript libraries for nitro state channel protocol.",
-  "main": "dist/src/index.js",
+  "keywords": [],
   "homepage": "https://github.com/statechannels/go-nitro",
+  "bugs": "https://github.com/statechannels/go-nitro/issues",
   "repository": "statechannels/go-nitro.git",
+  "license": "MIT",
+  "author": "statechannels.org",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "files": [
     "contracts",
     "dist"
   ],
-  "engines": {
-    "node": ">=18.5.0"
-  },
-  "types": "dist/src/index.d.ts",
   "scripts": {
-    "build:typescript": "rm -rf dist; yarn tsc",
-    "contracts:deploy-localhost": "yarn hardhat deploy --network localhost --export-all addresses.json && node ./scripts/postdeploy.ts",
-    "contracts:deploy-goerli": "yarn hardhat deploy --network goerli --export-all addresses.json && node ./scripts/postdeploy.js",
-    "contracts:node": "yarn hardhat node --no-deploy",
-    "test": "yarn test:app",
-    "test:app": "yarn hardhat compile && jest -c ./config/jest/jest.config.js",
-    "test:contracts": "yarn hardhat compile && jest -c ./config/jest/jest.contracts.config.js",
-    "lint:check": "yarn eslint \"./\" --cache && yarn solhint:check && yarn prettier:check",
-    "lint:write": "yarn eslint \"./\" --fix && yarn prettier:write",
-    "lint": "yarn lint:check",
-    "prepack": "yarn hardhat compile && yarn build:typescript",
-    "solhint:check": "yarn solhint -w 0 './contracts/**/*.sol'",
-    "solhint:write": "yarn solhint --fix './contracts/**/*.sol'",
-    "prettier:check": "prettier --check './contracts/**/*.sol'",
-    "prettier:write": "prettier --write './contracts/**/*.sol'",
+    "benchmark": "yarn benchmark:diff || yarn benchmark:update",
     "benchmark:diff": "yarn hardhat compile && jest -c ./config/jest/jest.gas-benchmarks.config.js",
     "benchmark:update": "yarn hardhat run gas-benchmarks/exportBenchmarkResults.ts",
-    "benchmark": "yarn benchmark:diff || yarn benchmark:update"
+    "build:typescript": "rm -rf dist; yarn tsc",
+    "contracts:deploy-goerli": "yarn hardhat deploy --network goerli --export-all addresses.json && node ./scripts/postdeploy.js",
+    "contracts:deploy-localhost": "yarn hardhat deploy --network localhost --export-all addresses.json && node ./scripts/postdeploy.ts",
+    "contracts:node": "yarn hardhat node --no-deploy",
+    "lint": "yarn lint:check",
+    "lint:check": "yarn eslint \"./\" --cache && yarn solhint:check && yarn prettier:check",
+    "lint:write": "yarn eslint \"./\" --fix && yarn prettier:write",
+    "prepack": "yarn hardhat compile && yarn build:typescript",
+    "prettier:check": "prettier --check './contracts/**/*.sol'",
+    "prettier:write": "prettier --write './contracts/**/*.sol'",
+    "solhint:check": "yarn solhint -w 0 './contracts/**/*.sol'",
+    "solhint:write": "yarn solhint --fix './contracts/**/*.sol'",
+    "test": "yarn test:app",
+    "test:app": "yarn hardhat compile && jest -c ./config/jest/jest.config.js",
+    "test:contracts": "yarn hardhat compile && jest -c ./config/jest/jest.contracts.config.js"
   },
-  "keywords": [],
-  "license": "MIT",
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.7.3",
+    "@statechannels/exit-format": "^0.2.0",
+    "@typechain/ethers-v5": "^9.0.0"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.0.3",
     "@nomiclabs/hardhat-ethers": "^2.1.1",
     "@nomiclabs/hardhat-etherscan": "^3.0.0",
     "@nomiclabs/hardhat-waffle": "^2.0.2",
+    "@starboardventures/hardhat-verify": "^1.0.1",
     "@statechannels/devtools": "^0.5.7",
-    "@typechain/ethers-v5": "^9.0.0",
     "@typechain/hardhat": "^4.0.0",
     "@types/jest": "29.5.0",
     "@types/lodash.isequal": "^4.5.5",
@@ -61,7 +63,6 @@
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-prettier": "3.3.1",
     "ethereum-waffle": "^3.4.0",
-    "ethers": "^5.5.4",
     "hardhat": "^2.17.2",
     "hardhat-deploy": "^0.10.4",
     "hardhat-deploy-ethers": "^0.3.0-beta.13",
@@ -80,9 +81,7 @@
     "typescript": "^4.6.3",
     "wait-on": "^6.0.1"
   },
-  "dependencies": {
-    "@openzeppelin/contracts": "^4.7.3",
-    "@statechannels/exit-format": "^0.2.0",
-    "@typechain/ethers-v5": "^9.0.0"
+  "engines": {
+    "node": ">=18.5.0"
   }
 }

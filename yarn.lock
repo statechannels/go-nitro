@@ -4443,6 +4443,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@starboardventures/hardhat-verify@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "@starboardventures/hardhat-verify@npm:1.0.1"
+  dependencies:
+    fs-extra: ^11.1.1
+    node-fetch: 2.0.0
+  peerDependencies:
+    hardhat: ^2.0.0
+  checksum: 23020707b513f6a03a5315017b1dc51f41d61c37d644d750c812a1dfd614efbc477cfa39e76d121403263a78b7ed321ba71e9965212ba40d2a7b61d13507daf8
+  languageName: node
+  linkType: hard
+
 "@statechannels/devtools@npm:^0.5.7":
   version: 0.5.7
   resolution: "@statechannels/devtools@npm:0.5.7"
@@ -4488,6 +4500,7 @@ __metadata:
     "@nomiclabs/hardhat-etherscan": ^3.0.0
     "@nomiclabs/hardhat-waffle": ^2.0.2
     "@openzeppelin/contracts": ^4.7.3
+    "@starboardventures/hardhat-verify": ^1.0.1
     "@statechannels/devtools": ^0.5.7
     "@statechannels/exit-format": ^0.2.0
     "@typechain/ethers-v5": ^9.0.0
@@ -4508,7 +4521,6 @@ __metadata:
     eslint-plugin-import: ^2.26.0
     eslint-plugin-prettier: 3.3.1
     ethereum-waffle: ^3.4.0
-    ethers: ^5.5.4
     hardhat: ^2.17.2
     hardhat-deploy: ^0.10.4
     hardhat-deploy-ethers: ^0.3.0-beta.13
@@ -12386,7 +12398,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ethers@npm:^5.0.1, ethers@npm:^5.0.2, ethers@npm:^5.1.4, ethers@npm:^5.5.2, ethers@npm:^5.5.4, ethers@npm:^5.7.1":
+"ethers@npm:^5.0.1, ethers@npm:^5.0.2, ethers@npm:^5.1.4, ethers@npm:^5.5.2, ethers@npm:^5.7.1":
   version: 5.7.2
   resolution: "ethers@npm:5.7.2"
   dependencies:
@@ -13211,7 +13223,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fs-extra@npm:11.1.1, fs-extra@npm:^11.1.0":
+"fs-extra@npm:11.1.1, fs-extra@npm:^11.1.0, fs-extra@npm:^11.1.1":
   version: 11.1.1
   resolution: "fs-extra@npm:11.1.1"
   dependencies:
@@ -18302,6 +18314,13 @@ __metadata:
   version: 1.2.0
   resolution: "node-fetch-native@npm:1.2.0"
   checksum: f18d775523fc25b9fbec05a1da99cbf40214045bcaca82c8fd949b99148890c3cead4ab1764e26a92af600d14884d846481bcebf82d56815210624f836051a10
+  languageName: node
+  linkType: hard
+
+"node-fetch@npm:2.0.0":
+  version: 2.0.0
+  resolution: "node-fetch@npm:2.0.0"
+  checksum: 57b8f3b51bec6784c4c351ca7f45d01eaf8a5113494515fec8a411f047f41e71752683cef76c61dd9646e6014034d44c312b5aa8a6a9c32aa1fd03133efc7a33
   languageName: node
   linkType: hard
 
