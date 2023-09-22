@@ -22,8 +22,5 @@
     "lint": "yarn workspaces foreach -pt run lint",
     "test": "yarn workspaces foreach -pt run test"
   },
-  "packageManager": "yarn@3.5.1",
-  "dependencies": {
-    "ethers": "^6.7.1"
-  }
+  "packageManager": "yarn@3.5.1"
 }

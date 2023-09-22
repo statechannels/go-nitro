@@ -4,7 +4,7 @@ import 'hardhat-deploy-ethers';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 
 module.exports = async (hre: HardhatRuntimeEnvironment) => {
-  const {deployments, getNamedAccounts, getChainId} = hre;
+  const {deployments, getNamedAccounts, getChainId, ethers} = hre;
   const {deploy} = deployments;
   const {deployer} = await getNamedAccounts();
 
@@ -17,7 +17,7 @@ module.exports = async (hre: HardhatRuntimeEnvironment) => {
       args: [],
       // since Ethereum's legacy transaction format is not supported on FVM, we need to specify
       // maxPriorityFeePerGas to instruct hardhat to use EIP-1559 tx format
-      maxPriorityFeePerGas: hre.ethers.BigNumber.from(1500000000),
+      maxPriorityFeePerGas: ethers.BigNumber.from(1500000000),
       skipIfAlreadyDeployed: false,
       log: true,
     });
@@ -32,7 +32,7 @@ module.exports = async (hre: HardhatRuntimeEnvironment) => {
       args: [],
       // since Ethereum's legacy transaction format is not supported on FVM, we need to specify
       // maxPriorityFeePerGas to instruct hardhat to use EIP-1559 tx format
-      maxPriorityFeePerGas: hre.ethers.BigNumber.from(1500000000),
+      maxPriorityFeePerGas: ethers.BigNumber.from(1500000000),
       skipIfAlreadyDeployed: false,
       log: true,
     });
@@ -47,7 +47,7 @@ module.exports = async (hre: HardhatRuntimeEnvironment) => {
       args: [],
       // since Ethereum's legacy transaction format is not supported on FVM, we need to specify
       // maxPriorityFeePerGas to instruct hardhat to use EIP-1559 tx format
-      maxPriorityFeePerGas: hre.ethers.BigNumber.from(1500000000),
+      maxPriorityFeePerGas: ethers.BigNumber.from(1500000000),
       skipIfAlreadyDeployed: false,
       log: true,
     });
