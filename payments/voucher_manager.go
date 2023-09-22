@@ -38,7 +38,7 @@ func NewVoucherManager(me types.Address, store VoucherStore) *VoucherManager {
 // Register registers a channel for use, given the payer, payee and starting balance of the channel
 func (vm *VoucherManager) Register(regData ChannelRegistrationData) error {
 	voucher := Voucher{ChannelId: regData.ChannelId, Amount: big.NewInt(0)}
-	data := VoucherInfo{regData.Payer, regData.Payee, big.NewInt(0).Set(regData.StartingBalance), voucher}
+	data := VoucherInfo{regData.Payer, regData.Payee, regData.StartingBalance, voucher}
 
 	if v, _ := vm.store.GetVoucherInfo(regData.ChannelId); v != nil {
 		return fmt.Errorf("channel already registered")
