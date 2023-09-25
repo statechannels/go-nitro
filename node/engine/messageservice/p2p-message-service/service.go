@@ -283,6 +283,11 @@ func (ms *P2PMessageService) Send(msg protocols.Message) error {
 		return err
 	}
 
+	if msg.To == ms.scAddr {
+		ms.logger.Warn("ignoring message addressed to self", "msg", msg)
+		return nil
+	}
+
 	// First try to get peerId from local "peers" map. If the address is not found there,
 	// query the dht to retrieve the peerId, then store in local map for next time
 	peerId, ok := ms.peers.Load(msg.To.String())
