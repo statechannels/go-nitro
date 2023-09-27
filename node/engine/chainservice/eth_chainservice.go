@@ -49,6 +49,11 @@ var topicsToWatch = []common.Hash{
 	challengeClearedTopic,
 }
 
+const (
+	MIN_BACKOFF_TIME = 1 * time.Second
+	MAX_BACKOFF_TIME = 5 * time.Minute
+)
+
 type ethChain interface {
 	bind.ContractBackend
 	ethereum.TransactionReader
@@ -70,6 +75,7 @@ type EthChainService struct {
 	cancel                   context.CancelFunc
 	wg                       *sync.WaitGroup
 	eventTracker             *eventTracker
+	eventSub                 ethereum.Subscription
 }
 
 // MAX_QUERY_BLOCK_RANGE is the maximum range of blocks we query for events at once.
@@ -130,7 +136,7 @@ func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.
 	tracker := NewEventTracker(startBlock)
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, &sync.WaitGroup{}, tracker}
+	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, &sync.WaitGroup{}, tracker, nil}
 	errChan, newBlockSub, newBlockChan, eventSub, eventChan, eventQuery, err := ecs.subscribeForLogs()
 	if err != nil {
 		return nil, err
@@ -357,7 +363,6 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 }
 
 func (ecs *EthChainService) listenForEventLogs(errorChan chan<- error, eventSub ethereum.Subscription, eventChan chan ethTypes.Log, eventQuery ethereum.FilterQuery) {
-out:
 	for {
 		select {
 		case <-ecs.ctx.Done():
@@ -366,19 +371,39 @@ out:
 			return
 
 		case err := <-eventSub.Err():
+			ecs.eventTracker.mu.Lock()
+			latestBlockNum := ecs.eventTracker.latestBlockNum
+
 			if err != nil {
 				ecs.logger.Warn("error in chain event subscription: " + err.Error())
 				eventSub.Unsubscribe()
+			} else {
+				ecs.logger.Warn("chain event subscription closed")
 			}
 
-			// Try to re-establish subscription once before failing
-			eventSub, err = ecs.chain.SubscribeFilterLogs(ecs.ctx, eventQuery, eventChan)
-			if err != nil {
-				errorChan <- fmt.Errorf("subscribeFilterLogs failed to resubscribe: " + err.Error())
-				break out
+			// Use exponential backoff loop to attempt to re-establish subscription
+			for backoffTime := MIN_BACKOFF_TIME; backoffTime < MAX_BACKOFF_TIME; backoffTime *= 2 {
+				eventSub, err = ecs.chain.SubscribeFilterLogs(ecs.ctx, eventQuery, eventChan)
+				if err != nil {
+					ecs.logger.Warn("failed to resubscribe to chain events, retrying", "backoffTime", backoffTime)
+					time.Sleep(backoffTime)
+					continue
+				}
+
+				ecs.logger.Debug("resubscribed to chain events")
+				err = ecs.checkForMissedEvents(latestBlockNum)
+				if err != nil {
+					errorChan <- fmt.Errorf("subscribeFilterLogs failed during checkForMissedEvents: " + err.Error())
+					return
+				}
+
+				ecs.eventTracker.mu.Unlock()
+				break
 			}
 
-			ecs.logger.Log(ecs.ctx, logging.LevelTrace, "resubscribed to filtered event logs")
+			ecs.logger.Error("subscribeFilterLogs failed to resubscribe")
+			errorChan <- fmt.Errorf("subscribeFilterLogs failed to resubscribe")
+			return
 
 		case <-time.After(RESUB_INTERVAL):
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
@@ -393,7 +418,6 @@ out:
 }
 
 func (ecs *EthChainService) listenForNewBlocks(errorChan chan<- error, newBlockSub ethereum.Subscription, newBlockChan chan *ethTypes.Header) {
-out:
 	for {
 		select {
 		case <-ecs.ctx.Done():
@@ -405,16 +429,26 @@ out:
 			if err != nil {
 				ecs.logger.Warn("error in chain new block subscription: " + err.Error())
 				newBlockSub.Unsubscribe()
+			} else {
+				ecs.logger.Warn("chain new block subscription closed")
 			}
 
-			// Try to re-establish subscription once before failing
-			newBlockSub, err = ecs.chain.SubscribeNewHead(ecs.ctx, newBlockChan)
-			if err != nil {
-				errorChan <- fmt.Errorf("subscribeNewHead failed to resubscribe: %w", err)
-				break out
+			// Use exponential backoff loop to attempt to re-establish subscription
+			for backoffTime := MIN_BACKOFF_TIME; backoffTime < MAX_BACKOFF_TIME; backoffTime *= 2 {
+				newBlockSub, err = ecs.chain.SubscribeNewHead(ecs.ctx, newBlockChan)
+				if err != nil {
+					errorChan <- fmt.Errorf("subscribeNewHead failed to resubscribe: %w", err)
+					time.Sleep(backoffTime)
+					continue
+				}
+
+				ecs.logger.Debug("resubscribed to chain new blocks")
+				break
 			}
 
-			ecs.logger.Log(ecs.ctx, logging.LevelTrace, "resubscribed to new blocks")
+			ecs.logger.Error("subscribeNewHead failed to resubscribe")
+			errorChan <- fmt.Errorf("subscribeNewHead failed to resubscribe")
+			return
 
 		case newBlock := <-newBlockChan:
 			newBlockNum := newBlock.Number.Uint64()
