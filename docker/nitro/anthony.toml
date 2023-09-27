@@ -16,8 +16,8 @@ vpaaddress = "0x95EfacCb38106C249F5ddC25b71677d5aF6d31A0"
 caaddress = "0xe1790ea824035184a3bf344e087fb61744992545"
 
 # RPC provider docs: https://lotus.filecoin.io/lotus/developers/glif-nodes/#testnet-endpoint
-chainurl = "wss://wss.calibration.node.glif.io/apigw/lotus/rpc/v0"
-chainstartblock = 915929
+chainurl = "wss://calibration.lotus.vdb.to/rpc/v1"
+chainstartblock = 950307
 chainauthtoken = ""
 
 bootpeers = "/ip4/67.207.88.72/tcp/3005/p2p/16Uiu2HAmDQj9XnHPD1d4GzS1K3DhmM5Z1cSGLfVTwVcNVdEsAN3Q,/ip4/192.81.214.172/tcp/3005/p2p/16Uiu2HAmMZD9hwtMBBDpbE3qEigb4FF1YDAjePLCVR6RQZYo6RPJ"
