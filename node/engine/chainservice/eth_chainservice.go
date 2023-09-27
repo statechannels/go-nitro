@@ -441,9 +441,22 @@ func (ecs *EthChainService) updateEventTracker(errorChan chan<- error, blockNumb
 	eventsToDispatch := []ethTypes.Log{}
 	for ecs.eventTracker.events.Len() > 0 && ecs.eventTracker.latestBlockNum >= (ecs.eventTracker.events)[0].BlockNumber+REQUIRED_BLOCK_CONFIRMATIONS {
 		chainEvent := ecs.eventTracker.Pop()
-		eventsToDispatch = append(eventsToDispatch, chainEvent)
 		ecs.logger.Debug("event popped from queue", "updated-queue-length", ecs.eventTracker.events.Len())
 
+		// Ensure event & associated tx is still in the chain before adding to eventsToDispatch
+		oldBlock, err := ecs.chain.BlockByNumber(context.Background(), new(big.Int).SetUint64(chainEvent.BlockNumber))
+		if err != nil {
+			ecs.logger.Error("failed to fetch block: %v", err)
+			errorChan <- fmt.Errorf("failed to fetch block: %v", err)
+			return
+		}
+
+		if oldBlock.Hash() != chainEvent.BlockHash {
+			ecs.logger.Warn("dropping event because its block is no longer in the chain (possible re-org)", "blockNumber", chainEvent.BlockNumber, "blockHash", chainEvent.BlockHash)
+			continue
+		}
+
+		eventsToDispatch = append(eventsToDispatch, chainEvent)
 	}
 	ecs.eventTracker.mu.Unlock()
 
