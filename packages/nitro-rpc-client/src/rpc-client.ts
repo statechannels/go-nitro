@@ -77,7 +77,7 @@ export class NitroRpcClient implements RpcClientApi {
     this.transport.Notifications.on(
       "payment_channel_updated",
       (info: PaymentChannelInfo) => {
-        if (info.ID == channelId) {
+        if (info.ID.toLowerCase() == channelId.toLowerCase()) {
           callback(info);
         }
       }
