@@ -16,31 +16,8 @@ import { Transport } from "./transport";
 import { createOutcome, generateRequest } from "./utils";
 import { HttpTransport } from "./transport/http";
 import { getAndValidateResult } from "./serde";
+import { RpcClientApi } from "./interface";
 
-interface RpcClientApi {
-  GetVersion(): Promise<string>;
-  GetAddress(): Promise<string>;
-  GetLedgerChannel(channelId: string): Promise<LedgerChannelInfo>;
-  GetAllLedgerChannels(): Promise<LedgerChannelInfo[]>;
-  CreateVoucher(channelId: string, amount: number): Promise<Voucher>;
-  ReceiveVoucher(voucher: Voucher): Promise<ReceiveVoucherResult>;
-  WaitForObjective(objectiveId: string): Promise<void>;
-  CreateLedgerChannel(
-    counterParty: string,
-    amount: number
-  ): Promise<ObjectiveResponse>;
-  CloseLedgerChannel(channelId: string): Promise<string>;
-  CreatePaymentChannel(
-    counterParty: string,
-    intermediaries: string[],
-    amount: number
-  ): Promise<ObjectiveResponse>;
-  ClosePaymentChannel(channelId: string): Promise<string>;
-  Pay(channelId: string, amount: number): Promise<PaymentPayload>;
-  GetPaymentChannel(channelId: string): Promise<PaymentChannelInfo>;
-  GetPaymentChannelsByLedger(ledgerId: string): Promise<PaymentChannelInfo[]>;
-  Close(): Promise<void>;
-}
 export class NitroRpcClient implements RpcClientApi {
   private transport: Transport;
 
