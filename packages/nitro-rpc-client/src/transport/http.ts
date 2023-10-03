@@ -8,9 +8,9 @@ import {
   RequestMethod,
   RPCRequestAndResponses,
 } from "../types";
+import { getAndValidateNotification } from "../serde";
 
 import { Transport } from ".";
-import { getAndValidateNotification, getAndValidateResult } from "../serde";
 
 export class HttpTransport {
   Notifications: EventEmitter<NotificationMethod, NotificationParams>;
