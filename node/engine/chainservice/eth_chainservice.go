@@ -49,6 +49,11 @@ var topicsToWatch = []common.Hash{
 	challengeClearedTopic,
 }
 
+const (
+	MIN_BACKOFF_TIME = 1 * time.Second
+	MAX_BACKOFF_TIME = 5 * time.Minute
+)
+
 type ethChain interface {
 	bind.ContractBackend
 	ethereum.TransactionReader
@@ -70,6 +75,8 @@ type EthChainService struct {
 	cancel                   context.CancelFunc
 	wg                       *sync.WaitGroup
 	eventTracker             *eventTracker
+	eventSub                 ethereum.Subscription
+	newBlockSub              ethereum.Subscription
 }
 
 // MAX_QUERY_BLOCK_RANGE is the maximum range of blocks we query for events at once.
@@ -130,8 +137,8 @@ func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.
 	tracker := NewEventTracker(startBlock)
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, &sync.WaitGroup{}, tracker}
-	errChan, newBlockSub, newBlockChan, eventSub, eventChan, eventQuery, err := ecs.subscribeForLogs()
+	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, &sync.WaitGroup{}, tracker, nil, nil}
+	errChan, newBlockChan, eventChan, eventQuery, err := ecs.subscribeForLogs()
 	if err != nil {
 		return nil, err
 	}
@@ -141,8 +148,8 @@ func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.
 	defer ecs.eventTracker.mu.Unlock()
 
 	ecs.wg.Add(3)
-	go ecs.listenForEventLogs(errChan, eventSub, eventChan, eventQuery)
-	go ecs.listenForNewBlocks(errChan, newBlockSub, newBlockChan)
+	go ecs.listenForEventLogs(errChan, eventChan, eventQuery)
+	go ecs.listenForNewBlocks(errChan, newBlockChan)
 	go ecs.listenForErrors(errChan)
 
 	// Search for any missed events emitted while this node was offline
@@ -356,34 +363,55 @@ func (ecs *EthChainService) dispatchChainEvents(logs []ethTypes.Log) error {
 	return nil
 }
 
-func (ecs *EthChainService) listenForEventLogs(errorChan chan<- error, eventSub ethereum.Subscription, eventChan chan ethTypes.Log, eventQuery ethereum.FilterQuery) {
-out:
+func (ecs *EthChainService) listenForEventLogs(errorChan chan<- error, eventChan chan ethTypes.Log, eventQuery ethereum.FilterQuery) {
 	for {
 		select {
 		case <-ecs.ctx.Done():
-			eventSub.Unsubscribe()
+			ecs.eventSub.Unsubscribe()
 			ecs.wg.Done()
 			return
 
-		case err := <-eventSub.Err():
+		case err := <-ecs.eventSub.Err():
+			ecs.eventTracker.mu.Lock()
+			defer ecs.eventTracker.mu.Unlock()
+
+			latestBlockNum := ecs.eventTracker.latestBlockNum
+
 			if err != nil {
 				ecs.logger.Warn("error in chain event subscription: " + err.Error())
-				eventSub.Unsubscribe()
+				ecs.eventSub.Unsubscribe()
+			} else {
+				ecs.logger.Warn("chain event subscription closed")
 			}
 
-			// Try to re-establish subscription once before failing
-			eventSub, err = ecs.chain.SubscribeFilterLogs(ecs.ctx, eventQuery, eventChan)
-			if err != nil {
-				errorChan <- fmt.Errorf("subscribeFilterLogs failed to resubscribe: " + err.Error())
-				break out
+			// Use exponential backoff loop to attempt to re-establish subscription
+			for backoffTime := MIN_BACKOFF_TIME; backoffTime < MAX_BACKOFF_TIME; backoffTime *= 2 {
+				eventSub, err := ecs.chain.SubscribeFilterLogs(ecs.ctx, eventQuery, eventChan)
+				if err != nil {
+					ecs.logger.Warn("failed to resubscribe to chain events, retrying", "backoffTime", backoffTime)
+					time.Sleep(backoffTime)
+					continue
+				}
+
+				ecs.eventSub = eventSub
+				ecs.logger.Debug("resubscribed to chain events")
+				err = ecs.checkForMissedEvents(latestBlockNum)
+				if err != nil {
+					errorChan <- fmt.Errorf("subscribeFilterLogs failed during checkForMissedEvents: " + err.Error())
+					return
+				}
+
+				break
 			}
 
-			ecs.logger.Log(ecs.ctx, logging.LevelTrace, "resubscribed to filtered event logs")
+			ecs.logger.Error("subscribeFilterLogs failed to resubscribe")
+			errorChan <- fmt.Errorf("subscribeFilterLogs failed to resubscribe")
+			return
 
 		case <-time.After(RESUB_INTERVAL):
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
 			// We unsub here and recreate the subscription in the next iteration of the select.
-			eventSub.Unsubscribe()
+			ecs.eventSub.Unsubscribe()
 
 		case chainEvent := <-eventChan:
 			ecs.logger.Debug("queueing new chainEvent", "block-num", chainEvent.BlockNumber)
@@ -392,29 +420,39 @@ out:
 	}
 }
 
-func (ecs *EthChainService) listenForNewBlocks(errorChan chan<- error, newBlockSub ethereum.Subscription, newBlockChan chan *ethTypes.Header) {
-out:
+func (ecs *EthChainService) listenForNewBlocks(errorChan chan<- error, newBlockChan chan *ethTypes.Header) {
 	for {
 		select {
 		case <-ecs.ctx.Done():
-			newBlockSub.Unsubscribe()
+			ecs.newBlockSub.Unsubscribe()
 			ecs.wg.Done()
 			return
 
-		case err := <-newBlockSub.Err():
+		case err := <-ecs.newBlockSub.Err():
 			if err != nil {
 				ecs.logger.Warn("error in chain new block subscription: " + err.Error())
-				newBlockSub.Unsubscribe()
+				ecs.newBlockSub.Unsubscribe()
+			} else {
+				ecs.logger.Warn("chain new block subscription closed")
 			}
 
-			// Try to re-establish subscription once before failing
-			newBlockSub, err = ecs.chain.SubscribeNewHead(ecs.ctx, newBlockChan)
-			if err != nil {
-				errorChan <- fmt.Errorf("subscribeNewHead failed to resubscribe: %w", err)
-				break out
+			// Use exponential backoff loop to attempt to re-establish subscription
+			for backoffTime := MIN_BACKOFF_TIME; backoffTime < MAX_BACKOFF_TIME; backoffTime *= 2 {
+				newBlockSub, err := ecs.chain.SubscribeNewHead(ecs.ctx, newBlockChan)
+				if err != nil {
+					errorChan <- fmt.Errorf("subscribeNewHead failed to resubscribe: %w", err)
+					time.Sleep(backoffTime)
+					continue
+				}
+
+				ecs.newBlockSub = newBlockSub
+				ecs.logger.Debug("resubscribed to chain new blocks")
+				break
 			}
 
-			ecs.logger.Log(ecs.ctx, logging.LevelTrace, "resubscribed to new blocks")
+			ecs.logger.Error("subscribeNewHead failed to resubscribe")
+			errorChan <- fmt.Errorf("subscribeNewHead failed to resubscribe")
+			return
 
 		case newBlock := <-newBlockChan:
 			newBlockNum := newBlock.Number.Uint64()
@@ -469,7 +507,7 @@ func (ecs *EthChainService) updateEventTracker(errorChan chan<- error, blockNumb
 
 // subscribeForLogs subscribes for logs and pushes them to the out channel.
 // It relies on notifications being supported by the chain node.
-func (ecs *EthChainService) subscribeForLogs() (chan error, ethereum.Subscription, chan *ethTypes.Header, ethereum.Subscription, chan ethTypes.Log, ethereum.FilterQuery, error) {
+func (ecs *EthChainService) subscribeForLogs() (chan error, chan *ethTypes.Header, chan ethTypes.Log, ethereum.FilterQuery, error) {
 	// Subscribe to Adjudicator events
 	eventQuery := ethereum.FilterQuery{
 		Addresses: []common.Address{ecs.naAddress},
@@ -478,17 +516,19 @@ func (ecs *EthChainService) subscribeForLogs() (chan error, ethereum.Subscriptio
 	eventChan := make(chan ethTypes.Log)
 	eventSub, err := ecs.chain.SubscribeFilterLogs(ecs.ctx, eventQuery, eventChan)
 	if err != nil {
-		return nil, nil, nil, nil, nil, ethereum.FilterQuery{}, fmt.Errorf("subscribeFilterLogs failed: %w", err)
+		return nil, nil, nil, ethereum.FilterQuery{}, fmt.Errorf("subscribeFilterLogs failed: %w", err)
 	}
+	ecs.eventSub = eventSub
 	errorChan := make(chan error)
 
 	newBlockChan := make(chan *ethTypes.Header)
 	newBlockSub, err := ecs.chain.SubscribeNewHead(ecs.ctx, newBlockChan)
 	if err != nil {
-		return nil, nil, nil, nil, nil, ethereum.FilterQuery{}, fmt.Errorf("subscribeNewHead failed: %w", err)
+		return nil, nil, nil, ethereum.FilterQuery{}, fmt.Errorf("subscribeNewHead failed: %w", err)
 	}
+	ecs.newBlockSub = newBlockSub
 
-	return errorChan, newBlockSub, newBlockChan, eventSub, eventChan, eventQuery, nil
+	return errorChan, newBlockChan, eventChan, eventQuery, nil
 }
 
 // EventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
