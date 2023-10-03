@@ -10,6 +10,7 @@ import {
 } from "../types";
 
 import { Transport } from ".";
+import { getAndValidateNotification, getAndValidateResult } from "../serde";
 
 export class HttpTransport {
   Notifications: EventEmitter<NotificationMethod, NotificationParams>;
@@ -56,7 +57,12 @@ export class HttpTransport {
     this.Notifications = new EventEmitter();
     this.ws.onmessage = (event) => {
       const data = JSON.parse(event.data.toString());
-      this.Notifications.emit(data.method, data.params.payload);
+      const validatedResult = getAndValidateNotification(
+        data.params.payload,
+        data.method
+      );
+
+      this.Notifications.emit(data.method, validatedResult);
     };
   }
 }
