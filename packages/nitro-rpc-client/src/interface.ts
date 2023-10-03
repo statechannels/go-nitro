@@ -105,6 +105,15 @@ interface syncAPI {
    * @param objectiveId - The id objective to wait for
    */
   WaitForObjective(objectiveId: string): Promise<void>;
+  /**
+   * PaymentChannelUpdated attaches a callback which is triggered when the channel with supplied ID is updated.
+   *
+   * @param objectiveId - The id objective to wait for
+   */
+  PaymentChannelUpdated(
+    channelId: string,
+    callback: (info: PaymentChannelInfo) => void
+  ): Promise<void>;
 }
 
 export interface RpcClientApi
