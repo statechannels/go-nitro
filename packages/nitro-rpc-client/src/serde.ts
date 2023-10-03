@@ -4,6 +4,7 @@ import {
   ChannelStatus,
   LedgerChannelInfo,
   PaymentChannelInfo,
+  RPCNotification,
   RPCRequestAndResponses,
   RequestMethod,
 } from "./types";
@@ -228,6 +229,25 @@ export function getAndValidateResult<T extends RequestMethod>(
   }
 }
 
+export function getAndValidateNotification<T extends RPCNotification["method"]>(
+  data: unknown,
+  method: T
+): RPCNotification["params"]["payload"] {
+  switch (method) {
+    case "payment_channel_updated":
+      return convertToInternalPaymentChannelType(
+        data as PaymentChannelSchemaType
+      );
+    case "ledger_channel_updated":
+      return convertToInternalPaymentChannelType(
+        data as PaymentChannelSchemaType
+      );
+    case "objective_completed":
+      return data as string;
+    default:
+      throw new Error(`Unknown method: ${method}`);
+  }
+}
 /**
  * Validates that the response is a valid JSON RPC response and pulls out the result
  * @param response - JSON RPC response
@@ -303,8 +323,8 @@ function convertToInternalPaymentChannelType(
     Status: result.Status as ChannelStatus,
     Balance: {
       ...result.Balance,
-      PaidSoFar: BigInt(result.Balance.PaidSoFar),
-      RemainingFunds: BigInt(result.Balance.RemainingFunds),
+      PaidSoFar: BigInt(result.Balance.PaidSoFar ?? 0),
+      RemainingFunds: BigInt(result.Balance.RemainingFunds ?? 0),
     },
   };
 }
