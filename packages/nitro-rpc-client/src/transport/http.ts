@@ -20,7 +20,7 @@ export class HttpTransport {
 
     // throw any websocket errors so we don't fail silently
     ws.onerror = (e) => {
-      console.error("Error with websocket connection to server");
+      console.error("Error with websocket connection to server: " + e);
       throw e;
     };
 
@@ -56,7 +56,7 @@ export class HttpTransport {
     this.Notifications = new EventEmitter();
     this.ws.onmessage = (event) => {
       const data = JSON.parse(event.data.toString());
-      this.Notifications.emit(data.method, data.params);
+      this.Notifications.emit(data.method, data.params.payload);
     };
   }
 }
