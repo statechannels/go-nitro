@@ -142,11 +142,14 @@ export default function App() {
 
     setPaymentChannelId(result.ChannelId);
 
-    // nitroClient.PaymentChannelUpdated(result.ChannelId, setPaymentChannelInfo);
-    // const paymentChannel = await nitroClient?.GetPaymentChannel(
-    //   result.ChannelId
-    // );
-    // setPaymentChannelInfo(paymentChannel);
+    nitroClient.PaymentChannelUpdated(result.ChannelId, setPaymentChannelInfo);
+
+    // It's possible the channel updated before we registered the handler above, so
+    // query the channel once now to get the latest information:
+
+    setPaymentChannelInfo(
+      await nitroClient?.GetPaymentChannel(result.ChannelId)
+    );
 
     console.timeEnd("Create Payment Channel");
   };
