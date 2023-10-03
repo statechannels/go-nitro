@@ -116,14 +116,6 @@ export default function App() {
       .finally(() => console.timeEnd("Connect to Nitro Node"));
   }, [url]);
 
-  const updateChannelInfo = async (channelId: string) => {
-    if (channelId == "") {
-      throw new Error("Empty channel id provided");
-    }
-    const paymentChannel = await nitroClient?.GetPaymentChannel(channelId);
-    setPaymentChannelInfo(paymentChannel);
-  };
-
   const triggerFileDownload = (file: File) => {
     // This will prompt the browser to download the file
     const blob = new Blob([file], { type: file.type });
@@ -149,15 +141,15 @@ export default function App() {
     // await nitroClient.WaitForObjective(result.Id);
 
     setPaymentChannelId(result.ChannelId);
-    updateChannelInfo(result.ChannelId);
+
+    // nitroClient.PaymentChannelUpdated(result.ChannelId, setPaymentChannelInfo);
+    // const paymentChannel = await nitroClient?.GetPaymentChannel(
+    //   result.ChannelId
+    // );
+    // setPaymentChannelInfo(paymentChannel);
+
     console.timeEnd("Create Payment Channel");
-
-    // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
-    setTimeout(() => {
-      updateChannelInfo(result.ChannelId);
-    }, 1000);
   };
-
   const fetchAndDownloadFile = async () => {
     setErrorText("");
     setFetchInProgress(true);
@@ -182,7 +174,6 @@ export default function App() {
             nitroClient,
             (progress) => {
               setDownloadProgress(progress);
-              updateChannelInfo(paymentChannelInfo.ID);
             }
           )
         : await fetchFile(
@@ -190,17 +181,10 @@ export default function App() {
             skipPayment ? 0 : costPerByte * selectedFile.size,
             paymentChannelInfo.ID,
             nitroClient,
-            () => {
-              updateChannelInfo(paymentChannelInfo.ID);
-            }
+            () => {}
           );
       setDownloadProgress(100);
       triggerFileDownload(file);
-
-      // TODO: Slightly hacky but we wait a beat before querying so we see the updated balance
-      setTimeout(() => {
-        updateChannelInfo(paymentChannelInfo.ID);
-      }, 50);
     } catch (e: unknown) {
       console.error(e);
 
