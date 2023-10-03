@@ -20,6 +20,8 @@ Filecoin is working towards having an [EVM-compatible virtual machine](https://f
 
 ## Presentations
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/P9IV87L2rlM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/P9IV87L2rlM" title="Driving adoption with a network of payment channels" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/xYn8Evkrs30" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/xYn8Evkrs30" title="Moving at the speed of Nitro: a usecase for testground" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/NpG0NneZ5uk?si=055ARrHx5bZugs4t" title="Nitro Payment Network" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
