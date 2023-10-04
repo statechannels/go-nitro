@@ -290,7 +290,7 @@ function getChannelIdFromObjectiveId(objectiveId: string): string {
   return objectiveId.split("-")[1];
 }
 
-// Waits for the RPC server to be available
+// Waits up to waitDuration milliseconds for the RPC server to be available
 async function waitForRPCServer(
   port: number,
   waitDuration: number
