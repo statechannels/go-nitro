@@ -15,7 +15,7 @@ const (
 	DHT_RECORD_PREFIX      = "/" + DHT_NAMESPACE + "/"
 	DHT_NAMESPACE          = "scaddr"
 	DHT_RECORD_MAX_AGE     = 24 * time.Hour
-	DHT_REPUBLSIH_INTERVAL = 4 * time.Hour
+	DHT_REPUBLISH_INTERVAL = 4 * time.Hour
 )
 
 type stateChannelAddrToPeerIDValidator struct{}

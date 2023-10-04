@@ -188,7 +188,7 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) error {
 
 		// Republish the record before it expires (see DHT_RECORD_MAX_AGE) so that the record
 		// is not removed from the DHT
-		ticker = time.NewTicker(DHT_REPUBLSIH_INTERVAL)
+		ticker = time.NewTicker(DHT_REPUBLISH_INTERVAL)
 		defer ticker.Stop()
 		for {
 			select {
