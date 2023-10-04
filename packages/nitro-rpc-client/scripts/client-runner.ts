@@ -290,7 +290,7 @@ function getChannelIdFromObjectiveId(objectiveId: string): string {
   return objectiveId.split("-")[1];
 }
 
-// Waits for the RPC server to be available by sending a simple get_address POST request until we get a response
+// Waits for the RPC server to be available
 async function waitForRPCServer(
   port: number,
   waitDuration: number
@@ -317,7 +317,7 @@ async function waitForRPCServer(
   );
 }
 
-// Checks if the server is up by sending a simple get_address POST request
+// Checks if the server is up by sending a simple GET request to the health endpoint
 // This is specific to the HTTP/WS RPC transport
 async function isServerUp(port: number): Promise<boolean> {
   let result: AxiosResponse<unknown, unknown>;
