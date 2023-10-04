@@ -140,7 +140,8 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) error {
 	var options []dht.Option
 	options = append(options, dht.BucketSize(20))
 	options = append(options, dht.BootstrapPeers(bootAddrs...))
-	options = append(options, dht.Mode(dht.ModeServer))                                                    // allows other peers to connect to this node
+	options = append(options, dht.Mode(dht.ModeServer)) // allows other peers to connect to this node
+	options = append(options, dht.MaxRecordAge(DHT_RECORD_MAX_AGE))
 	options = append(options, dht.ProtocolPrefix(DHT_PROTOCOL_PREFIX))                                     // need this to allow custom NamespacedValidator
 	options = append(options, dht.NamespacedValidator(DHT_NAMESPACE, stateChannelAddrToPeerIDValidator{})) // all records prefixed with /scaddr/ will use this custom validator
 
@@ -169,18 +170,31 @@ func (ms *P2PMessageService) setupDht(bootPeers []string) error {
 		return err
 	}
 
-	// Must wait until dht RoutingTable has an entry before adding custom dht record
-	// This is a restriction enforced by the libp2p library. When we try to put a value
-	// into the DHT, the node is not storing it locally. Instead its telling other peers
-	// to store it. The key-value pairs are stored on nodes with IDs closest to the key.
-	// If the RoutingTable is empty, the node has no peers to propagate this information to.
 	go func() {
+		// Must wait until dht RoutingTable has an entry before adding custom dht record
+		// This is a restriction enforced by the libp2p library. When we try to put a value
+		// into the DHT, the node is not storing it locally. Instead its telling other peers
+		// to store it. The key-value pairs are stored on nodes with IDs closest to the key.
+		// If the RoutingTable is empty, the node has no peers to propagate this information to.
 		ticker := time.NewTicker(BOOTSTRAP_SLEEP_DURATION)
+		defer ticker.Stop()
 		for range ticker.C {
 			if ms.dht.RoutingTable().Size() > 0 {
 				ms.addScaddrDhtRecord(ctx)
-				ticker.Stop()
 				close(ms.initComplete)
+				break
+			}
+		}
+
+		// Republish the record before it expires (see DHT_RECORD_MAX_AGE) so that the record
+		// is not removed from the DHT
+		ticker = time.NewTicker(DHT_REPUBLSIH_INTERVAL)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				ms.addScaddrDhtRecord(ctx)
+			case <-ctx.Done():
 				return
 			}
 		}
