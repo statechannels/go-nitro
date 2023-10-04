@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: "yarn"
-          node-version: "18.15.0"
+          node-version: "16.0.0"
 
       # Install foundry so we can use it to run a chain instance
       - name: Install Foundry
