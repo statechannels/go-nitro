@@ -1,6 +1,8 @@
 name: TypeScript RPC Client Test
 
 on:
+  push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 jobs:
