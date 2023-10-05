@@ -197,8 +197,8 @@ func (e *Engine) run(ctx context.Context) {
 			res, err = e.handleMessage(message)
 		case proposal := <-e.fromLedger:
 			res, err = e.handleProposal(proposal)
-		case sigReq := <-e.signRequests:
-			err = e.handleSigRequest(sigReq)
+		case signReq := <-e.signRequests:
+			err = e.handleSignRequest(signReq)
 		case <-blockTicker.C:
 			blockNum := e.chain.GetLastConfirmedBlockNum()
 			err = e.store.SetLastBlockNumSeen(blockNum)
@@ -239,7 +239,7 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 	return e.attemptProgress(obj)
 }
 
-func (e *Engine) handleSigRequest(sigReq p2pms.SignatureRequest) error {
+func (e *Engine) handleSignRequest(sigReq p2pms.SignatureRequest) error {
 	recordDataBytes, err := json.Marshal(sigReq.Data)
 	if err != nil {
 		return err
