@@ -27,7 +27,8 @@ func BenchmarkVirtualFund(b *testing.B) {
 	particpants := make([]TestParticipant, 2+maxHops)
 
 	particpants[0] = TestParticipant{StoreType: MemStore, Actor: testactors.Alice}
-	for i := 1; i < maxHops; i++ {
+	particpants[1] = TestParticipant{StoreType: MemStore, Actor: testactors.Bob}
+	for i := 2; i < maxHops+2; i++ {
 		// Generate a new private key
 		privateKey, err := crypto.GenerateKey()
 		if err != nil {
@@ -52,12 +53,7 @@ func BenchmarkVirtualFund(b *testing.B) {
 		LogName:        "bench",
 		NumOfHops:      maxHops,
 		NumOfPayments:  0,
-		Participants: []TestParticipant{
-			{StoreType: MemStore, Actor: testactors.Alice},
-			{StoreType: MemStore, Actor: testactors.Bob},
-			{StoreType: MemStore, Actor: testactors.Irene},
-			{StoreType: MemStore, Actor: testactors.Ivan},
-		},
+		Participants:   particpants,
 	}
 
 	infra := setupSharedInfra(tc)
@@ -108,9 +104,16 @@ func BenchmarkVirtualFund(b *testing.B) {
 	aliceLedger := openLedgerChannel(b, clientA, intermediaries[0], asset)
 	checkLedgerChannel(b, aliceLedger, initialLedgerOutcome(*clientA.Address, *intermediaries[0].Address, asset), query.Open, clientA)
 
-	// connect Bob to last intermediary
-	bobLedger := openLedgerChannel(b, intermediaries[len(intermediaries)-1], clientB, asset)
-	checkLedgerChannel(b, bobLedger, initialLedgerOutcome(*intermediaries[len(intermediaries)-1].Address, *clientB.Address, asset), query.Open, clientB)
+	// connect Bob to every intermediary
+	for _, intermediary := range intermediaries {
+		bobLedger := openLedgerChannel(b, intermediary, clientB, asset)
+		checkLedgerChannel(b, bobLedger, initialLedgerOutcome(*intermediary.Address, *clientB.Address, asset), query.Open, clientB)
+	}
+
+	// So that all of these paths exist:
+	// A - I - B
+	// A - I - I - B
+	// A - I - I - I - B
 
 	// connect intermediaries in a linear chain
 	for i := 0; i+1 < len(intermediaries); i++ {
@@ -118,33 +121,28 @@ func BenchmarkVirtualFund(b *testing.B) {
 	}
 
 	benchmarkVirtualfund := func(numHops int, b *testing.B) {
-		// Setup virtual channels
-		objectiveIds := make([]protocols.ObjectiveId, tc.NumOfChannels)
-		virtualIds := make([]types.Destination, tc.NumOfChannels)
-		for i := 0; i < int(tc.NumOfChannels); i++ {
-			outcome := td.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), virtualChannelDeposit, 0, types.Address{})
-			response, err := clientA.CreatePaymentChannel(
-				clientAddresses(intermediaries),
-				testactors.Bob.Address(),
-				0,
-				outcome,
-			)
-			if err != nil {
-				b.Fatal(err)
-			}
-			objectiveIds[i] = response.Id
-			virtualIds[i] = response.ChannelId
-
+		path := clientAddresses(intermediaries[0:numHops])
+		// b.Log("Path:" + fmt.Sprint(path))
+		outcome := td.Outcomes.Create(testactors.Alice.Address(), testactors.Bob.Address(), virtualChannelDeposit, 0, types.Address{})
+		response, err := clientA.CreatePaymentChannel(
+			path,
+			testactors.Bob.Address(),
+			0,
+			outcome,
+		)
+		if err != nil {
+			b.Fatal(err)
 		}
+		objectiveId := response.Id
 		// Wait for all the virtual channels to be ready
-		waitForObjectives(b, clientA, clientB, intermediaries, objectiveIds)
+		waitForObjectives(b, clientA, clientB, intermediaries[0:numHops-1], []protocols.ObjectiveId{objectiveId})
 	}
 
-	for i := 0; i < int(tc.NumOfHops); i++ {
-		b.Run("benchmark "+fmt.Sprint(i)+" hop virtual fund",
+	for j := 1; j < int(tc.NumOfHops); j++ {
+		b.Run("benchmark "+fmt.Sprint(j)+" hop virtual fund",
 			func(b *testing.B) {
 				for i := 0; i < b.N; i++ {
-					benchmarkVirtualfund(i, b)
+					benchmarkVirtualfund(j, b)
 				}
 			},
 		)
