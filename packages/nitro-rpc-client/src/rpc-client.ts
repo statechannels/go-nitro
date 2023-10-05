@@ -16,8 +16,9 @@ import { Transport } from "./transport";
 import { createOutcome, generateRequest } from "./utils";
 import { HttpTransport } from "./transport/http";
 import { getAndValidateResult } from "./serde";
+import { RpcClientApi } from "./interface";
 
-export class NitroRpcClient {
+export class NitroRpcClient implements RpcClientApi {
   private transport: Transport;
 
   // We fetch the address from the RPC server on first use
@@ -29,13 +30,6 @@ export class NitroRpcClient {
     return this.transport.Notifications;
   }
 
-  /**
-   * Creates a payment voucher for the given channel and amount.
-   * The voucher does not get sent to the other party automatically.
-   * @param channelId The payment channel to use for the voucher
-   * @param amount The amount for the voucher
-   * @returns A signed voucher
-   */
   public async CreateVoucher(
     channelId: string,
     amount: number
@@ -53,11 +47,6 @@ export class NitroRpcClient {
     return getAndValidateResult(res, "create_voucher");
   }
 
-  /**
-   * Adds a voucher to the go-nitro node that was received from the other party to the channel.
-   * @param voucher The voucher to add
-   * @returns The total amount of the channel and the delta of the voucher
-   */
   public async ReceiveVoucher(voucher: Voucher): Promise<ReceiveVoucherResult> {
     const request = generateRequest(
       "receive_voucher",
@@ -68,11 +57,6 @@ export class NitroRpcClient {
     return getAndValidateResult(res, "receive_voucher");
   }
 
-  /**
-   * WaitForObjective blocks until the objective with the given ID to complete.
-   *
-   * @param objectiveId - The id objective to wait for
-   */
   public async WaitForObjective(objectiveId: string): Promise<void> {
     return new Promise((resolve) => {
       this.transport.Notifications.on(
@@ -86,12 +70,21 @@ export class NitroRpcClient {
     });
   }
 
-  /**
-   * CreateLedgerChannel creates a directly funded ledger channel with the counterparty.
-   *
-   * @param counterParty - The counterparty to create the channel with
-   * @returns A promise that resolves to an objective response, containing the ID of the objective and the channel id.
-   */
+  public onPaymentChannelUpdated(
+    channelId: string,
+    callback: (info: PaymentChannelInfo) => void
+  ): () => void {
+    const wrapperFn = (info: PaymentChannelInfo) => {
+      if (info.ID.toLowerCase() == channelId.toLowerCase()) {
+        callback(info);
+      }
+    };
+    this.transport.Notifications.on("payment_channel_updated", wrapperFn);
+    return () => {
+      this.transport.Notifications.off("payment_channel_updated", wrapperFn);
+    };
+  }
+
   public async CreateLedgerChannel(
     counterParty: string,
     amount: number
@@ -113,13 +106,6 @@ export class NitroRpcClient {
     return this.sendRequest("create_ledger_channel", payload);
   }
 
-  /**
-   * CreatePaymentChannel creates a virtually funded payment channel with the counterparty, using the given intermediaries.
-   *
-   * @param counterParty - The counterparty to create the channel with
-   * @param intermediaries - The intermerdiaries to use
-   * @returns A promise that resolves to an objective response, containing the ID of the objective and the channel id.
-   */
   public async CreatePaymentChannel(
     counterParty: string,
     intermediaries: string[],
@@ -143,12 +129,6 @@ export class NitroRpcClient {
     return this.sendRequest("create_payment_channel", payload);
   }
 
-  /**
-   * Pay sends a payment on a virtual payment chanel.
-   *
-   * @param channelId - The ID of the payment channel to use
-   * @param amount - The amount to pay
-   */
   public async Pay(channelId: string, amount: number): Promise<PaymentPayload> {
     const payload = {
       Amount: amount,
@@ -159,42 +139,20 @@ export class NitroRpcClient {
     return getAndValidateResult(res, "pay");
   }
 
-  /**
-   * CloseLedgerChannel defunds a directly funded ledger channel.
-   *
-   * @param channelId - The ID of the channel to defund
-   * @returns The ID of the objective that was created
-   */
   public async CloseLedgerChannel(channelId: string): Promise<string> {
     const payload: DefundObjectiveRequest = { ChannelId: channelId };
     return this.sendRequest("close_ledger_channel", payload);
   }
-  /**
-   * ClosePaymentChannel defunds a virtually funded payment channel.
-   *
-   * @param channelId - The ID of the channel to defund
-   * @returns The ID of the objective that was created
-   */
 
   public async ClosePaymentChannel(channelId: string): Promise<string> {
     const payload: DefundObjectiveRequest = { ChannelId: channelId };
     return this.sendRequest("close_payment_channel", payload);
   }
 
-  /**
-   * GetVersion queries the API server for it's version.
-   *
-   * @returns The version of the RPC server
-   */
   public async GetVersion(): Promise<string> {
     return this.sendRequest("version", {});
   }
 
-  /**
-   * GetAddress queries the RPC server for it's state channel address.
-   *
-   * @returns The address of the wallet connected to the RPC server
-   */
   public async GetAddress(): Promise<string> {
     if (this.myAddress) {
       return this.myAddress;
@@ -204,41 +162,20 @@ export class NitroRpcClient {
     return this.myAddress;
   }
 
-  /**
-   * GetLedgerChannel queries the RPC server for a payment channel.
-   *
-   * @param channelId - The ID of the channel to query for
-   * @returns A `LedgerChannelInfo` object containing the channel's information
-   */
   public async GetLedgerChannel(channelId: string): Promise<LedgerChannelInfo> {
     return this.sendRequest("get_ledger_channel", { Id: channelId });
   }
 
-  /**
-   * GetAllLedgerChannels queries the RPC server for all ledger channels.
-   * @returns A `LedgerChannelInfo` object containing the channel's information for each ledger channel
-   */
   public async GetAllLedgerChannels(): Promise<LedgerChannelInfo[]> {
     return this.sendRequest("get_all_ledger_channels", {});
   }
 
-  /**
-   * GetPaymentChannel queries the RPC server for a payment channel.
-   *
-   * @param channelId - The ID of the channel to query for
-   * @returns A `PaymentChannelInfo` object containing the channel's information
-   */
   public async GetPaymentChannel(
     channelId: string
   ): Promise<PaymentChannelInfo> {
     return this.sendRequest("get_payment_channel", { Id: channelId });
   }
-  /**
-   * GetPaymentChannelsByLedger queries the RPC server for any payment channels that are actively funded by the given ledger.
-   *
-   * @param ledgerId - The ID of the ledger to find payment channels for
-   * @returns A `PaymentChannelInfo` object containing the channel's information for each payment channel
-   */
+
   public async GetPaymentChannelsByLedger(
     ledgerId: string
   ): Promise<PaymentChannelInfo[]> {
@@ -260,9 +197,6 @@ export class NitroRpcClient {
     return getAndValidateResult(res, method);
   }
 
-  /**
-   * Close closes the RPC client and stops listening for notifications.
-   */
   public async Close(): Promise<void> {
     return this.transport.Close();
   }

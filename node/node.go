@@ -168,8 +168,20 @@ func (n *Node) ReceivedVouchers() <-chan payments.Voucher {
 
 // CreateVoucher creates and returns a voucher for the given channelId which increments the redeemable balance by amount.
 // It is the responsibility of the caller to send the voucher to the payee.
-func (c *Node) CreateVoucher(channelId types.Destination, amount *big.Int) (payments.Voucher, error) {
-	return c.vm.Pay(channelId, amount, *c.store.GetChannelSecretKey())
+func (n *Node) CreateVoucher(channelId types.Destination, amount *big.Int) (payments.Voucher, error) {
+	voucher, err := n.vm.Pay(channelId, amount, *n.store.GetChannelSecretKey())
+	if err != nil {
+		return payments.Voucher{}, err
+	}
+	info, err := n.GetPaymentChannel(channelId)
+	if err != nil {
+		return voucher, err
+	}
+	err = n.channelNotifier.NotifyPaymentUpdated(info)
+	if err != nil {
+		return voucher, err
+	}
+	return voucher, nil
 }
 
 // ReceiveVoucher receives a voucher and returns the amount that was paid.
