@@ -3,15 +3,15 @@ goarch: arm64
 pkg: github.com/statechannels/go-nitro/node_test
                                              │ virtualfund.txt │
                                              │     sec/op      │
-VirtualFund/benchmark_1_hop_virtual_fund-12       497.2m ± 10%
-VirtualFund/benchmark_2_hop_virtual_fund-12       626.3m ± 23%
-VirtualFund/benchmark_3_hop_virtual_fund-12       792.0m ± 10%
-VirtualFund/benchmark_4_hop_virtual_fund-12        1.021 ± 15%
-VirtualFund/benchmark_5_hop_virtual_fund-12        1.149 ± 14%
-VirtualFund/benchmark_6_hop_virtual_fund-12        1.334 ± 11%
-VirtualFund/benchmark_7_hop_virtual_fund-12        1.439 ± 10%
-VirtualFund/benchmark_8_hop_virtual_fund-12        1.634 ± 13%
-VirtualFund/benchmark_9_hop_virtual_fund-12        1.689 ±  8%
-VirtualFund/benchmark_10_hop_virtual_fund-12       1.862 ±  6%
-VirtualFund/benchmark_11_hop_virtual_fund-12       2.036 ± 19%
-geomean                                            1.174
+VirtualFund/benchmark_1_hop_virtual_fund-12       332.5m ±  7%
+VirtualFund/benchmark_2_hop_virtual_fund-12       346.1m ±  8%
+VirtualFund/benchmark_3_hop_virtual_fund-12       396.4m ± 15%
+VirtualFund/benchmark_4_hop_virtual_fund-12       380.2m ±  7%
+VirtualFund/benchmark_5_hop_virtual_fund-12       379.6m ±  5%
+VirtualFund/benchmark_6_hop_virtual_fund-12       391.8m ±  6%
+VirtualFund/benchmark_7_hop_virtual_fund-12       390.8m ±  5%
+VirtualFund/benchmark_8_hop_virtual_fund-12       400.9m ±  7%
+VirtualFund/benchmark_9_hop_virtual_fund-12       399.0m ±  8%
+VirtualFund/benchmark_10_hop_virtual_fund-12      401.8m ±  4%
+VirtualFund/benchmark_11_hop_virtual_fund-12      421.4m ±  6%
+geomean                                           384.7m
