@@ -93,7 +93,7 @@ func (tms TestMessageService) connect(b Broker) {
 
 // Send dispatches messages
 func (tms TestMessageService) Send(msg protocols.Message) error {
-	tms.dispatchMessage(msg)
+	go tms.dispatchMessage(msg)
 	return nil
 }
 
