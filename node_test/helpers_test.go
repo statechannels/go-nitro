@@ -159,7 +159,7 @@ func finalPaymentOutcome(alpha, beta, asset types.Address, numPayments, paymentA
 		asset)
 }
 
-func openLedgerChannel(t *testing.T, alpha node.Node, beta node.Node, asset common.Address) types.Destination {
+func openLedgerChannel(t testing.TB, alpha node.Node, beta node.Node, asset common.Address) types.Destination {
 	// Set up an outcome that requires both participants to deposit
 	outcome := initialLedgerOutcome(*alpha.Address, *beta.Address, asset)
 
@@ -192,7 +192,7 @@ func closeLedgerChannel(t *testing.T, alpha node.Node, beta node.Node, channelId
 	t.Log("Completed direct-defund objective")
 }
 
-func waitForObjectives(t *testing.T, a, b node.Node, intermediaries []node.Node, objectiveIds []protocols.ObjectiveId) {
+func waitForObjectives(t testing.TB, a, b node.Node, intermediaries []node.Node, objectiveIds []protocols.ObjectiveId) {
 	for _, objectiveId := range objectiveIds {
 		<-a.ObjectiveCompleteChan(objectiveId)
 
@@ -323,7 +323,7 @@ func createLedgerStory(
 
 // checkLedgerChannel checks that the ledger channel has the expected outcome and status
 // It will fail if the channel does not exist
-func checkLedgerChannel(t *testing.T, ledgerId types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...node.Node) {
+func checkLedgerChannel(t testing.TB, ledgerId types.Destination, o outcome.Exit, status query.ChannelStatus, clients ...node.Node) {
 	for _, c := range clients {
 		expected := createLedgerInfo(ledgerId, o, status, *c.Address)
 		ledger, err := c.GetLedgerChannel(ledgerId)
