@@ -107,13 +107,14 @@ interface syncAPI {
   WaitForObjective(objectiveId: string): Promise<void>;
   /**
    * PaymentChannelUpdated attaches a callback which is triggered when the channel with supplied ID is updated.
+   * Returns a cleanup function which can be used to remove the subscription.
    *
    * @param objectiveId - The id objective to wait for
    */
-  PaymentChannelUpdated(
+  onPaymentChannelUpdated(
     channelId: string,
     callback: (info: PaymentChannelInfo) => void
-  ): Promise<void>;
+  ): () => void;
 }
 
 export interface RpcClientApi

@@ -70,18 +70,19 @@ export class NitroRpcClient implements RpcClientApi {
     });
   }
 
-  public async PaymentChannelUpdated(
+  public onPaymentChannelUpdated(
     channelId: string,
     callback: (info: PaymentChannelInfo) => void
-  ): Promise<void> {
-    this.transport.Notifications.on(
-      "payment_channel_updated",
-      (info: PaymentChannelInfo) => {
-        if (info.ID.toLowerCase() == channelId.toLowerCase()) {
-          callback(info);
-        }
+  ): () => void {
+    const wrapperFn = (info: PaymentChannelInfo) => {
+      if (info.ID.toLowerCase() == channelId.toLowerCase()) {
+        callback(info);
       }
-    );
+    };
+    this.transport.Notifications.on("payment_channel_updated", wrapperFn);
+    return () => {
+      this.transport.Notifications.off("payment_channel_updated", wrapperFn);
+    };
   }
 
   public async CreateLedgerChannel(
