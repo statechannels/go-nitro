@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/rand"
 	"github.com/statechannels/go-nitro/types"
@@ -22,8 +23,9 @@ type TestMessageService struct {
 	address types.Address
 
 	// connection to Engine:
-	out      chan protocols.Message // for sending message to engine
-	maxDelay time.Duration          // the max delay for messages
+	out          chan protocols.Message      // for sending message to engine
+	signRequests chan p2pms.SignatureRequest // for sending signature requests to engine
+	maxDelay     time.Duration               // the max delay for messages
 
 	broker Broker
 }
@@ -48,18 +50,23 @@ func NewBroker() Broker {
 // Messages will be handled with a random delay between 0 and maxDelay
 func NewTestMessageService(address types.Address, broker Broker, maxDelay time.Duration) TestMessageService {
 	tms := TestMessageService{
-		address:  address,
-		out:      make(chan protocols.Message, 5),
-		maxDelay: maxDelay,
-		broker:   broker,
+		address:      address,
+		out:          make(chan protocols.Message, 5),
+		signRequests: make(chan p2pms.SignatureRequest, 5),
+		maxDelay:     maxDelay,
+		broker:       broker,
 	}
 
 	tms.connect(broker)
 	return tms
 }
 
-func (t TestMessageService) Out() <-chan protocols.Message {
+func (t TestMessageService) P2PMessages() <-chan protocols.Message {
 	return t.out
+}
+
+func (t TestMessageService) SignRequests() <-chan p2pms.SignatureRequest {
+	return t.signRequests
 }
 
 // dispatchMessage is responsible for dispatching a message to the appropriate peer message service.
