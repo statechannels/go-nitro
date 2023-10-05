@@ -72,4 +72,6 @@ BenchmarkVirtualFund/benchmark_11_hop_virtual_fund-12        	       3	 66239454
 BenchmarkVirtualFund/benchmark_11_hop_virtual_fund-12        	       2	 644961334 ns/op
 BenchmarkVirtualFund/benchmark_11_hop_virtual_fund-12        	       2	 526262666 ns/op
 BenchmarkVirtualFund/benchmark_11_hop_virtual_fund-12        	       2	 666161542 ns/op
-BenchmarkVirtualFund/benchmark_11_hop_virtual_fund-12        	
+BenchmarkVirtualFund/benchmark_11_hop_virtual_fund-12        	       2	 560626666 ns/op
+PASS
+ok  	github.com/statechannels/go-nitro/node_test	142.801s
