@@ -6,7 +6,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/protocols"
-	"github.com/statechannels/go-nitro/rand"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -66,8 +65,8 @@ func (t TestMessageService) Out() <-chan protocols.Message {
 // If there is a mean delay it will wait a random amount of time(based on meanDelay) before sending the message.
 func (t TestMessageService) dispatchMessage(message protocols.Message) {
 	if t.maxDelay > 0 {
-		randomDelay := time.Duration(rand.Int63n(t.maxDelay.Nanoseconds()))
-		time.Sleep(randomDelay)
+		// randomDelay := time.Duration(rand.Int63n(t.maxDelay.Nanoseconds()))
+		time.Sleep(t.maxDelay)
 	}
 
 	peer, ok := t.broker.services[message.To]
