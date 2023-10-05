@@ -18,7 +18,7 @@ import (
 	"github.com/statechannels/go-nitro/types"
 )
 
-const maxHops = 2
+const maxHops = 12
 
 func BenchmarkVirtualFund(b *testing.B) {
 	dataFolder, cleanup := testhelpers.GenerateTempStoreFolder()
