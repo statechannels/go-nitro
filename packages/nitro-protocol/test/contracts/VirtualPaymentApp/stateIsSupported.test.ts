@@ -199,7 +199,7 @@ describe('stateIsSupported (candidate plus single proof state route)', () => {
       // Sign the candidate state (should be just Bob)
       const candidate: RecoveredVariablePart = {
         variablePart: getVariablePart(candidateState),
-        signedBy: BigNumber.from(tc.bobSignedCandidate ? 0b1000 : 0b0000).toHexString(), // 0b1000 signed by Bob obly
+        signedBy: BigNumber.from(tc.bobSignedCandidate ? 0b1000 : 0b0000).toHexString(), // 0b1000 signed by Bob only
       };
 
       if (tc.reason) {
