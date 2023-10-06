@@ -60,8 +60,9 @@ contract VirtualPaymentApp is IForceMoveApp {
         if (proof.length == 1) {
             requireProofOfUnanimousConsensusOnPostFund(proof[0], fixedPart.participants.length);
             require(candidate.variablePart.turnNum == 2, 'bad candidate turnNum; |proof|=1');
+            uint8 bobIndex = uint8(fixedPart.participants.length - 1);
             require(
-                NitroUtils.isClaimedSignedBy(candidate.signedBy, 2),
+                NitroUtils.isClaimedSignedBy(candidate.signedBy, bobIndex),
                 'redemption not signed by Bob'
             );
             uint256 voucherAmount = requireValidVoucher(candidate.variablePart.appData, fixedPart);
