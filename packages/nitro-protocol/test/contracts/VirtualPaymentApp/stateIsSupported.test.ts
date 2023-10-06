@@ -80,7 +80,7 @@ describe('stateIsSupported (lone candidate route)', () => {
 
       const candidate: RecoveredVariablePart = {
         variablePart,
-        signedBy: BigNumber.from(0b111).toHexString(),
+        signedBy: BigNumber.from(0b1111).toHexString(),
       };
 
       if (tc.reason) {
@@ -192,14 +192,14 @@ describe('stateIsSupported (candidate plus single proof state route)', () => {
       const proof: RecoveredVariablePart[] = [
         {
           variablePart: getVariablePart(proofState),
-          signedBy: BigNumber.from(tc.unanimityOnProof ? 0b111 : 0b101).toHexString(),
+          signedBy: BigNumber.from(tc.unanimityOnProof ? 0b1111 : 0b1011).toHexString(),
         },
       ];
 
       // Sign the candidate state (should be just Bob)
       const candidate: RecoveredVariablePart = {
         variablePart: getVariablePart(candidateState),
-        signedBy: BigNumber.from(tc.bobSignedCandidate ? 0b100 : 0b000).toHexString(), // 0b100 signed by Bob obly
+        signedBy: BigNumber.from(tc.bobSignedCandidate ? 0b1000 : 0b0000).toHexString(), // 0b1000 signed by Bob obly
       };
 
       if (tc.reason) {
@@ -220,7 +220,7 @@ describe('stateIsSupported (longer proof state route)', () => {
 
     const candidate: RecoveredVariablePart = {
       variablePart,
-      signedBy: BigNumber.from(0b111).toHexString(),
+      signedBy: BigNumber.from(0b1111).toHexString(),
     };
 
     await expectRevert(
