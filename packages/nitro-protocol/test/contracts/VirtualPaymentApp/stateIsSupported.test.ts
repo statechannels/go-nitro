@@ -22,7 +22,7 @@ const {HashZero} = ethers.constants;
 let virtualPaymentApp: Contract;
 const provider = getTestProvider();
 
-const nParticipants = 3;
+const nParticipants = 4;
 const {wallets, participants} = generateParticipants(nParticipants);
 
 const challengeDuration = 0x100;
