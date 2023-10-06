@@ -12,7 +12,7 @@ type paymentChannelListeners struct {
 	listeners []chan query.PaymentChannelInfo
 	// prev is the previous payment channel info that was sent to the listeners.
 	prev query.PaymentChannelInfo
-	// listenersLock is used to protect against concurrent access to the listeners slice.
+	// listenersLock is used to protect against concurrent access to to sibling struct members.
 	listenersLock *sync.Mutex
 }
 
@@ -24,6 +24,8 @@ func newPaymentChannelListeners() *paymentChannelListeners {
 // Notify notifies all listeners of a payment channel update.
 // It only notifies listeners if the new info is different from the previous info.
 func (li *paymentChannelListeners) Notify(info query.PaymentChannelInfo) {
+	li.listenersLock.Lock()
+	defer li.listenersLock.Unlock()
 	if li.prev.Equal(info) {
 		return
 	}
@@ -45,6 +47,8 @@ func (li *paymentChannelListeners) createNewListener() <-chan query.PaymentChann
 
 // getOrCreateListener returns the first listener, creating one if none exist.
 func (li *paymentChannelListeners) getOrCreateListener() <-chan query.PaymentChannelInfo {
+	li.listenersLock.Lock()
+	defer li.listenersLock.Unlock()
 	if len(li.listeners) != 0 {
 		return li.listeners[0]
 	}
@@ -69,7 +73,7 @@ type ledgerChannelListeners struct {
 	listeners []chan query.LedgerChannelInfo
 	// prev is the previous ledger channel info that was sent to the listeners.
 	prev query.LedgerChannelInfo
-	// listenersLock is used to protect against concurrent access to the listeners slice.
+	// listenersLock is used to protect against concurrent access to sibling struct members.
 	listenersLock sync.Mutex
 }
 
@@ -81,6 +85,8 @@ func newLedgerChannelListeners() *ledgerChannelListeners {
 // Notify notifies all listeners of a ledger channel update.
 // It only notifies listeners if the new info is different from the previous info.
 func (li *ledgerChannelListeners) Notify(info query.LedgerChannelInfo) {
+	li.listenersLock.Lock()
+	defer li.listenersLock.Unlock()
 	if li.prev.Equal(info) {
 		return
 	}
@@ -103,6 +109,8 @@ func (li *ledgerChannelListeners) createNewListener() <-chan query.LedgerChannel
 
 // getOrCreateListener returns the first listener, creating one if none exist.
 func (li *ledgerChannelListeners) getOrCreateListener() <-chan query.LedgerChannelInfo {
+	li.listenersLock.Lock()
+	defer li.listenersLock.Unlock()
 	if len(li.listeners) != 0 {
 		return li.listeners[0]
 	}
