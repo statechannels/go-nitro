@@ -48,11 +48,12 @@ func (li *paymentChannelListeners) createNewListener() <-chan query.PaymentChann
 // getOrCreateListener returns the first listener, creating one if none exist.
 func (li *paymentChannelListeners) getOrCreateListener() <-chan query.PaymentChannelInfo {
 	li.listenersLock.Lock()
-	defer li.listenersLock.Unlock()
 	if len(li.listeners) != 0 {
-		return li.listeners[0]
+		l := li.listeners[0]
+		li.listenersLock.Unlock()
+		return l
 	}
-
+	li.listenersLock.Unlock()
 	return li.createNewListener()
 }
 
@@ -110,11 +111,12 @@ func (li *ledgerChannelListeners) createNewListener() <-chan query.LedgerChannel
 // getOrCreateListener returns the first listener, creating one if none exist.
 func (li *ledgerChannelListeners) getOrCreateListener() <-chan query.LedgerChannelInfo {
 	li.listenersLock.Lock()
-	defer li.listenersLock.Unlock()
 	if len(li.listeners) != 0 {
-		return li.listeners[0]
+		l := li.listeners[0]
+		li.listenersLock.Unlock()
+		return l
 	}
-
+	li.listenersLock.Unlock()
 	return li.createNewListener()
 }
 
