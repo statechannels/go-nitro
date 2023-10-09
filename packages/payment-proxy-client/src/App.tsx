@@ -136,7 +136,6 @@ export default function App() {
       [hub],
       initialChannelBalance
     );
-    console.time("Create Payment Channel");
 
     // TODO: If the objective completes fast enough, we might start waiting after it's already done
     // await nitroClient.WaitForObjective(result.Id);
