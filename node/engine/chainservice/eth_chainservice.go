@@ -384,6 +384,8 @@ func (ecs *EthChainService) listenForEventLogs(errorChan chan<- error, eventChan
 				ecs.logger.Warn("chain event subscription closed")
 			}
 
+			resubscribed := false // Flag to indicate whether resubscription was successful
+
 			// Use exponential backoff loop to attempt to re-establish subscription
 			for backoffTime := MIN_BACKOFF_TIME; backoffTime < MAX_BACKOFF_TIME; backoffTime *= 2 {
 				eventSub, err := ecs.chain.SubscribeFilterLogs(ecs.ctx, eventQuery, eventChan)
@@ -401,12 +403,15 @@ func (ecs *EthChainService) listenForEventLogs(errorChan chan<- error, eventChan
 					return
 				}
 
+				resubscribed = true
 				break
 			}
 
-			ecs.logger.Error("subscribeFilterLogs failed to resubscribe")
-			errorChan <- fmt.Errorf("subscribeFilterLogs failed to resubscribe")
-			return
+			if !resubscribed {
+				ecs.logger.Error("subscribeFilterLogs failed to resubscribe")
+				errorChan <- fmt.Errorf("subscribeFilterLogs failed to resubscribe")
+				return
+			}
 
 		case <-time.After(RESUB_INTERVAL):
 			// Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
