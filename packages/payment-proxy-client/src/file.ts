@@ -5,11 +5,22 @@ export async function fetchFile(
   url: string,
   paymentAmount: number,
   channelId: string,
-  nitroClient: NitroRpcClient
+  nitroClient: NitroRpcClient,
+  updateChannelCallback: () => void
 ): Promise<File> {
+  console.time("Create Payment Vouncher");
   const voucher = await nitroClient.CreateVoucher(channelId, paymentAmount);
+  console.timeEnd("Create Payment Vouncher");
 
-  const response = await fetch(addVoucherToUrl(url, voucher));
+  console.time("Fetch file");
+  const req = createRequest(url, voucher);
+  const fetchPromise = fetch(req);
+  updateChannelCallback();
+  const response = await fetchPromise;
+  console.timeEnd("Fetch file");
+  if (response.status != 200) {
+    throw new Error(`${response.status.toString()} : ${await response.text()}`);
+  }
 
   const fileName = parseFileNameFromUrl(response.url);
 
@@ -109,11 +120,13 @@ async function fetchChunk(
 
   const voucher = await nitroClient.CreateVoucher(channelId, chunkCost);
 
-  const req = new Request(addVoucherToUrl(url, voucher));
+  const req = createRequest(url, voucher);
   req.headers.set("Range", `bytes=${start}-${stop}`);
 
   const response = await fetch(req);
-
+  if (response.status == 402) {
+    throw new Error(`402 ${await response.text()}`);
+  }
   return {
     data: await getChunkData(response),
     contentLength: parseTotalSizeFromContentRange(
@@ -123,8 +136,15 @@ async function fetchChunk(
   };
 }
 
-function addVoucherToUrl(url: string, voucher: Voucher): string {
-  return `${url}?channelId=${voucher.ChannelId}&amount=${voucher.Amount}&signature=${voucher.Signature}`;
+function createRequest(url: string, voucher: Voucher): Request {
+  const req = new Request(
+    `${url}?channelId=${voucher.ChannelId}&amount=${voucher.Amount}&signature=${voucher.Signature}`
+  );
+
+  // Disable caching so we always hit the payment proxy for the file
+  req.headers.set("Cache-Control", "no-store");
+  req.headers.set("Pragma", "no-cache");
+  return req;
 }
 
 async function getChunkData(res: Response): Promise<Uint8Array> {
@@ -135,8 +155,7 @@ async function getChunkData(res: Response): Promise<Uint8Array> {
   if (!res.ok) {
     throw new Error(`Response status ${res.status}`);
   }
-  const result = await res.body.getReader().read();
-  return result.value || new Uint8Array();
+  return new Uint8Array(await res.arrayBuffer());
 }
 
 function parseTotalSizeFromContentRange(

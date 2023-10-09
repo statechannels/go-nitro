@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -29,12 +31,7 @@ func main() {
 				Value:   8088,
 				Aliases: []string{"p"},
 			},
-			&cli.StringFlag{
-				Name:    FILE_URL,
-				Usage:   "Specifies the url to serve the file at.",
-				Value:   "/test.txt",
-				Aliases: []string{"f"},
-			},
+
 			&cli.UintFlag{
 				Name:    FILE_LENGTH,
 				Usage:   "Specifies the length of the file to serve.",
@@ -44,16 +41,21 @@ func main() {
 		},
 		Action: func(c *cli.Context) error {
 			const (
-				fileName = "test.txt"
+				fileName = "test.png"
 			)
 
 			fileContent := generateFileData(c.Int(FILE_LENGTH))
 			filePath, cleanup := setupFile(fileName, fileContent)
 			defer cleanup()
 
-			http.HandleFunc(c.String(FILE_URL), func(w http.ResponseWriter, r *http.Request) {
+			http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 				// Set the Content-Disposition header to suggest a filename
 				w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
+
+				// Add CORS headers to allow all origins (*).
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Headers", "*")
+				w.Header().Set("Access-Control-Expose-Headers", "*")
 
 				http.ServeFile(w, r, filePath)
 			})
@@ -81,7 +83,7 @@ func waitForKillSignal() {
 }
 
 // setupFile creates a file with the given name and content, and returns a cleanup function
-func setupFile(fileName string, fileContent string) (string, func()) {
+func setupFile(fileName string, fileContent *image.RGBA) (string, func()) {
 	dataFolder, err := os.MkdirTemp("", "sample-file-server-*")
 	if err != nil {
 		panic(err)
@@ -94,11 +96,12 @@ func setupFile(fileName string, fileContent string) (string, func()) {
 	}
 	defer file.Close()
 
-	_, err = file.WriteString(fileContent)
-	if err != nil {
+	if err := png.Encode(file, fileContent); err != nil {
+		fmt.Println("Failed to encode image:", err)
 		os.Remove(filePath)
 		panic(err)
 	}
+
 	return filePath, func() {
 		err := os.Remove(fileName)
 		if err != nil {
@@ -108,22 +111,26 @@ func setupFile(fileName string, fileContent string) (string, func()) {
 }
 
 // generateFileData generates a string of the given length composed of random words
-func generateFileData(length int) (fileData string) {
-	if length < 10 {
-		panic("file length must be at least 10")
-	}
-	wordSelection := []string{
-		"Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel",
-		"India", "Juliet", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa",
-		"Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey",
-		"X-ray", "Yankee", "Zulu",
-	}
-	fileData = "START"
-	// Continue adding words until we reach the desired length or beyond
-	for len(fileData) < length {
-		randomIndex := rand.Intn(len(wordSelection))
-		fileData = fileData + " " + wordSelection[randomIndex]
+func generateFileData(length int) (img *image.RGBA) {
+	// Define image dimensions
+	width, height := length, length
+
+	// Create an empty RGBA image
+	img = image.NewRGBA(image.Rect(0, 0, width, height))
+
+	// Fill the image with a gradient
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			// Gradient: Horizontal red, Vertical blue
+			c := color.RGBA{
+				R: uint8(x * 255 / width),
+				B: uint8(y * 255 / height),
+				G: 0,
+				A: 255, // Fully opaque
+			}
+			img.Set(x, y, c)
+		}
 	}
 
-	return fileData[:length-3] + "END"
+	return img
 }

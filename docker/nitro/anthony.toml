@@ -11,13 +11,16 @@ pk = ""
 # Chain Public Address: 0x56032FA02b2592338b9A42B1865d5a5BEEaF2B75
 chainpk = ""
 
-naaddress = "0xe32d4B5C5a80660710f6a2aD3cB1c11664138F34"
-vpaaddress = "0x4D1a804e1cE383D75032C52878553212992C98D7"
-caaddress = "0x0C9D79725afc344A388045235CD0B23eA4f0E838"
+naaddress = "0xe1790ea824035184a3bf344e087fb61744992545"
+vpaaddress = "0x95EfacCb38106C249F5ddC25b71677d5aF6d31A0"
+caaddress = "0xe1790ea824035184a3bf344e087fb61744992545"
 
 # RPC provider docs: https://lotus.filecoin.io/lotus/developers/glif-nodes/#testnet-endpoint
 chainurl = "wss://wss.calibration.node.glif.io/apigw/lotus/rpc/v0"
-chainstartblock = 909569
+chainstartblock = 915929
 chainauthtoken = ""
 
 bootpeers = "/ip4/67.207.88.72/tcp/3005/p2p/16Uiu2HAmDQj9XnHPD1d4GzS1K3DhmM5Z1cSGLfVTwVcNVdEsAN3Q"
+
+tlscertfilepath = "/app/certs/live/anthony-node.statechannels.org/fullchain.pem"
+tlskeyfilepath = "/app/certs/live/anthony-node.statechannels.org/privkey.pem"

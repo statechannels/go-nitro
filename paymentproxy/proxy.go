@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"math/big"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -43,12 +43,14 @@ type PaymentProxy struct {
 	costPerByte  uint64
 	reverseProxy *httputil.ReverseProxy
 
-	destinationUrl *url.URL
+	destinationUrl            *url.URL
+	certFilePath, certKeyPath string
 }
 
 // NewPaymentProxy creates a new PaymentProxy.
-func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, costPerByte uint64) *PaymentProxy {
+func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL string, costPerByte uint64, certFilePath, certKeyPath string) *PaymentProxy {
 	server := &http.Server{Addr: proxyAddress}
+
 	nitroClient, err := rpc.NewHttpRpcClient(nitroEndpoint)
 	if err != nil {
 		panic(err)
@@ -64,8 +66,9 @@ func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL s
 		costPerByte:    costPerByte,
 		destinationUrl: destinationUrl,
 		reverseProxy:   &httputil.ReverseProxy{},
+		certFilePath:   certFilePath,
+		certKeyPath:    certKeyPath,
 	}
-
 	// Wire up our handlers to the reverse proxy
 	p.reverseProxy.Rewrite = func(pr *httputil.ProxyRequest) { pr.SetURL(p.destinationUrl) }
 	p.reverseProxy.ModifyResponse = p.handleDestinationResponse
@@ -80,7 +83,16 @@ func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL s
 // It is responsible for parsing the voucher from the query params and moving it to the request header
 // It then delegates to the reverse proxy to handle rewriting the request and sending it to the destination
 func (p *PaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	enableCORS(w, r)
+	// If the request is a health check, return a 200 OK
+	if r.URL.Path == "/health" {
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte("Proxy is healthy"))
+		if err != nil {
+			p.handleError(w, r, err)
+			return
+		}
+		return
+	}
 	v, err := parseVoucher(r.URL.Query())
 	if err != nil {
 		p.handleError(w, r, createPaymentError(fmt.Errorf("could not parse voucher: %w", err)))
@@ -100,13 +112,23 @@ func (p *PaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // It will check the voucher amount against the cost (response size * cost per byte)
 // If the voucher amount is less than the cost, it will return a 402 Payment Required error instead of serving the content
 func (p *PaymentProxy) handleDestinationResponse(r *http.Response) error {
+	enableCors(r.Header)
 	// Ignore OPTIONS requests as they are preflight requests
 	if r.Request.Method == "OPTIONS" {
 		return nil
 	}
-	contentLength, err := strconv.ParseUint(r.Header.Get("Content-Length"), 10, 64)
-	if err != nil {
-		return err
+
+	contentLength := uint64(0)
+	// If the Content-Length header is set, use that
+	// Otherwise, read the body to get the length
+	if r.ContentLength != -1 {
+		contentLength = uint64(r.ContentLength)
+	} else {
+		var err error
+		contentLength, err = readBodyLength(r.Body)
+		if err != nil {
+			return createPaymentError(err)
+		}
 	}
 
 	v, ok := r.Request.Context().Value(VOUCHER_CONTEXT_ARG).(payments.Voucher)
@@ -126,7 +148,7 @@ func (p *PaymentProxy) handleDestinationResponse(r *http.Response) error {
 	// s.Delta is amount our balance increases by adding this voucher
 	// AKA the payment amount we received in the request for this file
 	if cost > s.Delta.Uint64() {
-		return createPaymentError(fmt.Errorf("payment of %d required, the voucher only resulted in a payment of %d", cost, s.Delta.Uint64()))
+		return createPaymentError(fmt.Errorf("payment of %d attoFIL required, the voucher only resulted in a payment of %d attoFIL", cost, s.Delta.Uint64()))
 	}
 	slog.Debug("Destination request", "url", r.Request.URL.String())
 
@@ -135,6 +157,7 @@ func (p *PaymentProxy) handleDestinationResponse(r *http.Response) error {
 
 // handleError is responsible for logging the error and returning the appropriate HTTP status code
 func (p *PaymentProxy) handleError(w http.ResponseWriter, r *http.Request, err error) {
+	enableCors(w.Header())
 	if errors.Is(err, ErrPayment) {
 		http.Error(w, err.Error(), http.StatusPaymentRequired)
 	} else {
@@ -147,10 +170,15 @@ func (p *PaymentProxy) handleError(w http.ResponseWriter, r *http.Request, err e
 // Start starts the proxy server in a goroutine.
 func (p *PaymentProxy) Start() error {
 	go func() {
-		slog.Info("Starting a payment proxy", "address", p.server.Addr)
-
-		if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
-			slog.Error("Error while listening", "error", err)
+		if p.certFilePath != "" && p.certKeyPath != "" {
+			if err := p.server.ListenAndServeTLS(p.certFilePath, p.certKeyPath); err != http.ErrServerClosed {
+				slog.Error("Error while listening", "error", err)
+			}
+		} else {
+			slog.Info("Starting a payment proxy", "address", p.server.Addr)
+			if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
+				slog.Error("Error while listening", "error", err)
+			}
 		}
 	}()
 
@@ -206,15 +234,34 @@ func removeVoucher(r *http.Request) {
 	r.URL.RawQuery = queryParams.Encode()
 }
 
-// enableCORS enables CORS headers in the response.
-func enableCORS(w http.ResponseWriter, r *http.Request) {
-	// Add CORS headers to allow all origins (*).
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "*")
-	w.Header().Set("Access-Control-Expose-Headers", "*")
-	// Check if the request is an OPTIONS preflight request.
-	if r.Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK)
-		return
+func readBodyLength(b io.ReadCloser) (uint64, error) {
+	var byteCount uint64
+	buffer := make([]byte, 1024)
+
+	// Read the response body and count the bytes
+	for {
+		n, err := b.Read(buffer)
+		if err != nil {
+			if err == io.EOF {
+				break // Reached the end of the response body
+			}
+			return 0, err
+		}
+		byteCount += uint64(n)
+	}
+
+	return byteCount, nil
+}
+
+// enableCors sets the CORS headers if they are not already set
+func enableCors(header http.Header) {
+	if header.Get("Access-Control-Allow-Origin") == "" {
+		header.Set("Access-Control-Allow-Origin", "*")
+	}
+	if header.Get("Access-Control-Allow-Headers") == "" {
+		header.Set("Access-Control-Allow-Headers", "*")
+	}
+	if header.Get("Access-Control-Expose-Headers") == "" {
+		header.Set("Access-Control-Expose-Headers", "*")
 	}
 }

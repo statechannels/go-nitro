@@ -301,8 +301,10 @@ func (ms *P2PMessageService) Send(msg protocols.Message) error {
 	// query the dht to retrieve the peerId, then store in local map for next time
 	peerId, ok := ms.peers.Load(msg.To.String())
 	if !ok {
+		ms.logger.Warn("did not find scAddr in local peers map, fetching from DHT", "scAddr", msg.To.String())
 		peerId, err = ms.getPeerIdFromDht(msg.To.String())
 		if err != nil {
+			ms.logger.Error("did not find scAddr in DHT", "scAddr", msg.To.String())
 			return err
 		}
 	} else {

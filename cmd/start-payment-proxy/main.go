@@ -16,6 +16,9 @@ const (
 	PROXY_ADDRESS   = "proxyaddress"
 	DESTINATION_URL = "destinationurl"
 	COST_PER_BYTE   = "costperbyte"
+
+	TLS_CERT_FILEPATH = "tlscertfilepath"
+	TLS_KEY_FILEPATH  = "tlskeyfilepath"
 )
 
 func main() {
@@ -48,6 +51,16 @@ func main() {
 				Value:   1,
 				Aliases: []string{"c"},
 			},
+			&cli.StringFlag{
+				Name:  TLS_CERT_FILEPATH,
+				Usage: "Filepath to the TLS certificate. If not specified, TLS will not be used.",
+				Value: "",
+			},
+			&cli.StringFlag{
+				Name:  TLS_KEY_FILEPATH,
+				Usage: "Filepath to the TLS private key. If not specified, TLS will not be used.",
+				Value: "",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			proxyEndpoint := c.String(PROXY_ADDRESS)
@@ -60,6 +73,8 @@ func main() {
 				nitroEndpoint,
 				c.String(DESTINATION_URL),
 				c.Uint64(COST_PER_BYTE),
+				c.String(TLS_CERT_FILEPATH),
+				c.String(TLS_KEY_FILEPATH),
 			)
 
 			return proxy.Start()

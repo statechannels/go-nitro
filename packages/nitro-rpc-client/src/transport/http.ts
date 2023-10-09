@@ -1,3 +1,5 @@
+import https from "https";
+
 import axios from "axios";
 import { w3cwebsocket } from "websocket";
 import { EventEmitter } from "eventemitter3";
@@ -65,4 +67,13 @@ export class HttpTransport {
       this.Notifications.emit(data.method, validatedResult);
     };
   }
+}
+
+// For testing with self-signed certs, ignore certificate errors. DO NOT use in production.
+export function unsecureHttpsAgent(): https.Agent {
+  // For testing with self-signed certs, ignore certificate errors. DO NOT use in production.
+  const httpsAgent = new https.Agent({
+    rejectUnauthorized: false,
+  });
+  return httpsAgent;
 }

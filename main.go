@@ -242,10 +242,13 @@ func main() {
 			if err != nil {
 				return err
 			}
+			var cert tls.Certificate
 
-			cert, err := tls.LoadX509KeyPair(tlsCertFilepath, tlsKeyFilepath)
-			if err != nil {
-				panic(err)
+			if tlsCertFilepath != "" && tlsKeyFilepath != "" {
+				cert, err = tls.LoadX509KeyPair(tlsCertFilepath, tlsKeyFilepath)
+				if err != nil {
+					panic(err)
+				}
 			}
 
 			rpcServer, err := rpc.InitializeRpcServer(node, rpcPort, useNats, &cert)
