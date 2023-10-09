@@ -143,7 +143,10 @@ export default function App() {
 
     setPaymentChannelId(result.ChannelId);
 
-    nitroClient.PaymentChannelUpdated(result.ChannelId, setPaymentChannelInfo);
+    nitroClient.onPaymentChannelUpdated(
+      result.ChannelId,
+      setPaymentChannelInfo
+    );
 
     // It's possible the channel updated before we registered the handler above, so
     // query the channel once now to get the latest information:
