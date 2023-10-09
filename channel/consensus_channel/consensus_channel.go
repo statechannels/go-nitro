@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/statechannels/go-nitro/channel/state"
@@ -25,6 +26,9 @@ const (
 	ErrDuplicateGuarantee = types.ConstError("duplicate guarantee detected")
 	ErrGuaranteeNotFound  = types.ConstError("guarantee not found")
 	ErrInvalidAmount      = types.ConstError("left amount is greater than the guarantee amount")
+	ErrDuplicateHTLC      = types.ConstError("duplicate HTLC detected")
+	ErrExpiredHTLC        = types.ConstError("HTLC is expired")
+	ErrInvalidPayer       = types.ConstError("HTLC payer is not a participant")
 )
 
 const (
@@ -365,12 +369,31 @@ func (g Guarantee) AsAllocation() outcome.Allocation {
 // participant.
 //
 // This struct does not store items in sorted order. The conventional ordering of allocation items is:
-// [leader, follower, ...guaranteesSortedByTargetDestination]
+// [leader, follower, ...guaranteesSortedByTargetDestination, ...htlcsSortedByHash]
 type LedgerOutcome struct {
 	assetAddress types.Address // Address of the asset type
 	leader       Balance       // Balance of participants[0]
 	follower     Balance       // Balance of participants[1]
 	guarantees   map[types.Destination]Guarantee
+	htlcs        map[common.Hash]HTLC
+}
+
+// HTLC represents a hash time-locked payment. A payment can be sent by
+// either channel participant, and is received by the other participant.
+//
+// The payment is claimed by the payee with the reveal of the preimage of hash.
+type HTLC struct {
+	// the amount of the payment. TODO: allow specified asset / multi-asset HTLCs
+	amount *big.Int
+	// 32 byte hash of the preimage, either keccak256 (evm-only) or SHA256 (LN compatible).
+	hash common.Hash
+	// the expiration cutoff for the HTLC. If the preimage is not revealed before this time,
+	// the HTLC expires and funds are returned to the sender
+	expiration time.Time
+	// the address that will receive the payment if the preimage is revealed
+	releaseTo types.Destination
+	// the address making the payment
+	paidFrom types.Destination
 }
 
 // Clone returns a deep copy of the receiver.
@@ -379,11 +402,16 @@ func (lo *LedgerOutcome) Clone() LedgerOutcome {
 	for key, g := range lo.guarantees {
 		clonedGuarantees[key] = g.Clone()
 	}
+	clonedHTLCs := make(map[common.Hash]HTLC)
+	for key, h := range lo.htlcs {
+		clonedHTLCs[key] = h // TODO: define strategy for cloning HTLCs
+	}
 	return LedgerOutcome{
 		assetAddress: lo.assetAddress,
 		leader:       lo.leader.Clone(),
 		follower:     lo.follower.Clone(),
 		guarantees:   clonedGuarantees,
+		htlcs:        clonedHTLCs,
 	}
 }
 
@@ -564,9 +592,11 @@ func (sv *SignedVars) clone() SignedVars {
 	}
 }
 
-// Proposal is a proposal either to add or to remove a guarantee.
+// Proposal is a proposal either:
+//   - to add or to remove a guarantee, or
+//   - to add or to remove an HTLC.
 //
-// Exactly one of {toAdd, toRemove} should be non nil.
+// Exactly one of {toAdd, toRemove, AddHTLC, RemoveHTLC} should be non nil.
 type Proposal struct {
 	// LedgerID is the ChannelID of the ConsensusChannel which should receive the proposal.
 	//
@@ -574,6 +604,11 @@ type Proposal struct {
 	LedgerID types.Destination
 	ToAdd    Add
 	ToRemove Remove
+	AddHTLC  HTLC
+	// Either
+	//  - the secret preimage of some currently running HTLC, or
+	//  - an empty slice, indicating a proposal to clear all expired HTLCs
+	RemoveHTLC []byte
 }
 
 // Clone returns a deep copy of the receiver.
@@ -582,12 +617,16 @@ func (p *Proposal) Clone() Proposal {
 		p.LedgerID,
 		p.ToAdd.Clone(),
 		p.ToRemove.Clone(),
+		p.AddHTLC,
+		p.RemoveHTLC,
 	}
 }
 
 const (
-	AddProposal    ProposalType = "AddProposal"
-	RemoveProposal ProposalType = "RemoveProposal"
+	AddProposal        ProposalType = "AddProposal"
+	RemoveProposal     ProposalType = "RemoveProposal"
+	AddHTLCProposal    ProposalType = "AddHTLCProposal"
+	RemoveHTLCProposal ProposalType = "RemoveHTLCProposal"
 )
 
 type ProposalType string
@@ -597,8 +636,12 @@ func (p *Proposal) Type() ProposalType {
 	zeroAdd := Add{}
 	if p.ToAdd != zeroAdd {
 		return AddProposal
-	} else {
+	} else if p.ToRemove != (Remove{}) {
 		return RemoveProposal
+	} else if p.AddHTLC != (HTLC{}) {
+		return AddHTLCProposal
+	} else {
+		return RemoveHTLCProposal
 	}
 }
 
@@ -622,13 +665,21 @@ func (p SignedProposal) SortInfo() (types.Destination, uint64) {
 // Target returns the target channel of the proposal.
 func (p *Proposal) Target() types.Destination {
 	switch p.Type() {
-	case "AddProposal":
+	case AddProposal:
 		{
 			return p.ToAdd.Target()
 		}
-	case "RemoveProposal":
+	case RemoveProposal:
 		{
 			return p.ToRemove.Target
+		}
+	case AddHTLCProposal:
+		{
+			return p.LedgerID
+		}
+	case RemoveHTLCProposal:
+		{
+			return p.LedgerID
 		}
 	default:
 		{
@@ -839,6 +890,75 @@ func (vars *Vars) Remove(p Remove) error {
 	delete(o.guarantees, p.Target)
 
 	return nil
+}
+
+func (vars *Vars) AddHTLC(p HTLC) error {
+	o := vars.Outcome
+	// CHECKS
+	_, found := o.htlcs[p.hash]
+	if found {
+		return ErrDuplicateHTLC
+	}
+
+	if p.expiration.Before(time.Now()) {
+		return ErrExpiredHTLC
+	}
+
+	leaderPaying := p.paidFrom == o.leader.destination
+	if leaderPaying {
+		// CHECKS
+		if types.Gt(p.amount, o.leader.amount) {
+			return ErrInsufficientFunds
+		}
+
+		// Include HTLC
+		o.htlcs[p.hash] = p
+	}
+
+	followerPaying := p.paidFrom == o.follower.destination
+	if followerPaying {
+		// CHECKS
+		if types.Gt(p.amount, o.follower.amount) {
+			return ErrInsufficientFunds
+		}
+
+		// EFFECTS
+		o.follower.amount.Sub(o.follower.amount, p.amount)
+	}
+
+	if !leaderPaying && !followerPaying {
+		return ErrInvalidPayer
+	}
+
+	// EFFECTS
+	vars.TurnNum += 1
+	o.htlcs[p.hash] = p
+
+	return nil
+}
+
+func (vars *Vars) RemoveHTLC(b []byte) {
+	vars.TurnNum += 1
+	o := vars.Outcome
+
+	if len(b) == 0 {
+		// Clear all expired HTLCs
+		for hash, htlc := range o.htlcs {
+			if time.Now().After(htlc.expiration) {
+				delete(o.htlcs, hash)
+			}
+		}
+	} else {
+		// Clear the HTLC with the given preimage
+
+		// TODO: implement
+
+		// hash the preimage with Keccak256 (evm-native payment), SHA256 (ln-compatible payment)
+
+		// check result against keys in o.htlcs
+
+		// if found, delete the HTLC and credit the receiver
+	}
 }
 
 // Remove is a proposal to remove a guarantee for the given virtual channel.
