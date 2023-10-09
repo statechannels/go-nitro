@@ -372,10 +372,10 @@ func (ecs *EthChainService) listenForEventLogs(errorChan chan<- error, eventChan
 			return
 
 		case err := <-ecs.eventSub.Err():
+			latestBlockNum := ecs.GetLastConfirmedBlockNum()
+
 			ecs.eventTracker.mu.Lock()
 			defer ecs.eventTracker.mu.Unlock()
-
-			latestBlockNum := ecs.eventTracker.latestBlockNum
 
 			if err != nil {
 				ecs.logger.Warn("error in chain event subscription: " + err.Error())
