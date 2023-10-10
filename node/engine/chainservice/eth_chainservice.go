@@ -272,8 +272,6 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 				return err
 			}
 
-			// TODO: Eventually this will just be a transfer of funds to the SCW
-			// instead of a call to the deposit function
 			abi, err := NitroAdjudicator.NitroAdjudicatorMetaData.GetAbi()
 			if err != nil {
 				return err
@@ -287,12 +285,13 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 			op := &userop.UserOperation{
 				Sender:               ecs.naAddress,
 				CallData:             calldata,
-				Nonce:                big.NewInt(1),
-				CallGasLimit:         big.NewInt(45_000),
-				VerificationGasLimit: big.NewInt(100),
-				PreVerificationGas:   big.NewInt(45_000),
-				MaxFeePerGas:         big.NewInt(45_000),
-				MaxPriorityFeePerGas: big.NewInt(45_000),
+				Nonce:                big.NewInt(0),
+				CallGasLimit:         big.NewInt(0x5510),
+				VerificationGasLimit: big.NewInt(0x5fa67),
+				PreVerificationGas:   big.NewInt(0xae7c),
+				MaxFeePerGas:         big.NewInt(0x5a58b812),
+				MaxPriorityFeePerGas: big.NewInt(0x59682f00),
+				PaymasterAndData:     []byte{},
 			}
 			const entrypointAddress = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 
