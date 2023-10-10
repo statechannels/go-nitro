@@ -105,4 +105,8 @@ func transferEth(client *ethclient.Client, txSubmitter *bind.TransactOpts, to ty
 	if err != nil {
 		log.Fatal(err)
 	}
+	_, err = bind.WaitMined(context.Background(), client, signedTx)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
