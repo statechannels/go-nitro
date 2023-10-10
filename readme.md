@@ -13,7 +13,7 @@ go-nitro
 - listens to blockchain events
 - listens for counterparty messages
 - stores important data to allow for recovery from counterparty inactivity / malice
-- understands how to perform these functions safely without risking any funds
+- understands how to perform these functions safely, without risking any funds
 
 ## Usage
 
