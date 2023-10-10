@@ -3,6 +3,9 @@ package chain
 import (
 	"context"
 	"fmt"
+	"log"
+	"log/slog"
+	"math/big"
 	"os"
 	"os/exec"
 	"time"
@@ -52,7 +55,7 @@ func DeployContracts(ctx context.Context, chainUrl, chainAuthToken, chainPk stri
 	if err != nil {
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
-
+	transferEth(ethClient, txSubmitter, na, big.NewInt(1000000000000000000))
 	return
 }
 
@@ -77,4 +80,29 @@ func deployContract[T contractBackend](ctx context.Context, name string, ethClie
 	}
 	fmt.Printf("%s successfully deployed to %s\n", name, a.String())
 	return a, nil
+}
+
+func transferEth(client *ethclient.Client, txSubmitter *bind.TransactOpts, to types.Address, amount *big.Int) {
+	slog.Info("Transferring eth", "to", to, "from", txSubmitter.From, "amount", amount)
+	nonce, err := client.PendingNonceAt(context.Background(), txSubmitter.From)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	gasLimit := uint64(21000)
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tx := ethTypes.NewTransaction(nonce, to, amount, gasLimit, gasPrice, nil)
+	signedTx, err := txSubmitter.Signer(txSubmitter.From, tx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
