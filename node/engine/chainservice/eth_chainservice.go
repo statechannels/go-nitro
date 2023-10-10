@@ -272,11 +272,6 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 				return err
 			}
 
-			_, err = ecs.na.Deposit(txOpts, tokenAddress, tx.ChannelId(), holdings, amount)
-			if err != nil {
-				return err
-			}
-
 			// TODO: Eventually this will just be a transfer of funds to the SCW
 			// instead of a call to the deposit function
 			abi, err := NitroAdjudicator.NitroAdjudicatorMetaData.GetAbi()
