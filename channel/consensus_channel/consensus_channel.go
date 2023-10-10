@@ -387,9 +387,9 @@ type HTLC struct {
 	amount *big.Int
 	// 32 byte hash of the preimage, either keccak256 (evm-only) or SHA256 (LN compatible).
 	hash common.Hash
-	// the expiration cutoff for the HTLC. If the preimage is not revealed before this time,
-	// the HTLC expires and funds are returned to the sender
-	expiration time.Time
+	// the block number at which the HTLC expires, after which the payer can claim the funds
+	// unilaterally.
+	expirationBlock uint64
 	// the address that will receive the payment if the preimage is revealed
 	releaseTo types.Destination
 	// the address making the payment
@@ -900,7 +900,8 @@ func (vars *Vars) AddHTLC(p HTLC) error {
 		return ErrDuplicateHTLC
 	}
 
-	if p.expiration.Before(time.Now()) {
+	currentBlock := uint64(time.Now().Unix()) // todo: use a real block number
+	if p.expirationBlock < currentBlock {
 		return ErrExpiredHTLC
 	}
 
