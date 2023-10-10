@@ -906,17 +906,21 @@ func (vars *Vars) AddHTLC(p HTLC) error {
 	}
 
 	leaderPaying := p.paidFrom == o.leader.destination
+	followerPaying := p.paidFrom == o.follower.destination
+
+	if !leaderPaying && !followerPaying {
+		return ErrInvalidPayer
+	}
+
 	if leaderPaying {
 		// CHECKS
 		if types.Gt(p.amount, o.leader.amount) {
 			return ErrInsufficientFunds
 		}
-
-		// Include HTLC
-		o.htlcs[p.hash] = p
+		// EFFECTS
+		o.leader.amount.Sub(o.leader.amount, p.amount)
 	}
 
-	followerPaying := p.paidFrom == o.follower.destination
 	if followerPaying {
 		// CHECKS
 		if types.Gt(p.amount, o.follower.amount) {
@@ -925,10 +929,6 @@ func (vars *Vars) AddHTLC(p HTLC) error {
 
 		// EFFECTS
 		o.follower.amount.Sub(o.follower.amount, p.amount)
-	}
-
-	if !leaderPaying && !followerPaying {
-		return ErrInvalidPayer
 	}
 
 	// EFFECTS
