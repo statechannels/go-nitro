@@ -534,6 +534,19 @@ func (o *LedgerOutcome) AsOutcome() outcome.Exit {
 		allocations = append(allocations, o.guarantees[target].AsAllocation())
 	}
 
+	// followed by HTLCs, _sorted by the hash_
+	hashes := make([]common.Hash, 0, len(o.htlcs))
+	for h := range o.htlcs {
+		hashes = append(hashes, h)
+	}
+	sort.Slice(hashes, func(i, j int) bool {
+		return hashes[i].String() < hashes[j].String()
+	})
+
+	for _, h := range hashes {
+		allocations = append(allocations, o.htlcs[h].AsAllocation())
+	}
+
 	return outcome.Exit{
 		outcome.SingleAssetExit{
 			Asset:       o.assetAddress,
