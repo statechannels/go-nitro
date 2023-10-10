@@ -66,7 +66,7 @@ func (a Allocations) Clone() Allocations {
 	return clone
 }
 
-// Total returns the toal amount allocated, summed across all destinations (regardless of AllocationType)
+// Total returns the total amount allocated, summed across all destinations (regardless of AllocationType)
 func (a Allocations) Total() *big.Int {
 	total := big.NewInt(0)
 	for _, allocation := range a {
