@@ -7,11 +7,13 @@ import {INitroAdjudicator} from './interfaces/INitroAdjudicator.sol';
 import {ForceMove} from './ForceMove.sol';
 import {IForceMoveApp} from './interfaces/IForceMoveApp.sol';
 import {MultiAssetHolder} from './MultiAssetHolder.sol';
+import {IAccount} from './interfaces/IAccount.sol';
+import {UserOperation} from './interfaces/UserOperation.sol';
 
 /**
  * @dev The NitroAdjudicator contract extends MultiAssetHolder and ForceMove
  */
-contract NitroAdjudicator is INitroAdjudicator, ForceMove, MultiAssetHolder {
+contract NitroAdjudicator is INitroAdjudicator, ForceMove, MultiAssetHolder, IAccount {
     /**
      * @notice Finalizes a channel according to the given candidate, and liquidates all assets for the channel.
      * @dev Finalizes a channel according to the given candidate, and liquidates all assets for the channel.
@@ -124,5 +126,13 @@ contract NitroAdjudicator is INitroAdjudicator, ForceMove, MultiAssetHolder {
         for (uint256 assetIndex = 0; assetIndex < exit.length; assetIndex++) {
             _executeSingleAssetExit(exit[assetIndex]);
         }
+    }
+
+    function validateUserOp(
+        UserOperation calldata, //userOp,
+        bytes32, //userOpHash,
+        uint256 //missingAccountFunds
+    ) external pure returns (uint256 validationData) {
+        return 0;
     }
 }
