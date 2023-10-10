@@ -396,6 +396,28 @@ type HTLC struct {
 	paidFrom types.Destination
 }
 
+func (h HTLC) AsAllocation() outcome.Allocation {
+	payerAddr, _ := h.paidFrom.ToAddress()
+	payeeAddr, _ := h.releaseTo.ToAddress()
+
+	htlcMetadata, err := outcome.HTLCMetadata{
+		Payer:           payerAddr,
+		Payee:           payeeAddr,
+		Hash:            h.hash,
+		ExpirationBlock: h.expirationBlock,
+	}.Encode()
+	if err != nil {
+		panic(err) // todo: handle this error
+	}
+
+	return outcome.Allocation{
+		Amount:         h.amount,
+		Destination:    types.Destination{},
+		AllocationType: outcome.HTLCAllocationType,
+		Metadata:       htlcMetadata,
+	}
+}
+
 // Clone returns a deep copy of the receiver.
 func (lo *LedgerOutcome) Clone() LedgerOutcome {
 	clonedGuarantees := make(map[types.Destination]Guarantee)
