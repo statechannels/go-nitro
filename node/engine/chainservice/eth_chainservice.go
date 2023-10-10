@@ -12,7 +12,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/stackup-wallet/stackup-bundler/pkg/userop"
 
+	bundler_client "github.com/mdehoog/go-bundler-client"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/internal/logging"
 	NitroAdjudicator "github.com/statechannels/go-nitro/node/engine/chainservice/adjudicator"
@@ -77,6 +79,7 @@ type EthChainService struct {
 	eventTracker             *eventTracker
 	eventSub                 ethereum.Subscription
 	newBlockSub              ethereum.Subscription
+	bundler                  bundler_client.Client
 }
 
 // MAX_QUERY_BLOCK_RANGE is the maximum range of blocks we query for events at once.
@@ -137,7 +140,14 @@ func newEthChainService(chain ethChain, startBlock uint64, na *NitroAdjudicator.
 	tracker := NewEventTracker(startBlock)
 
 	// Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, &sync.WaitGroup{}, tracker, nil, nil}
+	ecs := EthChainService{chain, na, naAddress, caAddress, vpaAddress, txSigner, make(chan Event, 10), logger, ctx, cancelCtx, &sync.WaitGroup{}, tracker, nil, nil, nil}
+
+	bundler, err := bundler_client.DialContext(ctx, "http://localhost:3000/rpc")
+	if err != nil {
+		return nil, err
+	}
+	ecs.bundler = bundler
+
 	errChan, newBlockChan, eventChan, eventQuery, err := ecs.subscribeForLogs()
 	if err != nil {
 		return nil, err
@@ -265,6 +275,38 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 			_, err = ecs.na.Deposit(txOpts, tokenAddress, tx.ChannelId(), holdings, amount)
 			if err != nil {
 				return err
+			}
+
+			// TODO: Eventually this will just be a transfer of funds to the SCW
+			// instead of a call to the deposit function
+			abi, err := NitroAdjudicator.NitroAdjudicatorMetaData.GetAbi()
+			if err != nil {
+				return err
+			}
+			calldata, err := abi.Pack("deposit", tokenAddress, tx.ChannelId(), holdings, amount)
+			if err != nil {
+				return err
+			}
+
+			// TODO: Gas values are arbitrary for now
+			op := &userop.UserOperation{
+				Sender:               ecs.naAddress,
+				CallData:             calldata,
+				Nonce:                big.NewInt(1),
+				CallGasLimit:         big.NewInt(45_000),
+				VerificationGasLimit: big.NewInt(100),
+				PreVerificationGas:   big.NewInt(45_000),
+				MaxFeePerGas:         big.NewInt(45_000),
+				MaxPriorityFeePerGas: big.NewInt(45_000),
+			}
+			const entrypointAddress = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+
+			// Currently this submits the UserOperation to the bundler but the bundler fails with:
+			// UserOperation: Sender=0x5FbDB2315678afecb367f032d93F642f64180aa3  Nonce=1 EntryPoint=0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789 Paymaster=undefined
+			// failed:  eth_sendUserOperation error: {"message":"account validation failed: AA23 reverted (or OOG)","code":-32500}
+			_, err = ecs.bundler.SendUserOperation(context.Background(), op, common.HexToAddress(entrypointAddress))
+			if err != nil {
+				panic(err)
 			}
 		}
 		return nil
