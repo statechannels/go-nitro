@@ -14,6 +14,7 @@ type AllocationType uint8
 const (
 	NormalAllocationType AllocationType = iota
 	GuaranteeAllocationType
+	HTLCAllocationType
 )
 
 // Allocation declares an Amount to be paid to a Destination.
