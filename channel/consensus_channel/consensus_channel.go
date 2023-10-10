@@ -945,7 +945,19 @@ func (vars *Vars) RemoveHTLC(b []byte) {
 	if len(b) == 0 {
 		// Clear all expired HTLCs
 		for hash, htlc := range o.htlcs {
-			if time.Now().After(htlc.expiration) {
+			blockNumber := uint64(time.Now().Unix()) // todo: use a real block number
+			if blockNumber >= htlc.expirationBlock {
+
+				leaderRefund := htlc.paidFrom == o.leader.destination
+				followerRefund := htlc.paidFrom == o.follower.destination
+
+				if leaderRefund {
+					o.leader.amount.Add(o.leader.amount, htlc.amount)
+				}
+				if followerRefund {
+					o.follower.amount.Add(o.follower.amount, htlc.amount)
+				}
+
 				delete(o.htlcs, hash)
 			}
 		}
