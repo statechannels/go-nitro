@@ -1,6 +1,6 @@
 {
   "name": "@statechannels/nitro-protocol",
-  "version": "2.0.0-alpha.5",
+  "version": "2.0.1-alpha.5",
   "description": "Smart contracts and typescript libraries for nitro state channel protocol.",
   "keywords": [],
   "homepage": "https://github.com/statechannels/go-nitro",
