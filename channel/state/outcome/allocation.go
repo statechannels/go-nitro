@@ -130,6 +130,49 @@ var allocationsTy = abi.ArgumentMarshaling{
 	},
 }
 
+// DivertToHTLC returns a new Allocations, identical to the receiver but with
+// the payer's amount reduced by amount and an encoded HTLC appended
+func (a Allocations) DivertToHTLC(
+	payer types.Address,
+	payee types.Address,
+	amount *big.Int,
+	hash types.Bytes32,
+	expirationBlock uint64,
+) (Allocations, error) {
+	newAllocations := make([]Allocation, 0, len(a)+1)
+	for i, allocation := range a {
+		newAllocations = append(newAllocations, allocation.Clone())
+		switch newAllocations[i].Destination {
+		case types.AddressToDestination(payer):
+			newAllocations[i].Amount.Sub(newAllocations[i].Amount, amount)
+		case types.AddressToDestination(payee):
+			newAllocations[i].Amount.Add(newAllocations[i].Amount, amount)
+		}
+		if types.Gt(big.NewInt(0), newAllocations[i].Amount) {
+			return Allocations{}, errors.New(`insufficient funds`)
+		}
+	}
+
+	encodedHTLCMetadata, err := HTLCMetadata{
+		Payer:           payer,
+		Payee:           payee,
+		ExpirationBlock: expirationBlock,
+		Hash:            hash,
+	}.Encode()
+	if err != nil {
+		return Allocations{}, fmt.Errorf(`error encoding HTLC: %w`, err)
+	}
+
+	newAllocations = append(newAllocations, Allocation{
+		Destination:    types.Destination{},
+		Amount:         amount,
+		AllocationType: HTLCAllocationType,
+		Metadata:       encodedHTLCMetadata,
+	})
+
+	return newAllocations, nil
+}
+
 // DivertToGuarantee returns a new Allocations, identical to the receiver but with
 // the leftDestination's amount reduced by leftAmount,
 // the rightDestination's amount reduced by rightAmount,
