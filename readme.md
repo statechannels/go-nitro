@@ -13,13 +13,13 @@ go-nitro
 - listens to blockchain events
 - listens for counterparty messages
 - stores important data to allow for recovery from counterparty inactivity / malice
-- understands how to perform these functions safely without risking any funds
+- understands how to perform these functions safely, without risking any funds
 
 ## Usage
 
 > ⚠️ Go-nitro is pre-production software ⚠️
 
-Go-nitro can be consumed either as [library code](./node/readme.md) or started in an [independent process](./doc.go) and interfaced with remote procedure calls (recommended).
+Go-nitro can be consumed either as [library code](./node/readme.md) or run as an [independent process](./doc.go) and interfaced with remote procedure calls (recommended).
 
 ## Contributing
 
