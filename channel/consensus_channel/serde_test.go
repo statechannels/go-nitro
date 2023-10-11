@@ -113,7 +113,7 @@ func TestSerde(t *testing.T) {
 			}
 			want := c.json
 			if string(got) != want {
-				t.Fatalf("incorrect json marshaling, expected %v got \n%v", want, string(got))
+				t.Fatalf("incorrect json marshaling of test %s, expected %v got \n%v", c.name, want, string(got))
 			}
 		})
 
