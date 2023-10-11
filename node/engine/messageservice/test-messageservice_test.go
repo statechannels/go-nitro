@@ -15,13 +15,19 @@ var (
 	bobMS   = NewTestMessageService(types.Address{'b'}, broker, 0)
 )
 
-var testId protocols.ObjectiveId = "VirtualDefund-0x0000000000000000000000000000000000000000000000000000000000000000"
+var testId protocols.ObjectiveId = "VirtualDefund-0x0200000000000000000000000000000000000000000000000000000000000000"
 
 var aToB protocols.Message = protocols.CreateSignedProposalMessage(
 	bobMS.address,
 	consensus_channel.SignedProposal{
-		Proposal: consensus_channel.Proposal{LedgerID: types.Destination{1}},
-		TurnNum:  1,
+		Proposal: consensus_channel.Proposal{
+			LedgerID: types.Destination{1},
+			ToRemove: consensus_channel.Remove{
+				Target:     types.Destination{2},
+				LeftAmount: big.NewInt(0),
+			},
+		},
+		TurnNum: 1,
 	},
 )
 
