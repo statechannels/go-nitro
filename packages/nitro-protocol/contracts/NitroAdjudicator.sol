@@ -129,10 +129,8 @@ contract NitroAdjudicator is INitroAdjudicator, ForceMove, MultiAssetHolder, IAc
     }
 
     function validateUserOp(
-        UserOperation calldata, //userOp,
-        bytes32, //userOpHash,
-        uint256 //missingAccountFunds
-    ) external pure returns (uint256 validationData) {
-        return 0;
-    }
+        UserOperation calldata userOp,
+        bytes32 userOpHash,
+        uint256 missingAccountFunds
+    ) external returns (uint256 validationData) {}
 }
