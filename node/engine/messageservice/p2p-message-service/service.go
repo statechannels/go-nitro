@@ -58,7 +58,6 @@ type P2PMessageService struct {
 	peers           *safesync.Map[peer.ID]
 
 	scAddr      types.Address
-	privateKey  p2pcrypto.PrivKey
 	p2pHost     host.Host
 	dht         *dht.IpfsDHT
 	newPeerInfo chan basicPeerInfo
@@ -79,9 +78,6 @@ func NewMessageService(opts MessageOpts) *P2PMessageService {
 		logger:          logging.LoggerWithAddress(slog.Default(), opts.SCAddr),
 	}
 
-	privateKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(opts.PkBytes)
-	ms.checkError(err)
-
 	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
 		extMultiAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", opts.PublicIp, opts.Port))
 		if err != nil {
@@ -92,7 +88,9 @@ func NewMessageService(opts MessageOpts) *P2PMessageService {
 		return addrs
 	}
 
-	ms.privateKey = privateKey
+	privateKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(opts.PkBytes)
+	ms.checkError(err)
+
 	options := []libp2p.Option{
 		libp2p.Identity(privateKey),
 		libp2p.AddrsFactory(addressFactory),
@@ -213,8 +211,7 @@ func (ms *P2PMessageService) InitComplete() <-chan struct{} {
 
 // Id returns the libp2p peer ID of the message service.
 func (ms *P2PMessageService) Id() peer.ID {
-	id, _ := peer.IDFromPrivateKey(ms.privateKey)
-	return id
+	return ms.p2pHost.ID()
 }
 
 // addScaddrDhtRecord adds this node's state channel address to the custom dht namespace
@@ -235,7 +232,7 @@ func (ms *P2PMessageService) addScaddrDhtRecord(ctx context.Context) {
 	}
 	ms.dhtSignRequests <- sigReq
 
-	peerIdSig, err := ms.privateKey.Sign(recordDataBytes)
+	peerIdSig, err := ms.p2pHost.Peerstore().PrivKey(ms.Id()).Sign(recordDataBytes)
 	ms.checkError(err)
 
 	scAddrSig := <-sigReq.ResponseChan
