@@ -52,12 +52,12 @@ type MessageOpts struct {
 
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
 type P2PMessageService struct {
-	initComplete chan struct{}
-	toEngine     chan protocols.Message // for forwarding processed messages to the engine
-	peers        *safesync.Map[peer.ID]
+	initComplete    chan struct{}
+	toEngine        chan protocols.Message // for forwarding processed messages to the engine
+	dhtSignRequests chan SignatureRequest  // for forwarding signature requests to the engine
+	peers           *safesync.Map[peer.ID]
 
 	scAddr      types.Address
-	privateKey  p2pcrypto.PrivKey
 	p2pHost     host.Host
 	dht         *dht.IpfsDHT
 	newPeerInfo chan basicPeerInfo
@@ -69,16 +69,14 @@ type P2PMessageService struct {
 // NewMessageService returns a running P2PMessageService listening on the given ip, port and message key.
 func NewMessageService(opts MessageOpts) *P2PMessageService {
 	ms := &P2PMessageService{
-		initComplete: make(chan struct{}, 1),
-		toEngine:     make(chan protocols.Message, BUFFER_SIZE),
-		newPeerInfo:  make(chan basicPeerInfo, BUFFER_SIZE),
-		peers:        &safesync.Map[peer.ID]{},
-		scAddr:       opts.SCAddr,
-		logger:       logging.LoggerWithAddress(slog.Default(), opts.SCAddr),
+		initComplete:    make(chan struct{}, 1),
+		toEngine:        make(chan protocols.Message, BUFFER_SIZE),
+		dhtSignRequests: make(chan SignatureRequest, 50),
+		newPeerInfo:     make(chan basicPeerInfo, BUFFER_SIZE),
+		peers:           &safesync.Map[peer.ID]{},
+		scAddr:          opts.SCAddr,
+		logger:          logging.LoggerWithAddress(slog.Default(), opts.SCAddr),
 	}
-
-	messageKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(opts.PkBytes)
-	ms.checkError(err)
 
 	addressFactory := func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
 		extMultiAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", opts.PublicIp, opts.Port))
@@ -90,9 +88,11 @@ func NewMessageService(opts MessageOpts) *P2PMessageService {
 		return addrs
 	}
 
-	ms.privateKey = messageKey
+	privateKey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(opts.PkBytes)
+	ms.checkError(err)
+
 	options := []libp2p.Option{
-		libp2p.Identity(messageKey),
+		libp2p.Identity(privateKey),
 		libp2p.AddrsFactory(addressFactory),
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/tcp/%d", "0.0.0.0", opts.Port)),
 		libp2p.Transport(tcp.NewTCPTransport),
@@ -211,8 +211,7 @@ func (ms *P2PMessageService) InitComplete() <-chan struct{} {
 
 // Id returns the libp2p peer ID of the message service.
 func (ms *P2PMessageService) Id() peer.ID {
-	id, _ := peer.IDFromPrivateKey(ms.privateKey)
-	return id
+	return ms.p2pHost.ID()
 }
 
 // addScaddrDhtRecord adds this node's state channel address to the custom dht namespace
@@ -227,12 +226,22 @@ func (ms *P2PMessageService) addScaddrDhtRecord(ctx context.Context) {
 	recordDataBytes, err := json.Marshal(recordData)
 	ms.checkError(err)
 
-	signature, err := ms.privateKey.Sign(recordDataBytes)
+	sigReq := SignatureRequest{
+		Data:         *recordData,
+		ResponseChan: make(chan []byte),
+	}
+	ms.dhtSignRequests <- sigReq
+
+	peerIdSig, err := ms.p2pHost.Peerstore().PrivKey(ms.Id()).Sign(recordDataBytes)
+	ms.checkError(err)
+
+	scAddrSig := <-sigReq.ResponseChan
 	ms.checkError(err)
 
 	fullRecord := &dhtRecord{
 		Data:      *recordData,
-		Signature: signature,
+		PeerIdSig: peerIdSig,
+		SCAddrSig: scAddrSig,
 	}
 	fullRecordBytes, err := json.Marshal(fullRecord)
 	ms.checkError(err)
@@ -340,9 +349,14 @@ func (ms *P2PMessageService) checkError(err error) {
 	panic(err)
 }
 
-// Out returns a channel that can be used to receive messages from the message service
-func (ms *P2PMessageService) Out() <-chan protocols.Message {
+// P2PMessages returns a channel that can be used to receive messages from the message service
+func (ms *P2PMessageService) P2PMessages() <-chan protocols.Message {
 	return ms.toEngine
+}
+
+// SignRequests returns a channel that can be used to receive signature request messages from the message service
+func (ms *P2PMessageService) SignRequests() <-chan SignatureRequest {
+	return ms.dhtSignRequests
 }
 
 // Close closes the P2PMessageService

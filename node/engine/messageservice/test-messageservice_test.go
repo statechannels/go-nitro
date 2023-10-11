@@ -26,7 +26,7 @@ var aToB protocols.Message = protocols.CreateSignedProposalMessage(
 )
 
 func TestConnect(t *testing.T) {
-	bobOut := bobMS.Out()
+	bobOut := bobMS.P2PMessages()
 
 	err := aliceMS.Send(aToB)
 	if err != nil {

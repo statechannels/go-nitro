@@ -31,7 +31,13 @@ Architectural decision records may be viewed [here](./.adr/0000-adrs.md).
 
 ## Testing
 
-To run unit tests locally, you will need to generate a TLS certificate. Details are [here](./tls/readme.md).
+> Pre-requisite: [generate a TLS certificate](./tls/readme.md)
+
+Run the tests from repo root:
+
+```
+go test ./... -count=2 -shuffle=on -timeout 1m -v -failfast
+```
 
 ## On-chain code
 

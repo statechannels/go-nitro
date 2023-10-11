@@ -3,6 +3,8 @@ package engine // import "github.com/statechannels/go-nitro/node/engine"
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -10,11 +12,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/statechannels/go-nitro/channel"
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/internal/logging"
 	"github.com/statechannels/go-nitro/node/engine/chainservice"
 	"github.com/statechannels/go-nitro/node/engine/messageservice"
+	p2pms "github.com/statechannels/go-nitro/node/engine/messageservice/p2p-message-service"
 	"github.com/statechannels/go-nitro/node/engine/store"
 	"github.com/statechannels/go-nitro/node/query"
 	"github.com/statechannels/go-nitro/payments"
@@ -61,9 +65,10 @@ type Engine struct {
 	ObjectiveRequestsFromAPI chan protocols.ObjectiveRequest
 	PaymentRequestsFromAPI   chan PaymentRequest
 
-	fromChain  <-chan chainservice.Event
-	fromMsg    <-chan protocols.Message
-	fromLedger chan consensus_channel.Proposal
+	fromChain    <-chan chainservice.Event
+	fromMsg      <-chan protocols.Message
+	fromLedger   chan consensus_channel.Proposal
+	signRequests <-chan p2pms.SignatureRequest
 
 	eventHandler func(EngineEvent)
 
@@ -136,7 +141,8 @@ func New(vm *payments.VoucherManager, msg messageservice.MessageService, chain c
 	e.PaymentRequestsFromAPI = make(chan PaymentRequest)
 
 	e.fromChain = chain.EventFeed()
-	e.fromMsg = msg.Out()
+	e.fromMsg = msg.P2PMessages()
+	e.signRequests = msg.SignRequests()
 
 	e.chain = chain
 	e.msg = msg
@@ -191,6 +197,8 @@ func (e *Engine) run(ctx context.Context) {
 			res, err = e.handleMessage(message)
 		case proposal := <-e.fromLedger:
 			res, err = e.handleProposal(proposal)
+		case signReq := <-e.signRequests:
+			err = e.handleSignRequest(signReq)
 		case <-blockTicker.C:
 			blockNum := e.chain.GetLastConfirmedBlockNum()
 			err = e.store.SetLastBlockNumSeen(blockNum)
@@ -225,10 +233,27 @@ func (e *Engine) handleProposal(proposal consensus_channel.Proposal) (EngineEven
 		return EngineEvent{}, err
 	}
 	if obj.GetStatus() == protocols.Completed {
-		e.logger.Info("Ignoring proposal for complected objective", logging.WithObjectiveIdAttribute(id))
+		e.logger.Info("Ignoring proposal for completed objective", logging.WithObjectiveIdAttribute(id))
 		return EngineEvent{}, nil
 	}
 	return e.attemptProgress(obj)
+}
+
+func (e *Engine) handleSignRequest(sigReq p2pms.SignatureRequest) error {
+	recordDataBytes, err := json.Marshal(sigReq.Data)
+	if err != nil {
+		return err
+	}
+
+	hash := sha256.Sum256(recordDataBytes) // Hash the data before signing it
+	secretKey := e.store.GetChannelSecretKey()
+	signature, err := secp256k1.Sign(hash[:], *secretKey)
+	if err != nil {
+		return err
+	}
+
+	sigReq.ResponseChan <- signature
+	return nil
 }
 
 // handleMessage handles a Message from a peer go-nitro Wallet.
@@ -278,7 +303,7 @@ func (e *Engine) handleMessage(message protocols.Message) (EngineEvent, error) {
 		}
 
 		if objective.GetStatus() == protocols.Completed {
-			e.logger.Info("Ignoring payload for complected objective", logging.WithObjectiveIdAttribute(objective.Id()))
+			e.logger.Info("Ignoring payload for completed objective", logging.WithObjectiveIdAttribute(objective.Id()))
 
 			continue
 		}
