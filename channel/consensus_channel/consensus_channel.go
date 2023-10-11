@@ -999,17 +999,18 @@ func (vars *Vars) RemoveHTLC(b []byte) {
 				delete(o.htlcs, hash)
 			}
 		}
-	} else {
-		// Clear the HTLC with the given preimage
-
-		// TODO: implement
-
-		// hash the preimage with Keccak256 (evm-native payment), SHA256 (ln-compatible payment)
-
-		// check result against keys in o.htlcs
-
-		// if found, delete the HTLC and credit the receiver
 	}
+	// else {
+	// Clear the HTLC with the given preimage
+
+	// TODO: implement
+
+	// hash the preimage with Keccak256 (evm-native payment), SHA256 (ln-compatible payment)
+
+	// check result against keys in o.htlcs
+
+	// if found, delete the HTLC and credit the receiver
+	// }
 }
 
 // Remove is a proposal to remove a guarantee for the given virtual channel.
