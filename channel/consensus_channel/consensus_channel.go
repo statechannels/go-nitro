@@ -12,6 +12,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
 	"github.com/statechannels/go-nitro/crypto"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/statechannels/go-nitro/types"
 )
@@ -976,6 +977,8 @@ func (vars *Vars) AddHTLC(p HTLC) error {
 	return nil
 }
 
+// RemoveHTLC removes the HTLC whose key is the hash of preimage b.
+// If b is empty, RemoveHTLC prunes out all of the expired HTLCs.
 func (vars *Vars) RemoveHTLC(b []byte) {
 	vars.TurnNum += 1
 	o := vars.Outcome
@@ -999,18 +1002,53 @@ func (vars *Vars) RemoveHTLC(b []byte) {
 				delete(o.htlcs, hash)
 			}
 		}
+	} else {
+		toRemove := common.Hash{}
+
+		// Check for a LN compatible preimage
+		sha := sha3.New256()
+		sha.Write(b)
+		shaHash := common.Hash(sha.Sum(nil))
+
+		if _, ok := o.htlcs[shaHash]; ok {
+			toRemove = shaHash
+		}
+
+		// Check for an EVM compatible preimage
+		kec := sha3.NewLegacyKeccak256()
+		kec.Write(b)
+		kecHash := common.Hash(kec.Sum(nil))
+
+		if _, ok := o.htlcs[kecHash]; ok {
+			toRemove = kecHash
+		}
+
+		if toRemove != (common.Hash{}) {
+			currentBlock := uint64(time.Now().Unix()) // todo: use a real block number
+			if currentBlock > o.htlcs[toRemove].ExpirationBlock {
+				// if the htlc has expired, it should probably have already been removed.
+				// its presence should be considered a bug, and the funds should not
+				// propagate to the payee.
+
+				// todo: handle this via logging, circling back to a clearExpiredHTLC operation, etc.
+				return
+			}
+
+			htlc := o.htlcs[toRemove]
+
+			leaderClaim := htlc.ReleaseTo == o.leader.destination
+			followerClaim := htlc.ReleaseTo == o.follower.destination
+
+			if leaderClaim {
+				o.leader.amount.Add(o.leader.amount, htlc.Amount)
+			}
+			if followerClaim {
+				o.follower.amount.Add(o.follower.amount, htlc.Amount)
+			}
+
+			delete(o.htlcs, toRemove)
+		}
 	}
-	// else {
-	// Clear the HTLC with the given preimage
-
-	// TODO: implement
-
-	// hash the preimage with Keccak256 (evm-native payment), SHA256 (ln-compatible payment)
-
-	// check result against keys in o.htlcs
-
-	// if found, delete the HTLC and credit the receiver
-	// }
 }
 
 // Remove is a proposal to remove a guarantee for the given virtual channel.
