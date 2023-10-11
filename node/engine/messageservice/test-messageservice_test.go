@@ -1,6 +1,7 @@
 package messageservice
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
