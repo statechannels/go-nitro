@@ -56,6 +56,7 @@ func DeployContracts(ctx context.Context, chainUrl, chainAuthToken, chainPk stri
 		return types.Address{}, types.Address{}, types.Address{}, err
 	}
 	transferEth(ethClient, txSubmitter, na, big.NewInt(1000000000000000000))
+	transferEth(ethClient, txSubmitter, common.HexToAddress("0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"), big.NewInt(1000000000000000000))
 	return
 }
 
