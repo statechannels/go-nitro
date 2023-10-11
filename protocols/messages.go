@@ -67,19 +67,31 @@ func (se *SideEffects) Merge(other SideEffects) {
 // GetProposalObjectiveId returns the objectiveId for a proposal.
 func GetProposalObjectiveId(p consensus_channel.Proposal) (ObjectiveId, error) {
 	switch p.Type() {
-	case "AddProposal":
+	case consensus_channel.AddProposal:
 		{
 			const prefix = "VirtualFund-"
 			channelId := p.ToAdd.Guarantee.Target().String()
 			return ObjectiveId(prefix + channelId), nil
 
 		}
-	case "RemoveProposal":
+	case consensus_channel.RemoveProposal:
 		{
 			const prefix = "VirtualDefund-"
 			channelId := p.ToRemove.Target.String()
 			return ObjectiveId(prefix + channelId), nil
 
+		}
+	case consensus_channel.AddHTLCProposal:
+		{
+			const prefix = "AddHTLC-"
+			channelId := p.LedgerID.String()
+			return ObjectiveId(prefix + channelId), nil
+		}
+	case consensus_channel.RemoveHTLCProposal:
+		{
+			const prefix = "RemoveHTLC-"
+			channelId := p.LedgerID.String()
+			return ObjectiveId(prefix + channelId), nil
 		}
 	default:
 		{
