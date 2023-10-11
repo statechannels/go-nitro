@@ -428,6 +428,9 @@ func (lo *LedgerOutcome) Clone() LedgerOutcome {
 	for key, h := range lo.htlcs {
 		clonedHTLCs[key] = h // TODO: define strategy for cloning HTLCs
 	}
+	if lo.htlcs == nil {
+		clonedHTLCs = nil
+	}
 	return LedgerOutcome{
 		assetAddress: lo.assetAddress,
 		leader:       lo.leader.Clone(),
