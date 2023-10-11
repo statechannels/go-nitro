@@ -383,35 +383,35 @@ type LedgerOutcome struct {
 //
 // The payment is claimed by the payee with the reveal of the preimage of hash.
 type HTLC struct {
-	// the amount of the payment. TODO: allow specified asset / multi-asset HTLCs
-	amount *big.Int
-	// 32 byte hash of the preimage, either keccak256 (evm-only) or SHA256 (LN compatible).
-	hash common.Hash
+	// the Amount of the payment. TODO: allow specified asset / multi-asset HTLCs
+	Amount *big.Int
+	// 32 byte Hash of the preimage, either keccak256 (evm-only) or SHA256 (LN compatible).
+	Hash common.Hash
 	// the block number at which the HTLC expires, after which the payer can claim the funds
 	// unilaterally.
-	expirationBlock uint64
+	ExpirationBlock uint64
 	// the address that will receive the payment if the preimage is revealed
-	releaseTo types.Destination
+	ReleaseTo types.Destination
 	// the address making the payment
-	paidFrom types.Destination
+	PaidFrom types.Destination
 }
 
 func (h HTLC) AsAllocation() outcome.Allocation {
-	payerAddr, _ := h.paidFrom.ToAddress()
-	payeeAddr, _ := h.releaseTo.ToAddress()
+	payerAddr, _ := h.PaidFrom.ToAddress()
+	payeeAddr, _ := h.ReleaseTo.ToAddress()
 
 	htlcMetadata, err := outcome.HTLCMetadata{
 		Payer:           payerAddr,
 		Payee:           payeeAddr,
-		Hash:            h.hash,
-		ExpirationBlock: h.expirationBlock,
+		Hash:            h.Hash,
+		ExpirationBlock: h.ExpirationBlock,
 	}.Encode()
 	if err != nil {
 		panic(err) // todo: handle this error
 	}
 
 	return outcome.Allocation{
-		Amount:         h.amount,
+		Amount:         h.Amount,
 		Destination:    types.Destination{},
 		AllocationType: outcome.HTLCAllocationType,
 		Metadata:       htlcMetadata,
@@ -930,18 +930,18 @@ func (vars *Vars) Remove(p Remove) error {
 func (vars *Vars) AddHTLC(p HTLC) error {
 	o := vars.Outcome
 	// CHECKS
-	_, found := o.htlcs[p.hash]
+	_, found := o.htlcs[p.Hash]
 	if found {
 		return ErrDuplicateHTLC
 	}
 
 	currentBlock := uint64(time.Now().Unix()) // todo: use a real block number
-	if p.expirationBlock < currentBlock {
+	if p.ExpirationBlock < currentBlock {
 		return ErrExpiredHTLC
 	}
 
-	leaderPaying := p.paidFrom == o.leader.destination
-	followerPaying := p.paidFrom == o.follower.destination
+	leaderPaying := p.PaidFrom == o.leader.destination
+	followerPaying := p.PaidFrom == o.follower.destination
 
 	if !leaderPaying && !followerPaying {
 		return ErrInvalidPayer
@@ -949,26 +949,26 @@ func (vars *Vars) AddHTLC(p HTLC) error {
 
 	if leaderPaying {
 		// CHECKS
-		if types.Gt(p.amount, o.leader.amount) {
+		if types.Gt(p.Amount, o.leader.amount) {
 			return ErrInsufficientFunds
 		}
 		// EFFECTS
-		o.leader.amount.Sub(o.leader.amount, p.amount)
+		o.leader.amount.Sub(o.leader.amount, p.Amount)
 	}
 
 	if followerPaying {
 		// CHECKS
-		if types.Gt(p.amount, o.follower.amount) {
+		if types.Gt(p.Amount, o.follower.amount) {
 			return ErrInsufficientFunds
 		}
 
 		// EFFECTS
-		o.follower.amount.Sub(o.follower.amount, p.amount)
+		o.follower.amount.Sub(o.follower.amount, p.Amount)
 	}
 
 	// EFFECTS
 	vars.TurnNum += 1
-	o.htlcs[p.hash] = p
+	o.htlcs[p.Hash] = p
 
 	return nil
 }
@@ -981,16 +981,16 @@ func (vars *Vars) RemoveHTLC(b []byte) {
 		// Clear all expired HTLCs
 		for hash, htlc := range o.htlcs {
 			blockNumber := uint64(time.Now().Unix()) // todo: use a real block number
-			if blockNumber >= htlc.expirationBlock {
+			if blockNumber >= htlc.ExpirationBlock {
 
-				leaderRefund := htlc.paidFrom == o.leader.destination
-				followerRefund := htlc.paidFrom == o.follower.destination
+				leaderRefund := htlc.PaidFrom == o.leader.destination
+				followerRefund := htlc.PaidFrom == o.follower.destination
 
 				if leaderRefund {
-					o.leader.amount.Add(o.leader.amount, htlc.amount)
+					o.leader.amount.Add(o.leader.amount, htlc.Amount)
 				}
 				if followerRefund {
-					o.follower.amount.Add(o.follower.amount, htlc.amount)
+					o.follower.amount.Add(o.follower.amount, htlc.Amount)
 				}
 
 				delete(o.htlcs, hash)
