@@ -291,7 +291,7 @@ func (ecs *EthChainService) SendTransaction(tx protocols.ChainTransaction) error
 				PreVerificationGas:   big.NewInt(0xae7c),
 				MaxFeePerGas:         big.NewInt(0x5a58b812),
 				MaxPriorityFeePerGas: big.NewInt(0x59682f00),
-				PaymasterAndData:     common.Hex2Bytes("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"),
+				PaymasterAndData:     ecs.naAddress[:],
 			}
 			const entrypointAddress = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 
