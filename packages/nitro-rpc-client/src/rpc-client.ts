@@ -89,7 +89,7 @@ export class NitroRpcClient implements RpcClientApi {
         "payment_channel_updated",
         (payload: PaymentChannelUpdatedNotification["params"]["payload"]) => {
           if (payload.ID === channelId) {
-            this.GetLedgerChannel(channelId).then((l) => {
+            this.GetPaymentChannel(channelId).then((l) => {
               if (l.Status == status) resolve();
             });
           }
