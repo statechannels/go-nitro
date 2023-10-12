@@ -29,16 +29,16 @@ jobs:
         run: make ui/build
 
       - name: Run go-nitro RPC servers with GUI
-        run: go run ./cmd/start-rpc-servers -ui=true &> output1.log &
+        run: go run ./cmd/start-rpc-servers -ui=true &> output.log &
 
       - name: Run Create Channels script
         # TODO: We could write a test specific script that creates channels and checks the results
-        run: npx ts-node ./scripts/client-runner.ts create-channels -w 300000 &> output2.log
+        run: npx ts-node ./scripts/client-runner.ts create-channels -w 300000
         working-directory: packages/nitro-rpc-client
 
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: logs
-          path: ./**/*.log
+          name: rpc server logs
+          path: ./output.log
