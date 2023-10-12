@@ -137,9 +137,6 @@ export default function App() {
       initialChannelBalance
     );
 
-    // TODO: If the objective completes fast enough, we might start waiting after it's already done
-    // await nitroClient.WaitForObjective(result.Id);
-
     setPaymentChannelId(result.ChannelId);
 
     nitroClient.onPaymentChannelUpdated(
