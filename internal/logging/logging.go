@@ -6,7 +6,9 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"time"
 
+	"github.com/lmittmann/tint"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -64,6 +66,9 @@ func SetupDefaultFileLogger(filename string, level slog.Level) {
 
 // SetupDefaultLogger sets up a default logger that writes to the specified writer
 func SetupDefaultLogger(w io.Writer, level slog.Level) {
-	h := slog.NewJSONHandler(w, &slog.HandlerOptions{Level: level})
+	h := tint.NewHandler(w, &tint.Options{
+		Level:      level,
+		TimeFormat: time.Kitchen,
+	})
 	slog.SetDefault(slog.New(h))
 }
