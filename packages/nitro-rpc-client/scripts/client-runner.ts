@@ -177,6 +177,7 @@ yargs(hideBin(process.argv))
           yargs.ledgerdeposit
         );
 
+        // race condition means this may never resolve https://github.com/statechannels/go-nitro/issues/1749
         await Promise.all([
           aliceClient.WaitForObjective(aliceLedger.Id),
           bobClient.WaitForObjective(bobLedger.Id),
