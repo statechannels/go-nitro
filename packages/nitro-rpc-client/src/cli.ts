@@ -128,7 +128,7 @@ yargs(hideBin(process.argv))
       const { Id, ChannelId } = dfObjective;
 
       console.log(`Objective started ${Id}`);
-      await rpcClient.WaitForLedgerChannelToHaveStatus(ChannelId, "Open");
+      await rpcClient.WaitForLedgerChannelStatus(ChannelId, "Open");
       console.log(`Channel Open ${ChannelId}`);
       await rpcClient.Close();
       process.exit(0);
@@ -154,10 +154,7 @@ yargs(hideBin(process.argv))
 
       const id = await rpcClient.CloseLedgerChannel(yargs.channelId);
       console.log(`Objective started ${id}`);
-      await rpcClient.WaitForPaymentChannelToHaveStatus(
-        yargs.channelId,
-        "Complete"
-      );
+      await rpcClient.WaitForPaymentChannelStatus(yargs.channelId, "Complete");
       console.log(`Channel Complete ${yargs.channelId}`);
       await rpcClient.Close();
       process.exit(0);
@@ -205,7 +202,7 @@ yargs(hideBin(process.argv))
 
       const { ChannelId, Id } = vfObjective;
       console.log(`Objective started ${Id}`);
-      await rpcClient.WaitForPaymentChannelToHaveStatus(ChannelId, "Open");
+      await rpcClient.WaitForPaymentChannelStatus(ChannelId, "Open");
       console.log(`Channel Open ${ChannelId}`);
       await rpcClient.Close();
       process.exit(0);
@@ -233,10 +230,7 @@ yargs(hideBin(process.argv))
       const id = await rpcClient.ClosePaymentChannel(yargs.channelId);
 
       console.log(`Objective started ${id}`);
-      await rpcClient.WaitForPaymentChannelToHaveStatus(
-        yargs.channelId,
-        "Complete"
-      );
+      await rpcClient.WaitForPaymentChannelStatus(yargs.channelId, "Complete");
       console.log(`Channel complete ${yargs.channelId}`);
       await rpcClient.Close();
       process.exit(0);

@@ -101,22 +101,22 @@ interface paymentApi {
 
 interface syncAPI {
   /**
-   * WaitForLedgerChannelToHaveStatus blocks until the ledger channel with the given ID to have the given status.
+   * WaitForLedgerChannelStatus blocks until the ledger channel with the given ID to have the given status.
    *
    * @param objectiveId - The channel id to wait for
    * @param status - The channel id to wait for (e.g. Ready or Closing)
    */
-  WaitForLedgerChannelToHaveStatus(
+  WaitForLedgerChannelStatus(
     objectiveId: string,
     status: ChannelStatus
   ): Promise<void>;
   /**
-   * WaitForPaymentChannelToHaveStatus blocks until the payment channel with the given ID to have the given status.
+   * WaitForPaymentChannelStatus blocks until the payment channel with the given ID to have the given status.
    *
    * @param objectiveId - The channel id to wait for
    * @param status - The channel id to wait for (e.g. Ready or Closing)
    */
-  WaitForPaymentChannelToHaveStatus(
+  WaitForPaymentChannelStatus(
     objectiveId: string,
     status: ChannelStatus
   ): Promise<void>;

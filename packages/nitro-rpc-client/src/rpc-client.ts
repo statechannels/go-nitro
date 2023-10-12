@@ -59,7 +59,7 @@ export class NitroRpcClient implements RpcClientApi {
     return getAndValidateResult(res, "receive_voucher");
   }
 
-  public async WaitForLedgerChannelToHaveStatus(
+  public async WaitForLedgerChannelStatus(
     channelId: string,
     status: ChannelStatus
   ): Promise<void> {
@@ -80,7 +80,7 @@ export class NitroRpcClient implements RpcClientApi {
     return promise;
   }
 
-  public async WaitForPaymentChannelToHaveStatus(
+  public async WaitForPaymentChannelStatus(
     channelId: string,
     status: ChannelStatus
   ): Promise<void> {

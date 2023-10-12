@@ -178,14 +178,8 @@ yargs(hideBin(process.argv))
         );
 
         await Promise.all([
-          aliceClient.WaitForLedgerChannelToHaveStatus(
-            aliceLedger.ChannelId,
-            "Open"
-          ),
-          bobClient.WaitForLedgerChannelToHaveStatus(
-            bobLedger.ChannelId,
-            "Open"
-          ),
+          aliceClient.WaitForLedgerChannelStatus(aliceLedger.ChannelId, "Open"),
+          bobClient.WaitForLedgerChannelStatus(bobLedger.ChannelId, "Open"),
         ]);
 
         console.log(`Ledger channel ${bobLedger.ChannelId} created`);
@@ -201,10 +195,7 @@ yargs(hideBin(process.argv))
           [ireneAddress],
           yargs.virtualdeposit
         );
-        await aliceClient.WaitForPaymentChannelToHaveStatus(
-          res.ChannelId,
-          "Open"
-        );
+        await aliceClient.WaitForPaymentChannelStatus(res.ChannelId, "Open");
         console.log(`Virtual channel ${res.ChannelId} created`);
         virtualChannels.push(res.ChannelId);
       }
@@ -228,10 +219,7 @@ yargs(hideBin(process.argv))
         }
 
         await aliceClient.ClosePaymentChannel(channelId);
-        await aliceClient.WaitForPaymentChannelToHaveStatus(
-          channelId,
-          "Complete"
-        );
+        await aliceClient.WaitForPaymentChannelStatus(channelId, "Complete");
         console.log(`Virtual channel ${channelId} closed`);
         closeCount++;
       }
@@ -280,10 +268,7 @@ yargs(hideBin(process.argv))
         rightAddress,
         1_000_000
       );
-      await leftClient.WaitForLedgerChannelToHaveStatus(
-        ledger.ChannelId,
-        "Open"
-      );
+      await leftClient.WaitForLedgerChannelStatus(ledger.ChannelId, "Open");
       console.log(`Ledger channel ${ledger.ChannelId} created`);
 
       await closeClients(clients);
