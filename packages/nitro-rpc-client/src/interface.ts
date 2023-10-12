@@ -1,4 +1,5 @@
 import {
+  ChannelStatus,
   LedgerChannelInfo,
   ObjectiveResponse,
   PaymentChannelInfo,
@@ -100,11 +101,25 @@ interface paymentApi {
 
 interface syncAPI {
   /**
-   * WaitForObjective blocks until the objective with the given ID to complete.
+   * WaitForLedgerChannelStatus blocks until the ledger channel with the given ID to have the given status.
    *
-   * @param objectiveId - The id objective to wait for
+   * @param objectiveId - The channel id to wait for
+   * @param status - The channel id to wait for (e.g. Ready or Closing)
    */
-  WaitForObjective(objectiveId: string): Promise<void>;
+  WaitForLedgerChannelStatus(
+    objectiveId: string,
+    status: ChannelStatus
+  ): Promise<void>;
+  /**
+   * WaitForPaymentChannelStatus blocks until the payment channel with the given ID to have the given status.
+   *
+   * @param objectiveId - The channel id to wait for
+   * @param status - The channel id to wait for (e.g. Ready or Closing)
+   */
+  WaitForPaymentChannelStatus(
+    objectiveId: string,
+    status: ChannelStatus
+  ): Promise<void>;
   /**
    * PaymentChannelUpdated attaches a callback which is triggered when the channel with supplied ID is updated.
    * Returns a cleanup function which can be used to remove the subscription.

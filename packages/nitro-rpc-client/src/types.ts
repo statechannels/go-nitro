@@ -259,4 +259,4 @@ export type AssetMetadata = {
   Metadata: null;
 };
 
-export type ChannelStatus = "Proposed" | "Ready" | "Closing" | "Complete";
+export type ChannelStatus = "Proposed" | "Open" | "Closing" | "Complete";

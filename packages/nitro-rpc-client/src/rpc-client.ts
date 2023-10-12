@@ -8,9 +8,11 @@ import {
   RequestMethod,
   RPCRequestAndResponses,
   ObjectiveResponse,
-  ObjectiveCompleteNotification,
   Voucher,
   ReceiveVoucherResult,
+  ChannelStatus,
+  LedgerChannelUpdatedNotification,
+  PaymentChannelUpdatedNotification,
 } from "./types";
 import { Transport } from "./transport";
 import { createOutcome, generateRequest } from "./utils";
@@ -57,17 +59,47 @@ export class NitroRpcClient implements RpcClientApi {
     return getAndValidateResult(res, "receive_voucher");
   }
 
-  public async WaitForObjective(objectiveId: string): Promise<void> {
-    return new Promise((resolve) => {
+  public async WaitForLedgerChannelStatus(
+    channelId: string,
+    status: ChannelStatus
+  ): Promise<void> {
+    const promise = new Promise<void>((resolve) => {
       this.transport.Notifications.on(
-        "objective_completed",
-        (params: ObjectiveCompleteNotification["params"]) => {
-          if (params["payload"] === objectiveId) {
-            resolve();
+        "ledger_channel_updated",
+        (payload: LedgerChannelUpdatedNotification["params"]["payload"]) => {
+          if (payload.ID === channelId) {
+            this.GetLedgerChannel(channelId).then((l) => {
+              if (l.Status == status) resolve();
+            });
           }
         }
       );
     });
+    const ledger = await this.GetLedgerChannel(channelId);
+    if (ledger.Status == status) return;
+    return promise;
+  }
+
+  public async WaitForPaymentChannelStatus(
+    channelId: string,
+    status: ChannelStatus
+  ): Promise<void> {
+    const promise = new Promise<void>((resolve) => {
+      this.transport.Notifications.on(
+        "payment_channel_updated",
+        (payload: PaymentChannelUpdatedNotification["params"]["payload"]) => {
+          if (payload.ID === channelId) {
+            this.GetPaymentChannel(channelId).then((l) => {
+              if (l.Status == status) resolve();
+            });
+          }
+        }
+      );
+    });
+
+    const channel = await this.GetPaymentChannel(channelId);
+    if (channel.Status == status) return;
+    return promise;
   }
 
   public onPaymentChannelUpdated(
