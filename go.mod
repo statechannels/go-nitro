@@ -15,6 +15,7 @@ require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/libp2p/go-libp2p-kad-dht v0.24.2
+	github.com/lmittmann/tint v1.0.2
 	github.com/tidwall/buntdb v1.2.10
 	github.com/urfave/cli/v2 v2.25.3
 
@@ -84,7 +85,6 @@ require (
 	github.com/libp2p/go-netroute v0.2.1 // indirect
 	github.com/libp2p/go-reuseport v0.4.0 // indirect
 	github.com/libp2p/go-yamux/v4 v4.0.1 // indirect
-	github.com/lmittmann/tint v1.0.2 // indirect
 	github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
