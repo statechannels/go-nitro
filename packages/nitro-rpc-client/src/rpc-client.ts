@@ -8,9 +8,11 @@ import {
   RequestMethod,
   RPCRequestAndResponses,
   ObjectiveResponse,
-  ObjectiveCompleteNotification,
   Voucher,
   ReceiveVoucherResult,
+  ChannelStatus,
+  LedgerChannelUpdatedNotification,
+  PaymentChannelUpdatedNotification,
 } from "./types";
 import { Transport } from "./transport";
 import { createOutcome, generateRequest } from "./utils";
@@ -57,13 +59,40 @@ export class NitroRpcClient implements RpcClientApi {
     return getAndValidateResult(res, "receive_voucher");
   }
 
-  public async WaitForObjective(objectiveId: string): Promise<void> {
+  public async WaitForLedgerChannelToHaveStatus(
+    channelId: string,
+    status: ChannelStatus
+  ): Promise<void> {
+    const ledger = await this.GetLedgerChannel(channelId);
     return new Promise((resolve) => {
+      if (ledger.Status == status) resolve();
       this.transport.Notifications.on(
-        "objective_completed",
-        (params: ObjectiveCompleteNotification["params"]) => {
-          if (params["payload"] === objectiveId) {
-            resolve();
+        "ledger_channel_updated",
+        (payload: LedgerChannelUpdatedNotification["params"]["payload"]) => {
+          if (payload.ID === channelId) {
+            this.GetLedgerChannel(channelId).then((l) => {
+              if (l.Status == status) resolve();
+            });
+          }
+        }
+      );
+    });
+  }
+
+  public async WaitForPaymentChannelToHaveStatus(
+    channelId: string,
+    status: ChannelStatus
+  ): Promise<void> {
+    const channel = await this.GetPaymentChannel(channelId);
+    return new Promise((resolve) => {
+      if (channel.Status == status) resolve();
+      this.transport.Notifications.on(
+        "payment_channel_updated",
+        (payload: PaymentChannelUpdatedNotification["params"]["payload"]) => {
+          if (payload.ID === channelId) {
+            this.GetLedgerChannel(channelId).then((l) => {
+              if (l.Status == status) resolve();
+            });
           }
         }
       );
