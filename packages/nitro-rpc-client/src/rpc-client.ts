@@ -63,9 +63,7 @@ export class NitroRpcClient implements RpcClientApi {
     channelId: string,
     status: ChannelStatus
   ): Promise<void> {
-    const ledger = await this.GetLedgerChannel(channelId);
-    return new Promise((resolve) => {
-      if (ledger.Status == status) resolve();
+    const promise = new Promise<void>((resolve) => {
       this.transport.Notifications.on(
         "ledger_channel_updated",
         (payload: LedgerChannelUpdatedNotification["params"]["payload"]) => {
@@ -77,14 +75,16 @@ export class NitroRpcClient implements RpcClientApi {
         }
       );
     });
+    const ledger = await this.GetLedgerChannel(channelId);
+    if (ledger.Status == status) return;
+    return promise;
   }
 
   public async WaitForPaymentChannelToHaveStatus(
     channelId: string,
     status: ChannelStatus
   ): Promise<void> {
-    const channel = await this.GetPaymentChannel(channelId);
-    return new Promise((resolve) => {
+    const promise = new Promise<void>((resolve) => {
       if (channel.Status == status) resolve();
       this.transport.Notifications.on(
         "payment_channel_updated",
@@ -97,6 +97,10 @@ export class NitroRpcClient implements RpcClientApi {
         }
       );
     });
+
+    const channel = await this.GetPaymentChannel(channelId);
+    if (channel.Status == status) return;
+    return promise;
   }
 
   public onPaymentChannelUpdated(
