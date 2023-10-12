@@ -6,13 +6,13 @@ on:
   pull_request:
     paths:
       [
-        'packages/nitro-protocol/contracts/**',
-        'generate-adjudicator-bindings.sh',
-        '.github/workflows/bindings-check.yml',
-        'node/engine/chainservice/adjudicator/NitroAdjudicator.go',
-        'node/engine/chainservice/consensusapp/ConsensusApp.go',
-        'node/engine/chainservice/erc20/Token.go',
-        'node/engine/chainservice/virtualpaymentapp/VirtualPaymentApp.go'
+        "packages/nitro-protocol/contracts/**",
+        "generate-adjudicator-bindings.sh",
+        ".github/workflows/bindings-check.yml",
+        "node/engine/chainservice/adjudicator/NitroAdjudicator.go",
+        "node/engine/chainservice/consensusapp/ConsensusApp.go",
+        "node/engine/chainservice/erc20/Token.go",
+        "node/engine/chainservice/virtualpaymentapp/VirtualPaymentApp.go",
       ]
 jobs:
   build:
@@ -21,8 +21,8 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '18.15.0'
-          cache: 'yarn'
+          node-version: "20.0.0"
+          cache: "yarn"
 
       - name: Install go-ethereum (includes abigen)
         run: go install github.com/ethereum/go-ethereum
