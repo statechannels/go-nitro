@@ -177,11 +177,17 @@ yargs(hideBin(process.argv))
           yargs.ledgerdeposit
         );
 
-        // race condition means this may never resolve https://github.com/statechannels/go-nitro/issues/1749
         await Promise.all([
-          aliceClient.WaitForObjective(aliceLedger.Id),
-          bobClient.WaitForObjective(bobLedger.Id),
+          aliceClient.WaitForLedgerChannelToHaveStatus(
+            aliceLedger.ChannelId,
+            "Open"
+          ),
+          bobClient.WaitForLedgerChannelToHaveStatus(
+            bobLedger.ChannelId,
+            "Open"
+          ),
         ]);
+
         console.log(`Ledger channel ${bobLedger.ChannelId} created`);
         console.log(`Ledger channel ${aliceLedger.ChannelId} created`);
       }
@@ -195,7 +201,10 @@ yargs(hideBin(process.argv))
           [ireneAddress],
           yargs.virtualdeposit
         );
-        await aliceClient.WaitForObjective(res.Id);
+        await aliceClient.WaitForPaymentChannelToHaveStatus(
+          res.ChannelId,
+          "Open"
+        );
         console.log(`Virtual channel ${res.ChannelId} created`);
         virtualChannels.push(res.ChannelId);
       }
@@ -218,11 +227,12 @@ yargs(hideBin(process.argv))
           break;
         }
 
-        const res = await aliceClient.ClosePaymentChannel(channelId);
-        await aliceClient.WaitForObjective(res);
-        console.log(
-          `Virtual channel ${getChannelIdFromObjectiveId(res)} closed`
+        await aliceClient.ClosePaymentChannel(channelId);
+        await aliceClient.WaitForPaymentChannelToHaveStatus(
+          channelId,
+          "Complete"
         );
+        console.log(`Virtual channel ${channelId} closed`);
         closeCount++;
       }
 
@@ -270,7 +280,10 @@ yargs(hideBin(process.argv))
         rightAddress,
         1_000_000
       );
-      await leftClient.WaitForObjective(ledger.Id);
+      await leftClient.WaitForLedgerChannelToHaveStatus(
+        ledger.ChannelId,
+        "Open"
+      );
       console.log(`Ledger channel ${ledger.ChannelId} created`);
 
       await closeClients(clients);
@@ -285,10 +298,6 @@ function getRandomElement<T>(col: T[]): T {
 }
 async function wait(ms: number) {
   await new Promise((res) => setTimeout(res, ms));
-}
-
-function getChannelIdFromObjectiveId(objectiveId: string): string {
-  return objectiveId.split("-")[1];
 }
 
 // Waits for the RPC server to be available by sending a simple get_address POST request until we get a response
