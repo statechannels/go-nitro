@@ -6,7 +6,7 @@ export async function fetchFile(
   paymentAmount: number,
   channelId: string,
   nitroClient: NitroRpcClient,
-  updateChannelCallback: () => void
+  updateChannelCallback?: () => void
 ): Promise<File> {
   console.time("Create Payment Vouncher");
   const voucher = await nitroClient.CreateVoucher(channelId, paymentAmount);
@@ -15,7 +15,7 @@ export async function fetchFile(
   console.time("Fetch file");
   const req = createRequest(url, voucher);
   const fetchPromise = fetch(req);
-  updateChannelCallback();
+  updateChannelCallback && updateChannelCallback();
   const response = await fetchPromise;
   console.timeEnd("Fetch file");
   if (response.status != 200) {
