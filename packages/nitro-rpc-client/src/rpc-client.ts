@@ -85,7 +85,6 @@ export class NitroRpcClient implements RpcClientApi {
     status: ChannelStatus
   ): Promise<void> {
     const promise = new Promise<void>((resolve) => {
-      if (channel.Status == status) resolve();
       this.transport.Notifications.on(
         "payment_channel_updated",
         (payload: PaymentChannelUpdatedNotification["params"]["payload"]) => {
