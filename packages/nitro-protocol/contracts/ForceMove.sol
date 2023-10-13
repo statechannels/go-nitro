@@ -20,7 +20,7 @@ contract ForceMove is IForceMove, StatusManager {
      * @param channelId Unique identifier for a state channel.
      * @return turnNumRecord A turnNum that (the adjudicator knows) is supported by a signature from each participant.
      * @return finalizesAt The unix timestamp when `channelId` will finalize.
-     * @return fingerprint The last 160 bits of kecca256(stateHash, outcomeHash)
+     * @return fingerprint The last 160 bits of keccak256(stateHash, outcomeHash)
      */
     function unpackStatus(
         bytes32 channelId
