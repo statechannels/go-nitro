@@ -1,7 +1,7 @@
 {
   "deployInfrastructureContracts": {
     "satp": {
-      "NitroAdjudicator": 3428703
+      "NitroAdjudicator": 3443915
     }
   },
   "directlyFundAChannelWithETHFirst": {
@@ -95,9 +95,9 @@
   },
   "ETHClearChallenge": {
     "satp": {
-      "checkpointX": 73562,
+      "checkpointX": 73936,
       "challengeResponseX": 96482,
-      "checkpointL": 69558,
+      "checkpointL": 69932,
       "challengeResponseL": 89655,
       "challengeResponseV": 0
     }
