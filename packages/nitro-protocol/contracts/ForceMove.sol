@@ -103,8 +103,19 @@ contract ForceMove is IForceMove, StatusManager {
         (supported, reason) = _stateIsSupported(fixedPart, proof, candidate);
         require(supported, reason);
 
+        ChannelMode currMode = _mode(channelId);
+
         // effects
-        _clearChallenge(channelId, candidateTurnNum);
+        statusOf[channelId] = _generateStatus(
+            ChannelData(candidateTurnNum, 0, bytes32(0), bytes32(0))
+        );
+
+        if (currMode == ChannelMode.Open) {
+            emit Checkpointed(channelId, candidateTurnNum);
+        } else {
+            // `Finalized` was ruled out by the require above
+            emit ChallengeCleared(channelId, candidateTurnNum);
+        }
     }
 
     /**
@@ -270,19 +281,6 @@ contract ForceMove is IForceMove, StatusManager {
             }
         }
         return rvp;
-    }
-
-    /**
-     * @notice Clears a challenge by updating the turnNumRecord and resetting the remaining channel storage fields, and emits a ChallengeCleared event.
-     * @dev Clears a challenge by updating the turnNumRecord and resetting the remaining channel storage fields, and emits a ChallengeCleared event.
-     * @param channelId Unique identifier for a channel.
-     * @param newTurnNumRecord New turnNumRecord to overwrite existing value
-     */
-    function _clearChallenge(bytes32 channelId, uint48 newTurnNumRecord) internal {
-        statusOf[channelId] = _generateStatus(
-            ChannelData(newTurnNumRecord, 0, bytes32(0), bytes32(0))
-        );
-        emit ChallengeCleared(channelId, newTurnNumRecord);
     }
 
     /**
