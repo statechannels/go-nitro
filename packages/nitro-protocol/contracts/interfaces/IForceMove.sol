@@ -67,6 +67,13 @@ interface IForceMove is INitroTypes {
     event ChallengeCleared(bytes32 indexed channelId, uint48 newTurnNumRecord);
 
     /**
+     * @dev Indicates that an on-chain channel data was successfully updated and now has `newTurnNumRecord` as the latest turn number.
+     * @param channelId Unique identifier for a state channel.
+     * @param newTurnNumRecord A latest turnNum that (the adjudicator knows) is supported by adhering to channel application rules.
+     */
+    event Checkpointed(bytes32 indexed channelId, uint48 newTurnNumRecord);
+
+    /**
      * @dev Indicates that a challenge has been registered against `channelId`.
      * @param channelId Unique identifier for a state channel.
      * @param finalizesAt The unix timestamp when `channelId` finalized.

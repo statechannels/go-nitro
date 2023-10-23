@@ -93,8 +93,8 @@ describe('checkpoint', () => {
   it.each`
     description | largestTurnNum                         | support              | finalizesAt  | reason
     ${accepts1} | ${turnNumRecord + 1}                   | ${valid}             | ${undefined} | ${undefined}
-    ${accepts2} | ${turnNumRecord + 1}                   | ${valid}             | ${never}     | ${undefined}
-    ${accepts3} | ${turnNumRecord + 1 + participantsNum} | ${valid}             | ${future}    | ${undefined}
+    ${accepts2} | ${turnNumRecord + 1}                   | ${valid}             | ${future}    | ${undefined}
+    ${accepts3} | ${turnNumRecord + 1 + participantsNum} | ${valid}             | ${never}     | ${undefined}
     ${reverts1} | ${turnNumRecord}                       | ${valid}             | ${never}     | ${TURN_NUM_RECORD_NOT_INCREASED}
     ${reverts2} | ${turnNumRecord + 1}                   | ${invalidTransition} | ${never}     | ${COUNTING_APP_INVALID_TRANSITION}
     ${reverts3} | ${turnNumRecord + 1}                   | ${unsupported}       | ${never}     | ${INVALID_SIGNED_BY}
@@ -127,12 +127,11 @@ describe('checkpoint', () => {
       bindSignatures(variableParts, signatures, whoSignedWhat)
     );
 
-    const isOpen = !!finalizesAt;
-    const outcome = isOpen ? [] : defaultOutcome;
+    const isChallenged = finalizesAt && finalizesAt > Math.floor(new Date().getTime() / 1000);
+    const outcome = isChallenged ? defaultOutcome : [];
 
-    const challengeState: State | undefined = isOpen
-      ? undefined
-      : {
+    const challengeState: State | undefined = isChallenged
+      ? {
           turnNum: turnNumRecord,
           isFinal: false,
           channelNonce,
@@ -141,7 +140,8 @@ describe('checkpoint', () => {
           appData: defaultAbiCoder.encode(['uint256'], [appDatas[0]]),
           appDefinition,
           challengeDuration,
-        };
+        }
+      : undefined;
 
     const fingerprint = finalizesAt
       ? channelDataToStatus({
@@ -162,6 +162,8 @@ describe('checkpoint', () => {
     } else {
       const receipt = await (await tx).wait();
       const event = receipt.events.pop();
+
+      expect(event.event).toEqual(isChallenged ? 'ChallengeCleared' : 'Checkpointed');
       expect(event.args).toMatchObject({
         channelId,
         newTurnNumRecord: largestTurnNum,
