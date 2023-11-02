@@ -93,6 +93,13 @@ func (p *PaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	if r.Method == "OPTIONS" {
+		enableCors(w.Header())
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	v, err := parseVoucher(r.URL.Query())
 	if err != nil {
 		p.handleError(w, r, createPaymentError(fmt.Errorf("could not parse voucher: %w", err)))
