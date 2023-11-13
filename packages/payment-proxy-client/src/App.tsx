@@ -267,16 +267,9 @@ export default function App() {
             <StepLabel>Connect to a Retrieval Provider</StepLabel>
             <StepContent>
               <Typography>
-                Connect to{" "}
-                <Link
-                  underline="hover"
-                  href="https://dcent.nl/"
-                  target="_blank"
-                >
-                  DCENT Datacenter
-                </Link>{" "}
-                Storage Provider, creating a <b>virtual payment channel</b> with
-                enough capacity to pay for 10 retrievals.
+                Connect to a Storage Provider, creating a{" "}
+                <b>virtual payment channel</b> with enough capacity to pay for
+                10 retrievals.
               </Typography>
 
               <Box sx={{ mb: 2 }}>
