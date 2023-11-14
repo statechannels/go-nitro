@@ -41,7 +41,7 @@ jobs:
     steps:
       - name: Deploy to Droplet
         env:
-          DO_API_KEY: ${{ secrets.DO_API_KEY }}}
+          DO_API_KEY: ${{ secrets.DO_API_KEY }}
           SSH_PRIVATE_KEY: ${{ secrets.PATSY_SSH_PRIVATE_KEY }}
           DROPLET_IP: "165.22.197.200"
           NAME: "nitro-payment-proxy"
