@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       build-image:
-        description: "Build docker image"
+        description: 'Build docker image'
         required: false
-        default: "true"
+        default: 'true'
       deploy-patsy:
-        description: "Deploy Patsy"
+        description: 'Deploy Patsy'
         required: false
-        default: "true"
+        default: 'true'
 
 jobs:
   build-image:
@@ -43,10 +43,10 @@ jobs:
         env:
           DO_API_KEY: ${{ secrets.DO_API_KEY }}
           SSH_PRIVATE_KEY: ${{ secrets.PATSY_SSH_PRIVATE_KEY }}
-          DROPLET_IP: "165.22.197.200"
-          NAME: "nitro-payment-proxy"
-          NITRO_ENDPOINT: "brad-node.statechannels.org:4005/api/v1"
-          DESTINATION_URL: "https://demo-files.ams3.digitaloceanspaces.com/"
+          DROPLET_IP: '165.22.197.200'
+          NAME: 'nitro-payment-proxy'
+          NITRO_ENDPOINT: 'brad-node.statechannels.org:4005/api/v1'
+          DESTINATION_URL: 'https://demo-files.ams3.digitaloceanspaces.com/'
           TLS_CERT_FILE: /app/certs/live/payment-proxy.statechannels.org/fullchain.pem
           TLS_KEY_FILE: /app/certs/live/payment-proxy.statechannels.org/privkey.pem
           PROXY_PORT: 443
@@ -54,6 +54,7 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           ssh -o StrictHostKeyChecking=no -i private_key.pem root@$DROPLET_IP <<ENDSSH
+            set -e
             docker login -u $DO_API_KEY -p $DO_API_KEY registry.digitalocean.com
             docker pull registry.digitalocean.com/magmo/nitro-payment-proxy:latest
             docker stop $NAME || true
