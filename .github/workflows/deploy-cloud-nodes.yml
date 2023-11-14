@@ -60,6 +60,7 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           ssh -o StrictHostKeyChecking=no -i private_key.pem root@$DROPLET_IP <<ENDSSH
+            set -e
             docker login -u $DO_API_KEY -p $DO_API_KEY registry.digitalocean.com
             docker pull registry.digitalocean.com/magmo/go-nitro:latest
             docker stop $NODE_NAME || true
