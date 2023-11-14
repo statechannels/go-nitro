@@ -84,6 +84,7 @@ func NewPaymentProxy(proxyAddress string, nitroEndpoint string, destinationURL s
 // It then delegates to the reverse proxy to handle rewriting the request and sending it to the destination
 func (p *PaymentProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Sanity")
+	slog.Info("Sanity")
 	// If the request is a health check, return a 200 OK
 	if r.URL.Path == "/health" {
 		w.WriteHeader(http.StatusOK)
