@@ -73,9 +73,11 @@ func (r *Remove) UnmarshalJSON(data []byte) error {
 // jsonProposal replaces Proposal's private fields with public ones,
 // making it suitable for serialization
 type jsonProposal struct {
-	LedgerID types.Destination
-	ToAdd    Add
-	ToRemove Remove
+	LedgerID   types.Destination
+	ToAdd      Add
+	ToRemove   Remove
+	AddHTLC    HTLC
+	RemoveHTLC []byte
 }
 
 // MarshalJSON returns a JSON representation of the Proposal
