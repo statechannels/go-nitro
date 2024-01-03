@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.7.0) (token/ERC20/ERC20.sol)
 
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 /**
  * @dev Copy-pasted from Openzeppelin ERC20 contract, but with the inheritance from IERC20 interface removed and no return value for transferFrom.
