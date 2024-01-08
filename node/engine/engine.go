@@ -476,14 +476,6 @@ func (e *Engine) handleObjectiveRequest(or protocols.ObjectiveRequest) (EngineEv
 		if err != nil {
 			return failedEngineEvent, fmt.Errorf("handleAPIEvent: Could not create virtualfund objective for %+v: %w", request, err)
 		}
-		// Only Alice or Bob care about registering the objective and keeping track of vouchers
-		lastParticipant := uint(len(vfo.V.Participants) - 1)
-		if vfo.MyRole == lastParticipant || vfo.MyRole == payments.PAYER_INDEX {
-			err = e.registerPaymentChannel(vfo)
-			if err != nil {
-				return failedEngineEvent, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
-			}
-		}
 
 		if err != nil {
 			return failedEngineEvent, fmt.Errorf("could not register channel with payment/receipt manager: %w", err)
@@ -593,6 +585,14 @@ func (e *Engine) executeSideEffects(sideEffects protocols.SideEffects) error {
 	for _, proposal := range sideEffects.ProposalsToProcess {
 		e.fromLedger <- proposal
 	}
+
+	if sideEffects.PaymentChannelToRegister != (payments.ChannelRegistrationData{}) {
+		err := e.vm.Register(sideEffects.PaymentChannelToRegister)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -631,6 +631,7 @@ func (e *Engine) attemptProgress(objective protocols.Objective) (outgoing Engine
 	// TODO: If attemptProgress is called on a completed objective CompletedObjectives would include that objective id
 	// Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
 	if waitingFor == "WaitingForNothing" {
+		// err = e.executeSideEffects(sideEffects)
 		outgoing.CompletedObjectives = append(outgoing.CompletedObjectives, crankedObjective)
 		err = e.store.ReleaseChannelFromOwnership(crankedObjective.OwnsChannel())
 		if err != nil {
@@ -689,15 +690,6 @@ func (e *Engine) generateNotifications(o protocols.Objective) (EngineEvent, erro
 		}
 	}
 	return outgoing, nil
-}
-
-func (e Engine) registerPaymentChannel(vfo virtualfund.Objective) error {
-	postfund := vfo.V.PostFundState()
-	startingBalance := big.NewInt(0)
-	// TODO: Assumes one asset for now
-	startingBalance.Set(postfund.Outcome[0].Allocations[0].Amount)
-
-	return e.vm.Register(vfo.V.Id, payments.GetPayer(postfund.Participants), payments.GetPayee(postfund.Participants), startingBalance)
 }
 
 // spawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from the supplied Objective if it is a directfund.Objective.
@@ -761,10 +753,6 @@ func (e *Engine) constructObjectiveFromMessage(id protocols.ObjectiveId, p proto
 		vfo, err := virtualfund.ConstructObjectiveFromPayload(p, false, *e.store.GetAddress(), e.store.GetConsensusChannel)
 		if err != nil {
 			return &virtualfund.Objective{}, fromMsgErr(id, err)
-		}
-		err = e.registerPaymentChannel(vfo)
-		if err != nil {
-			return &virtualfund.Objective{}, fmt.Errorf("could not register channel with payment/receipt manager.\n\ttarget channel: %s\n\terr: %w", id, err)
 		}
 		return &vfo, nil
 	case virtualdefund.IsVirtualDefundObjective(id):

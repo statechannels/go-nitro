@@ -8,6 +8,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/crypto"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/types"
 )
 
@@ -68,9 +69,10 @@ func NewChallengeTransaction(
 
 // SideEffects are effects to be executed by an imperative shell
 type SideEffects struct {
-	MessagesToSend       []Message
-	TransactionsToSubmit []ChainTransaction
-	ProposalsToProcess   []consensus_channel.Proposal
+	MessagesToSend           []Message
+	TransactionsToSubmit     []ChainTransaction
+	ProposalsToProcess       []consensus_channel.Proposal
+	PaymentChannelToRegister payments.ChannelRegistrationData
 }
 
 // WaitingFor is an enumerable "pause-point" computed from an Objective. It describes how the objective is blocked on actions by third parties (i.e. co-participants or the blockchain).

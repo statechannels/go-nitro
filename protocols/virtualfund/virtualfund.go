@@ -13,6 +13,7 @@ import (
 	"github.com/statechannels/go-nitro/channel/consensus_channel"
 	"github.com/statechannels/go-nitro/channel/state"
 	"github.com/statechannels/go-nitro/channel/state/outcome"
+	"github.com/statechannels/go-nitro/payments"
 	"github.com/statechannels/go-nitro/protocols"
 	"github.com/statechannels/go-nitro/types"
 )
@@ -470,6 +471,16 @@ func (o *Objective) Crank(secretKey *[]byte) (protocols.Objective, protocols.Sid
 
 	// Completion
 	updated.Status = protocols.Completed
+
+	if updated.isAlice() || updated.isBob() {
+		sideEffects.PaymentChannelToRegister = payments.ChannelRegistrationData{
+			ChannelId:       updated.V.Id,
+			Payer:           updated.V.Participants[0],
+			Payee:           updated.V.Participants[len(updated.V.Participants)-1],
+			StartingBalance: updated.V.PostFundState().Outcome[0].Allocations[0].Amount,
+		}
+	}
+
 	return &updated, sideEffects, WaitingForNothing, nil
 }
 

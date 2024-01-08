@@ -297,6 +297,16 @@ func executeNRpcTest(t *testing.T, connectionType transport.TransportType, n int
 		<-client.ObjectiveCompleteChan(vabClosure)
 	}
 
+	// assert that the payment is reflected in the ledger channels
+	la, _ := aliceClient.GetLedgerChannel(aliceLedger.ChannelId)
+	if la.Balance.MyBalance.ToInt().Cmp(big.NewInt(99)) != 0 {
+		t.Errorf("expected alice's ledger channel balance to be 99, got %s", la.Balance.MyBalance.ToInt().String())
+	}
+	lb, _ := bobClient.GetLedgerChannel(bobLedger.ChannelId)
+	if lb.Balance.MyBalance.ToInt().Cmp(big.NewInt(101)) != 0 {
+		t.Errorf("expected bob's ledger channel balance to be 101, got %s", lb.Balance.MyBalance.ToInt().String())
+	}
+
 	laiClosure, _ := aliceClient.CloseLedgerChannel(aliceLedger.ChannelId)
 	<-aliceClient.ObjectiveCompleteChan(laiClosure)
 
