@@ -43,30 +43,32 @@ const reason3 = 'cannot transfer a guarantee';
 // c is the channel we are transferring from.
 describe('transfer', () => {
   it.each`
-    name                                   | heldBefore | isSimple | setOutcome            | indices      | newOutcome            | heldAfter       | payouts         | reason
-    ${' 0. channel not finalized        '} | ${{c: 1}}  | ${true}  | ${{}}                 | ${[0]}       | ${{}}                 | ${{}}           | ${{A: 1}}       | ${reason0}
-    ${' 1. funded          -> 1 EOA'}      | ${{c: 1}}  | ${true}  | ${{A: 1}}             | ${[0]}       | ${{A: 0}}             | ${{}}           | ${{A: 1}}       | ${undefined}
-    ${' 2. overfunded      -> 1 EOA'}      | ${{c: 2}}  | ${true}  | ${{A: 1}}             | ${[0]}       | ${{A: 0}}             | ${{c: 1}}       | ${{A: 1}}       | ${undefined}
-    ${' 3. underfunded     -> 1 EOA'}      | ${{c: 1}}  | ${true}  | ${{A: 2}}             | ${[0]}       | ${{A: 1}}             | ${{}}           | ${{A: 1}}       | ${undefined}
-    ${' 4. funded      -> 1 channel'}      | ${{c: 1}}  | ${true}  | ${{C: 1}}             | ${[0]}       | ${{C: 0}}             | ${{c: 0, C: 1}} | ${{}}           | ${undefined}
-    ${' 5. overfunded  -> 1 channel'}      | ${{c: 2}}  | ${true}  | ${{C: 1}}             | ${[0]}       | ${{C: 0}}             | ${{c: 1, C: 1}} | ${{}}           | ${undefined}
-    ${' 6. underfunded -> 1 channel'}      | ${{c: 1}}  | ${true}  | ${{C: 2}}             | ${[0]}       | ${{C: 1}}             | ${{c: 0, C: 1}} | ${{}}           | ${undefined}
-    ${' 7. -> 2 EOA         1 index'}      | ${{c: 2}}  | ${true}  | ${{A: 1, B: 1}}       | ${[0]}       | ${{A: 0, B: 1}}       | ${{c: 1}}       | ${{A: 1}}       | ${undefined}
-    ${' 8. -> 2 EOA         1 index'}      | ${{c: 1}}  | ${true}  | ${{A: 1, B: 1}}       | ${[0]}       | ${{A: 0, B: 1}}       | ${{c: 0}}       | ${{A: 1}}       | ${undefined}
-    ${' 9. -> 2 EOA         partial'}      | ${{c: 3}}  | ${true}  | ${{A: 2, B: 2}}       | ${[1]}       | ${{A: 2, B: 1}}       | ${{c: 2}}       | ${{B: 1}}       | ${undefined}
-    ${'10. -> 2 chan             no'}      | ${{c: 1}}  | ${true}  | ${{C: 1, X: 1}}       | ${[1]}       | ${{C: 1, X: 1}}       | ${{c: 1}}       | ${{}}           | ${undefined}
-    ${'11. -> 2 chan           full'}      | ${{c: 1}}  | ${true}  | ${{C: 1, X: 1}}       | ${[0]}       | ${{C: 0, X: 1}}       | ${{c: 0, C: 1}} | ${{}}           | ${undefined}
-    ${'12. -> 2 chan        partial'}      | ${{c: 3}}  | ${true}  | ${{C: 2, X: 2}}       | ${[1]}       | ${{C: 2, X: 1}}       | ${{c: 2, X: 1}} | ${{}}           | ${undefined}
-    ${'13. -> 2 indices'}                  | ${{c: 3}}  | ${true}  | ${{C: 2, X: 2}}       | ${[0, 1]}    | ${{C: 0, X: 1}}       | ${{c: 0, X: 1}} | ${{C: 2}}       | ${undefined}
-    ${'14. -> 3 indices'}                  | ${{c: 5}}  | ${true}  | ${{A: 1, C: 2, X: 2}} | ${[0, 1, 2]} | ${{A: 0, C: 0, X: 0}} | ${{c: 0, X: 2}} | ${{A: 1, C: 2}} | ${undefined}
-    ${'15. -> reverse order (see 13)'}     | ${{c: 3}}  | ${true}  | ${{C: 2, X: 2}}       | ${[1, 0]}    | ${{C: 2, X: 1}}       | ${{c: 2, X: 1}} | ${{}}           | ${reason1}
-    ${'16. incorrect fingerprint        '} | ${{c: 1}}  | ${true}  | ${{}}                 | ${[0]}       | ${{}}                 | ${{}}           | ${{A: 1}}       | ${reason2}
-    ${'17. guarantee allocationType'}      | ${{c: 1}}  | ${false} | ${{A: 1}}             | ${[0]}       | ${{A: 0}}             | ${{}}           | ${{A: 1}}       | ${reason3}
+    name                                   | heldBefore | guarantees | setOutcome            | indices      | newOutcome            | heldAfter       | payouts         | reason
+    ${' 0. channel not finalized        '} | ${{c: 1}}  | ${[]}      | ${{}}                 | ${[0]}       | ${{}}                 | ${{}}           | ${{A: 1}}       | ${reason0}
+    ${' 1. funded          -> 1 EOA'}      | ${{c: 1}}  | ${[]}      | ${{A: 1}}             | ${[0]}       | ${{A: 0}}             | ${{}}           | ${{A: 1}}       | ${undefined}
+    ${' 2. overfunded      -> 1 EOA'}      | ${{c: 2}}  | ${[]}      | ${{A: 1}}             | ${[0]}       | ${{A: 0}}             | ${{c: 1}}       | ${{A: 1}}       | ${undefined}
+    ${' 3. underfunded     -> 1 EOA'}      | ${{c: 1}}  | ${[]}      | ${{A: 2}}             | ${[0]}       | ${{A: 1}}             | ${{}}           | ${{A: 1}}       | ${undefined}
+    ${' 4. funded      -> 1 channel'}      | ${{c: 1}}  | ${[]}      | ${{C: 1}}             | ${[0]}       | ${{C: 0}}             | ${{c: 0, C: 1}} | ${{}}           | ${undefined}
+    ${' 5. overfunded  -> 1 channel'}      | ${{c: 2}}  | ${[]}      | ${{C: 1}}             | ${[0]}       | ${{C: 0}}             | ${{c: 1, C: 1}} | ${{}}           | ${undefined}
+    ${' 6. underfunded -> 1 channel'}      | ${{c: 1}}  | ${[]}      | ${{C: 2}}             | ${[0]}       | ${{C: 1}}             | ${{c: 0, C: 1}} | ${{}}           | ${undefined}
+    ${' 7. -> 2 EOA         1 index'}      | ${{c: 2}}  | ${[]}      | ${{A: 1, B: 1}}       | ${[0]}       | ${{A: 0, B: 1}}       | ${{c: 1}}       | ${{A: 1}}       | ${undefined}
+    ${' 8. -> 2 EOA         1 index'}      | ${{c: 1}}  | ${[]}      | ${{A: 1, B: 1}}       | ${[0]}       | ${{A: 0, B: 1}}       | ${{c: 0}}       | ${{A: 1}}       | ${undefined}
+    ${' 9. -> 2 EOA         partial'}      | ${{c: 3}}  | ${[]}      | ${{A: 2, B: 2}}       | ${[1]}       | ${{A: 2, B: 1}}       | ${{c: 2}}       | ${{B: 1}}       | ${undefined}
+    ${'10. -> 2 chan             no'}      | ${{c: 1}}  | ${[]}      | ${{C: 1, X: 1}}       | ${[1]}       | ${{C: 1, X: 1}}       | ${{c: 1}}       | ${{}}           | ${undefined}
+    ${'11. -> 2 chan           full'}      | ${{c: 1}}  | ${[]}      | ${{C: 1, X: 1}}       | ${[0]}       | ${{C: 0, X: 1}}       | ${{c: 0, C: 1}} | ${{}}           | ${undefined}
+    ${'12. -> 2 chan        partial'}      | ${{c: 3}}  | ${[]}      | ${{C: 2, X: 2}}       | ${[1]}       | ${{C: 2, X: 1}}       | ${{c: 2, X: 1}} | ${{}}           | ${undefined}
+    ${'13. -> 2 indices'}                  | ${{c: 3}}  | ${[]}      | ${{C: 2, X: 2}}       | ${[0, 1]}    | ${{C: 0, X: 1}}       | ${{c: 0, X: 1}} | ${{C: 2}}       | ${undefined}
+    ${'14. -> 3 indices'}                  | ${{c: 5}}  | ${[]}      | ${{A: 1, C: 2, X: 2}} | ${[0, 1, 2]} | ${{A: 0, C: 0, X: 0}} | ${{c: 0, X: 2}} | ${{A: 1, C: 2}} | ${undefined}
+    ${'15. -> reverse order (see 13)'}     | ${{c: 3}}  | ${[]}      | ${{C: 2, X: 2}}       | ${[1, 0]}    | ${{C: 2, X: 1}}       | ${{c: 2, X: 1}} | ${{}}           | ${reason1}
+    ${'16. incorrect fingerprint        '} | ${{c: 1}}  | ${[]}      | ${{}}                 | ${[0]}       | ${{}}                 | ${{}}           | ${{A: 1}}       | ${reason2}
+    ${'17. guarantee allocationType'}      | ${{c: 1}}  | ${['A']}   | ${{A: 1}}             | ${[0]}       | ${{A: 0}}             | ${{}}           | ${{A: 1}}       | ${reason3}
+    ${'18. guarantee after skipped'}       | ${{c: 3}}  | ${['C']}   | ${{A: 1, B: 1, C: 1}} | ${[0, 2]}    | ${{A: 0, B: 1, C: 0}} | ${{c: 1}}       | ${{A: 1}}       | ${reason3}
+    ${'19. simple after guarantee'}        | ${{c: 2}}  | ${['C']}   | ${{C: 1, A: 1}}       | ${[1]}       | ${{C: 1, A: 0}}       | ${{c: 1}}       | ${{A: 1}}       | ${undefined}
   `(
-    `$name: isSimple: $isSimple, heldBefore: $heldBefore, setOutcome: $setOutcome, newOutcome: $newOutcome, heldAfter: $heldAfter, payouts: $payouts`,
+    `$name: guarantees: $guarantees, heldBefore: $heldBefore, setOutcome: $setOutcome, newOutcome: $newOutcome, heldAfter: $heldAfter, payouts: $payouts`,
     async tc => {
       let heldBefore = tc.heldBefore as AssetOutcomeShortHand;
-      const isSimple = tc.isSimple as boolean;
+      const guaranteeKeys = tc.guarantees as string[];
       let setOutcome = tc.setOutcome as AssetOutcomeShortHand;
       const indices = tc.indices as number[];
       let newOutcome = tc.newOutcome as AssetOutcomeShortHand;
@@ -87,6 +89,9 @@ describe('transfer', () => {
       newOutcome = replaceAddressesAndBigNumberify(newOutcome, addresses) as AssetOutcomeShortHand;
       heldAfter = replaceAddressesAndBigNumberify(heldAfter, addresses) as AssetOutcomeShortHand;
       payouts = replaceAddressesAndBigNumberify(payouts, addresses) as AssetOutcomeShortHand;
+      const guarantees = guaranteeKeys.map(key => addresses[key as keyof typeof addresses]);
+      const allocationTypeOf = (destination: string) =>
+        guarantees.includes(destination) ? AllocationType.guarantee : AllocationType.simple;
 
       // Deposit into channels
 
@@ -112,7 +117,7 @@ describe('transfer', () => {
           destination: key,
           amount: BigNumber.from(setOutcome[key]).toHexString(),
           metadata: '0x',
-          allocationType: isSimple ? AllocationType.simple : AllocationType.guarantee,
+          allocationType: allocationTypeOf(key),
         })
       );
       const outcomeHash = hashOutcome([
@@ -175,7 +180,7 @@ describe('transfer', () => {
             destination: key,
             amount: BigNumber.from(newOutcome[key]).toHexString(),
             metadata: '0x',
-            allocationType: AllocationType.simple,
+            allocationType: allocationTypeOf(key),
           });
         });
         const outcomeAfter: Outcome = [

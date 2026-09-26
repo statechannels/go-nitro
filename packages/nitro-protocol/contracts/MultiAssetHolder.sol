@@ -166,7 +166,7 @@ contract MultiAssetHolder is IMultiAssetHolder, StatusManager {
             // compute new amount part
             uint256 affordsForDestination = min(allocations[i].amount, surplus);
             if ((indices.length == 0) || ((k < indices.length) && (indices[k] == i))) {
-                if (allocations[k].allocationType == uint8(Outcome.AllocationType.guarantee))
+                if (allocations[i].allocationType == uint8(Outcome.AllocationType.guarantee))
                     revert('cannot transfer a guarantee');
                 // found a match
                 // reduce the current allocationItem.amount
